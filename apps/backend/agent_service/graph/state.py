@@ -20,7 +20,7 @@ class TripPlanState(TypedDict):
     weather: dict
 
     # Composer output
-    final_response: str
+    tools_to_call: list[str]
 
-    # Error handling
-    errors: list
+    final_response: str
+    errors: list[str]
