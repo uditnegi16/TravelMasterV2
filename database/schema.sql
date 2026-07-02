@@ -1,0 +1,2 @@
+-- TravelMaster V2 Database Schema
+-- Phase 0 Placeholder

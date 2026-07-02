@@ -1,0 +1,2 @@
+-- pgvector similarity function
+-- Phase 0 Placeholder
