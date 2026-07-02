@@ -1,21 +1,23 @@
 from graph.state import TripPlanState
+from llm.llm_client import get_llm
+from llm.prompts import PLANNER_SYSTEM_PROMPT
+from shared.schemas import TripRequest
 
 
 def planner_node(state: TripPlanState) -> TripPlanState:
     """
-    First LangGraph node.
-
-    For Phase 1, this simply stores the user's
-    natural language query inside parsed_trip.
-
-    Later this node will call the LLM to extract
-    destination, dates, budget, travelers, etc.
+    Uses the LLM to extract structured trip information.
     """
 
-    user_query = state["user_query"]
+    llm = get_llm().with_structured_output(TripRequest)
 
-    state["parsed_trip"] = {
-        "query": user_query
-    }
+    response = llm.invoke(
+        [
+            ("system", PLANNER_SYSTEM_PROMPT),
+            ("human", state["user_query"]),
+        ]
+    )
+
+    state["parsed_trip"] = response.model_dump()
 
     return state
