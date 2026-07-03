@@ -1,9 +1,16 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from graph.build_graph import build_graph
 
 graph = build_graph()
 
 state = {
-    "user_query": "Plan a 5-day trip to Japan in October under ₹2 lakh.",
+    "user_query": (
+        "Plan a trip from DEL to NRT departing on "
+        "2026-10-10 for 5 days with one traveler and a budget of ₹200000."
+    ),
     "parsed_trip": {},
     "tools_to_call": [],
     "flights": [],
@@ -16,4 +23,4 @@ state = {
 
 result = graph.invoke(state)
 
-print(result["tools_to_call"])
+print(result["final_response"])
