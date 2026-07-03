@@ -1,10 +1,41 @@
+import time
+
 from graph.state import TripPlanState
 from services.hotel_service import search_hotels
+from shared.cache import get_cache, set_cache
+from shared.logging_config import logger
 
 
 def hotel_tool(state: TripPlanState) -> TripPlanState:
-    city = state["flights"][0]["destination_city"]
+    start = time.perf_counter()
 
-    state["hotels"] = search_hotels(city)
+    trip = state["parsed_trip"]
+    city = trip["destination_city"]
+
+    cache_key = (
+        f"travelguru:v2:hotel:"
+        f"{city}:"
+        f"{trip['start_date']}:"
+        f"{trip['travelers']}"
+    )
+
+    try:
+        hotels = get_cache(cache_key)
+
+        if hotels is None:
+            hotels = search_hotels(city)
+            set_cache(cache_key, hotels)
+
+        state["hotels"] = hotels
+
+    except Exception as e:
+        logger.error(f"Hotel Tool Failed | {e}")
+
+        state["hotels"] = []
+        state["errors"].append("Hotel service unavailable.")
+
+    logger.info(
+        f"Hotel Tool | {time.perf_counter() - start:.2f}s"
+    )
 
     return state

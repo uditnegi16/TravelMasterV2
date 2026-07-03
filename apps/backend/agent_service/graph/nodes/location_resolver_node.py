@@ -4,17 +4,98 @@ from graph.state import TripPlanState
 
 
 CITY_TO_AIRPORT = {
+    # India
     "delhi": "DEL",
     "new delhi": "DEL",
     "mumbai": "BOM",
+    "bombay": "BOM",
+    "bengaluru": "BLR",
     "bangalore": "BLR",
+    "chennai": "MAA",
+    "kolkata": "CCU",
+    "calcutta": "CCU",
+    "hyderabad": "HYD",
+    "pune": "PNQ",
     "goa": "GOI",
-    "tokyo": "NRT",
-    "japan": "NRT",
-    "london": "LHR",
+    "panaji": "GOI",
+    "ahmedabad": "AMD",
+    "jaipur": "JAI",
+    "kochi": "COK",
+    "cochin": "COK",
+    "thiruvananthapuram": "TRV",
+    "trivandrum": "TRV",
+    "lucknow": "LKO",
+    "chandigarh": "IXC",
+    "bhubaneswar": "BBI",
+    "indore": "IDR",
+    "nagpur": "NAG",
+    "surat": "STV",
+    "visakhapatnam": "VTZ",
+    "vizag": "VTZ",
+    "patna": "PAT",
+    "ranchi": "IXR",
+    "guwahati": "GAU",
+    "amritsar": "ATQ",
+    "varanasi": "VNS",
+    "agra": "AGR",
+    "udaipur": "UDR",
+    "jodhpur": "JDH",
+    "dehradun": "DED",
+    "srinagar": "SXR",
+    "leh": "IXL",
+    "port blair": "IXZ",
+
+    # Asia
     "dubai": "DXB",
-    "paris": "CDG",
+    "abu dhabi": "AUH",
+    "doha": "DOH",
     "singapore": "SIN",
+    "bangkok": "BKK",
+    "kuala lumpur": "KUL",
+    "tokyo": "NRT",
+    "osaka": "KIX",
+    "seoul": "ICN",
+    "hong kong": "HKG",
+    "bali": "DPS",
+    "denpasar": "DPS",
+    "jakarta": "CGK",
+    "phuket": "HKT",
+    "male": "MLE",
+
+    # Europe
+    "london": "LHR",
+    "paris": "CDG",
+    "amsterdam": "AMS",
+    "rome": "FCO",
+    "milan": "MXP",
+    "barcelona": "BCN",
+    "madrid": "MAD",
+    "berlin": "BER",
+    "munich": "MUC",
+    "zurich": "ZRH",
+    "vienna": "VIE",
+    "istanbul": "IST",
+
+    # North America
+    "new york": "JFK",
+    "los angeles": "LAX",
+    "san francisco": "SFO",
+    "chicago": "ORD",
+    "las vegas": "LAS",
+    "miami": "MIA",
+    "toronto": "YYZ",
+    "vancouver": "YVR",
+
+    # Oceania
+    "sydney": "SYD",
+    "melbourne": "MEL",
+    "auckland": "AKL",
+
+    # Africa
+    "cape town": "CPT",
+    "johannesburg": "JNB",
+    "nairobi": "NBO",
+    "cairo": "CAI"
 }
 
 
@@ -59,7 +140,18 @@ def location_resolver_node(state: TripPlanState) -> TripPlanState:
     origin = trip.get("origin", "").lower().strip()
     destination = trip.get("destination", "").lower().strip()
 
-    trip["origin"] = CITY_TO_AIRPORT.get(origin, trip.get("origin", ""))
+    origin_city = origin.title()
+
+    trip["origin_city"] = origin_city
+
+    trip["origin"] = CITY_TO_AIRPORT.get(
+        origin,
+        trip.get("origin", ""),
+    )
+
+    destination_city = destination.title()
+
+    trip["destination_city"] = destination_city
 
     trip["destination"] = CITY_TO_AIRPORT.get(
         destination,

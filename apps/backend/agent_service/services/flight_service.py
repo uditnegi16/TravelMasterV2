@@ -1,6 +1,8 @@
 import os
-
 import requests
+
+from shared.circuit_breaker import CircuitBreaker
+from shared.logging_config import logger
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,7 +11,7 @@ DUFFEL_TOKEN = os.getenv("DUFFEL_API_TOKEN")
 
 BASE_URL = "https://api.duffel.com"
 
-
+flight_breaker = CircuitBreaker()
 HEADERS = {
     "Authorization": f"Bearer {DUFFEL_TOKEN}",
     "Duffel-Version": "v2",
@@ -22,6 +24,14 @@ def create_offer_request(
     departure_date: str,
     adults: int = 1,
 ):
+    if not flight_breaker.can_execute():
+        logger.warning("Duffel circuit is OPEN")
+
+        raise Exception("Flight service temporarily unavailable")
+    if not flight_breaker.can_execute():
+        logger.warning("Duffel circuit is OPEN")
+
+        raise Exception("Flight service temporarily unavailable")
     payload = {
         "data": {
             "slices": [
@@ -38,14 +48,29 @@ def create_offer_request(
         }
     }
 
-    response = requests.post(
-        f"{BASE_URL}/air/offer_requests",
-        headers=HEADERS,
-        json=payload,
-        timeout=60,
-    )
+    try:
+        response = requests.post(
+            f"{BASE_URL}/air/offer_requests",
+            headers=HEADERS,
+            json=payload,
+            timeout=60,
+        )
+
+        if response.status_code != 200:
+            logger.error(response.text)
+
+        response.raise_for_status()
+
+        flight_breaker.record_success()
+
+    except Exception:
+        flight_breaker.record_failure()
+        raise
+        
 
     response.raise_for_status()
+
+    flight_breaker.record_success()
 
     return response.json()
 def search_flights(
