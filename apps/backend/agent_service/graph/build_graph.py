@@ -4,6 +4,7 @@ from graph.state import TripPlanState
 from graph.nodes.planner_node import planner_node
 from graph.nodes.tool_router_node import tool_router_node
 from graph.nodes.location_resolver_node import location_resolver_node
+from graph.nodes.rag_retriever import rag_retriever_node
 from tools.flight_tool import flight_tool
 from tools.hotel_tool import hotel_tool
 from tools.places_tool import places_tool
@@ -21,6 +22,7 @@ def build_graph():
     # --------------------
     graph_builder.add_node("planner", planner_node)
     graph_builder.add_node("location_resolver", location_resolver_node)
+    graph_builder.add_node("rag_retriever", rag_retriever_node)
     graph_builder.add_node("tool_router", tool_router_node)
 
     graph_builder.add_node("flight_tool", flight_tool)
@@ -37,8 +39,9 @@ def build_graph():
 
     graph_builder.add_edge("planner", "location_resolver")
 
-    graph_builder.add_edge("location_resolver", "tool_router")
+    graph_builder.add_edge("location_resolver", "rag_retriever")
 
+    graph_builder.add_edge("rag_retriever", "tool_router")
     graph_builder.add_edge("tool_router", "flight_tool")
 
     graph_builder.add_edge("flight_tool", "hotel_tool")

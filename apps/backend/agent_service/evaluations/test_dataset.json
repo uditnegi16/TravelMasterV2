@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "query": "Best beaches in Goa",
+    "expected_keywords": [
+      "Baga",
+      "Calangute",
+      "Candolim"
+    ]
+  },
+  {
+    "id": 2,
+    "query": "Best time to visit Goa",
+    "expected_keywords": [
+      "November",
+      "December",
+      "February"
+    ]
+  },
+  {
+    "id": 3,
+    "query": "Local food in Goa",
+    "expected_keywords": [
+      "Fish Curry",
+      "Vindaloo",
+      "Bebinca"
+    ]
+  },
+  {
+    "id": 4,
+    "query": "Family trip to Goa",
+    "expected_keywords": [
+      "family",
+      "wildlife",
+      "cruise"
+    ]
+  },
+  {
+    "id": 5,
+    "query": "Transportation in Goa",
+    "expected_keywords": [
+      "airport",
+      "railway",
+      "taxi"
+    ]
+  }
+]

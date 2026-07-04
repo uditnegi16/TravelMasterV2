@@ -12,7 +12,10 @@ class TripPlanState(TypedDict):
 
     # Planner output
     parsed_trip: dict
-
+    
+    # RAG Context
+    retrieved_context: str
+    
     # Tool outputs
     flights: list
     hotels: list
