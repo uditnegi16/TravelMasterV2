@@ -17,3 +17,24 @@ export async function planTrip(query: string) {
 
   return response.json();
 }
+export interface CreateOrderResponse {
+  order_id: string;
+  amount: number;
+  currency: string;
+  key_id: string;
+}
+
+export async function createOrder(): Promise<CreateOrderResponse> {
+  const response = await fetch(`${API_URL}/payments/create-order`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create payment order.");
+  }
+
+  return response.json();
+}
