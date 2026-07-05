@@ -1,10 +1,10 @@
-from typing import TypedDict
+from typing import Callable, TypedDict, NotRequired
+
 
 
 class TripPlanState(TypedDict):
     """
     Shared state passed between all LangGraph nodes.
-    Each node reads from and updates this state.
     """
 
     # Original user request
@@ -12,10 +12,10 @@ class TripPlanState(TypedDict):
 
     # Planner output
     parsed_trip: dict
-    
+
     # RAG Context
     retrieved_context: str
-    
+
     # Tool outputs
     flights: list
     hotels: list
@@ -27,3 +27,6 @@ class TripPlanState(TypedDict):
 
     final_response: str
     errors: list[str]
+
+    # Phase 5
+    progress_callback: NotRequired[Callable]

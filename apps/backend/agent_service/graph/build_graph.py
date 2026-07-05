@@ -5,10 +5,7 @@ from graph.nodes.planner_node import planner_node
 from graph.nodes.tool_router_node import tool_router_node
 from graph.nodes.location_resolver_node import location_resolver_node
 from graph.nodes.rag_retriever import rag_retriever_node
-from tools.flight_tool import flight_tool
-from tools.hotel_tool import hotel_tool
-from tools.places_tool import places_tool
-from tools.weather_tool import weather_tool
+from graph.nodes.parallel_tools_node import parallel_tools_node
 from graph.nodes.composer_node import composer_node
 def build_graph():
     """
@@ -25,10 +22,12 @@ def build_graph():
     graph_builder.add_node("rag_retriever", rag_retriever_node)
     graph_builder.add_node("tool_router", tool_router_node)
 
-    graph_builder.add_node("flight_tool", flight_tool)
-    graph_builder.add_node("hotel_tool", hotel_tool)
-    graph_builder.add_node("places_tool", places_tool)
-    graph_builder.add_node("weather_tool", weather_tool)
+    # Phase 5 fix: this was previously 4 separate sequential nodes
+    # (flight_tool -> hotel_tool -> places_tool -> weather_tool).
+    # parallel_tools_node.py already existed with a correct
+    # ThreadPoolExecutor implementation but was never wired in, so
+    # tools were still running one after another. Switching to it now.
+    graph_builder.add_node("parallel_tools", parallel_tools_node)
 
     graph_builder.add_node("composer", composer_node)
 
@@ -42,15 +41,9 @@ def build_graph():
     graph_builder.add_edge("location_resolver", "rag_retriever")
 
     graph_builder.add_edge("rag_retriever", "tool_router")
-    graph_builder.add_edge("tool_router", "flight_tool")
+    graph_builder.add_edge("tool_router", "parallel_tools")
 
-    graph_builder.add_edge("flight_tool", "hotel_tool")
-
-    graph_builder.add_edge("hotel_tool", "places_tool")
-
-    graph_builder.add_edge("places_tool", "weather_tool")
-
-    graph_builder.add_edge("weather_tool", "composer")
+    graph_builder.add_edge("parallel_tools", "composer")
 
     graph_builder.add_edge("composer", END)
 

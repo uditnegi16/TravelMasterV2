@@ -1,6 +1,9 @@
-const API_URL = "http://127.0.0.1:8000";
+export const API_URL = "http://127.0.0.1:8000";
 
-export async function planTrip(query: string) {
+export async function planTrip(
+  query: string,
+  sessionId: string,
+) {
   const response = await fetch(`${API_URL}/plan-trip`, {
     method: "POST",
     headers: {
@@ -8,6 +11,7 @@ export async function planTrip(query: string) {
     },
     body: JSON.stringify({
       query,
+      session_id: sessionId,
     }),
   });
 
@@ -17,6 +21,31 @@ export async function planTrip(query: string) {
 
   return response.json();
 }
+
+// Objective 5.4 — Async PDF Generation.
+// Fire-and-forget: kicks off background PDF rendering on the backend.
+// The actual "ready"/"error" transition arrives later over the
+// existing /ws/progress/{session_id} socket as a "pdf" stage event,
+// not from this response.
+export async function generatePdf(sessionId: string, trip: any) {
+  const response = await fetch(`${API_URL}/generate-pdf`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      session_id: sessionId,
+      trip,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to start PDF generation.");
+  }
+
+  return response.json();
+}
+
 export interface CreateOrderResponse {
   order_id: string;
   amount: number;

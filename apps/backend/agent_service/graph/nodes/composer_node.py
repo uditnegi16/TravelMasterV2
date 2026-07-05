@@ -2,9 +2,15 @@ import json
 
 from llm.llm_client import get_primary_llm, get_fallback_llm
 from shared.logging_config import logger
-
-
+from graph.progress_utils import emit_progress, emit_token
 def composer_node(state):
+    emit_progress(
+        state,
+        "composer",
+        "started",
+        "Generating itinerary...",
+    )
+
     prompt = f"""
 You are an expert AI Travel Planner.
 
@@ -30,8 +36,6 @@ Rules:
 
 Trip
 
-Trip Request
-
 {json.dumps(state["parsed_trip"], indent=2)}
 
 Travel Knowledge
@@ -53,29 +57,59 @@ Places
 Weather
 
 {json.dumps(state["weather"], indent=2)}
-
-Weather
-
-{json.dumps(state["weather"], indent=2)}
 """
 
     try:
-        llm = get_primary_llm()
+        chunks = []
 
-        response = llm.invoke(prompt)
+        try:
+            llm = get_primary_llm(streaming=True)
 
-        logger.info("LLM Provider | Groq")
+            for chunk in llm.stream(prompt):
+                text = chunk.content or ""
 
-    except Exception as e:
+                if text:
+                    chunks.append(text)
 
-        logger.warning(f"Groq unavailable | {e}")
+                    emit_token(
+                        state,
+                        text,
+                    )
 
-        llm = get_fallback_llm()
+            logger.info("LLM Provider | Groq")
 
-        response = llm.invoke(prompt)
+        except Exception as e:
+            logger.warning(f"Groq unavailable | {e}")
 
-        logger.info("LLM Provider | NVIDIA NIM")
+            llm = get_fallback_llm(streaming=True)
 
-    state["final_response"] = response.content.strip()
+            for chunk in llm.stream(prompt):
+                text = chunk.content or ""
 
-    return state
+                if text:
+                    chunks.append(text)
+
+                    emit_token(
+                        state,
+                        text,
+                    )
+
+            logger.info("LLM Provider | NVIDIA NIM")
+
+        state["final_response"] = "".join(chunks).strip()
+
+        emit_progress(
+            state,
+            "composer",
+            "completed",
+        )
+
+        return state
+
+    except Exception:
+        emit_progress(
+            state,
+            "composer",
+            "failed",
+        )
+        raise

@@ -5,7 +5,7 @@ LangGraph RAG retrieval node.
 from graph.state import TripPlanState
 from retrieval.context_builder import ContextBuilder
 from retrieval.retriever import SemanticRetriever
-
+from graph.progress_utils import emit_progress
 
 retriever = SemanticRetriever()
 
@@ -18,12 +18,34 @@ def rag_retriever_node(
     attach it to the graph state.
     """
 
-    query = state["user_query"]
+    emit_progress(
+        state,
+        "rag",
+        "started",
+        "Searching travel knowledge...",
+    )
 
-    documents = retriever.search(query)
+    try:
+        query = state["user_query"]
 
-    context = ContextBuilder.build(documents)
+        documents = retriever.search(query)
 
-    state["retrieved_context"] = context
+        context = ContextBuilder.build(documents)
 
-    return state
+        state["retrieved_context"] = context
+
+        emit_progress(
+            state,
+            "rag",
+            "completed",
+        )
+
+        return state
+
+    except Exception:
+        emit_progress(
+            state,
+            "rag",
+            "failed",
+        )
+        raise

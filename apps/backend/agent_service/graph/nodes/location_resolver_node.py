@@ -2,7 +2,7 @@ from datetime import datetime
 
 from graph.state import TripPlanState
 
-
+from graph.progress_utils import emit_progress
 CITY_TO_AIRPORT = {
     # India
     "delhi": "DEL",
@@ -135,37 +135,57 @@ def normalize_date(date_str: str) -> str:
 
 
 def location_resolver_node(state: TripPlanState) -> TripPlanState:
-    trip = state["parsed_trip"]
-
-    origin = trip.get("origin", "").lower().strip()
-    destination = trip.get("destination", "").lower().strip()
-
-    origin_city = origin.title()
-
-    trip["origin_city"] = origin_city
-
-    trip["origin"] = CITY_TO_AIRPORT.get(
-        origin,
-        trip.get("origin", ""),
+    emit_progress(
+        state,
+        "resolver",
+        "started",
+        "Resolving locations...",
     )
 
-    destination_city = destination.title()
+    try:
+        trip = state["parsed_trip"]
 
-    trip["destination_city"] = destination_city
+        origin = trip.get("origin", "").lower().strip()
+        destination = trip.get("destination", "").lower().strip()
 
-    trip["destination"] = CITY_TO_AIRPORT.get(
-        destination,
-        trip.get("destination", ""),
-    )
+        origin_city = origin.title()
+        trip["origin_city"] = origin_city
 
-    trip["start_date"] = normalize_date(
-        trip.get("start_date", "")
-    )
+        trip["origin"] = CITY_TO_AIRPORT.get(
+            origin,
+            trip.get("origin", ""),
+        )
 
-    trip["end_date"] = normalize_date(
-        trip.get("end_date", "")
-    )
+        destination_city = destination.title()
+        trip["destination_city"] = destination_city
 
-    state["parsed_trip"] = trip
+        trip["destination"] = CITY_TO_AIRPORT.get(
+            destination,
+            trip.get("destination", ""),
+        )
 
-    return state
+        trip["start_date"] = normalize_date(
+            trip.get("start_date", "")
+        )
+
+        trip["end_date"] = normalize_date(
+            trip.get("end_date", "")
+        )
+
+        state["parsed_trip"] = trip
+
+        emit_progress(
+            state,
+            "resolver",
+            "completed",
+        )
+
+        return state
+
+    except Exception:
+        emit_progress(
+            state,
+            "resolver",
+            "failed",
+        )
+        raise
