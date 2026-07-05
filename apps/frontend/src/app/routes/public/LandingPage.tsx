@@ -1,55 +1,27 @@
-import { useState } from "react";
-
-import Hero from "../../components/trip/Hero";
-import FeaturePills from "../../components/trip/FeaturePills";
-import TripInput from "../../components/input/TripInput";
-import TripResult from "../../components/trip/TripResult";
-import PremiumCard from "../../components/payment/PremiumCard";
-import { planTrip } from "../../services/api";
+import { HeroSection } from "../../components/landing/HeroSection";
+import { PreviewPanel } from "../../components/landing/PreviewPanel";
+import { HowItWorks } from "../../components/landing/HowItWorks";
+import { TrustSection } from "../../components/landing/TrustSection";
+import { CtaBand } from "../../components/landing/CtaBand";
 
 export default function LandingPage() {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
- 
-  async function handleSubmit(query: string) {
-    try {
-      setLoading(true);
-
-      const response = await planTrip(query);
-
-      setResult(response);
-    } catch (e) {
-      console.error(e);
-      setResult({
-        error: true,
-        message:
-          "We couldn't generate your trip. Please try again in a moment.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
-    <div
-      style={{
-        maxWidth: 1100,
-        margin: "0 auto",
-        padding: "24px",
-      }}
-    >
-      <Hero />
+    <div className="min-h-screen bg-white">
+      <main>
+        <HeroSection />
 
-      <FeaturePills />
+        <section className="relative bg-white pb-20 md:pb-28 -mt-6 md:-mt-10">
+          <div className="mx-auto max-w-[1120px] px-4 md:px-8">
+            <PreviewPanel />
+          </div>
+        </section>
 
-      <PremiumCard />
+        <HowItWorks />
 
-      <TripInput
-        loading={loading}
-        onSubmit={handleSubmit}
-      />
+        <TrustSection />
 
-      <TripResult result={result} />
+        <CtaBand />
+      </main>
     </div>
   );
 }

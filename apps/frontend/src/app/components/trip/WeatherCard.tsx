@@ -8,18 +8,26 @@ export default function WeatherCard({ weather }: Props) {
   if (!weather) return null;
 
   return (
-    <div
-      style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: 18,
-        padding: 20,
-      }}
-    >
-      <CloudSun size={22} />
+    <div className="rounded-2xl border border-border bg-white p-5 shadow-soft">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-greenSoft text-accent-green">
+          <CloudSun className="h-5 w-5" />
+        </span>
 
-      <h3>{weather.city}</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-ink">
+            {weather.city || weather.location || "Destination"}
+          </h3>
 
-      <p>{weather.temperature}°C</p>
+          <p className="text-sm text-ink-muted">
+            {weather.condition || "Current Weather"}
+          </p>
+        </div>
+      </div>
+
+      <p className="mt-6 font-mono text-3xl font-semibold text-ink">
+        {weather.temperature ?? "--"}°C
+      </p>
     </div>
   );
 }

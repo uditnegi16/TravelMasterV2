@@ -1,5 +1,4 @@
-import Chip from "../ui/Chip";
-
+import { Chip } from "../ui/Chip";
 export default function FeaturePills() {
   const items = [
     "AI Planner",
@@ -20,7 +19,9 @@ export default function FeaturePills() {
       }}
     >
       {items.map((item) => (
-        <Chip key={item} label={item} />
+        <Chip key={item}>
+          {item}
+        </Chip>
       ))}
     </div>
   );

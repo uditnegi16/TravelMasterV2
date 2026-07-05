@@ -9,22 +9,32 @@ type Props = {
 };
 
 export default function TripResult({ result }: Props) {
-  if (!result) return null;
+  if (!result) {
+    return (
+      <div className="mt-10 rounded-3xl border border-dashed border-border bg-white p-14 text-center shadow-soft animate-fadeIn">
+        <h2 className="text-2xl font-semibold text-ink">
+          Ready to plan your next adventure?
+        </h2>
+
+        <p className="mx-auto mt-4 max-w-xl leading-7 text-ink-muted">
+          Describe your destination, travel dates, budget, number of travelers,
+          and preferences. TravelMaster will search flights, hotels,
+          attractions, and weather to build a personalized itinerary.
+        </p>
+      </div>
+    );
+  }
 
   if (result.error) {
     return (
-      <div
-        style={{
-          marginTop: 32,
-          padding: 24,
-          borderRadius: 20,
-          background: "#FEF2F2",
-          border: "1px solid #FCA5A5",
-        }}
-      >
-        <h2>Unable to plan your trip</h2>
+      <div className="mt-10 rounded-3xl border border-red-200 bg-red-50 p-8 shadow-soft animate-fadeIn">
+        <h2 className="text-2xl font-semibold text-red-700">
+          Unable to plan your trip
+        </h2>
 
-        <p>{result.message}</p>
+        <p className="mt-3 leading-7 text-red-600">
+          {result.message}
+        </p>
       </div>
     );
   }
@@ -32,49 +42,63 @@ export default function TripResult({ result }: Props) {
   const trip = result.trip;
 
   return (
-    <div
-      style={{
-        marginTop: 40,
-        background: "#ffffff",
-        borderRadius: 24,
-        padding: 28,
-        boxShadow: "0 10px 30px rgba(0,0,0,.06)",
-      }}
-    >
+    <div className="mt-10 animate-fadeIn rounded-3xl border border-border bg-white p-7 shadow-raised">
+      <div className="mb-7">
+        <h2 className="font-display text-3xl font-semibold text-ink">
+          Your Trip Plan
+        </h2>
+
+        <p className="mt-2 text-sm text-ink-muted">
+          Flights, hotels, attractions and weather have been organized below.
+        </p>
+      </div>
+
       <ResponseTabs>
         {[
           <div key="summary">
-            <h2>Trip Summary</h2>
+            <h3 className="text-xl font-semibold text-ink">
+              Trip Summary
+            </h3>
 
-            <p
-              style={{
-                lineHeight: 1.8,
-                color: "#475569",
-                fontSize: 16,
-              }}
-            >
+            <p className="mt-4 leading-8 text-ink-muted">
               {trip.summary}
             </p>
           </div>,
 
-          <FlightCard
-            key="flight"
-            flight={trip.recommended.flight}
-          />,
+          trip.recommended?.flight ? (
+            <FlightCard
+              key="flight"
+              flight={trip.recommended.flight}
+            />
+          ) : (
+            <p key="flight" className="text-ink-muted">
+              No flight recommendations available.
+            </p>
+          ),
 
-          <HotelCard
-            key="hotel"
-            hotel={trip.recommended.hotel}
-          />,
+          trip.recommended?.hotel ? (
+            <HotelCard
+              key="hotel"
+              hotel={trip.recommended.hotel}
+            />
+          ) : (
+            <p key="hotel" className="text-ink-muted">
+              No hotel recommendations available.
+            </p>
+          ),
 
-          <div key="places">
-            {trip.places?.map(
-              (place: any, index: number) => (
+          <div key="places" className="space-y-4">
+            {trip.places?.length ? (
+              trip.places.map((place: any, index: number) => (
                 <PlaceCard
                   key={index}
                   place={place}
                 />
-              )
+              ))
+            ) : (
+              <p className="text-ink-muted">
+                No attractions available.
+              </p>
             )}
           </div>,
 
