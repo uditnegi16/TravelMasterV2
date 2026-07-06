@@ -1,14 +1,14 @@
 import { Hotel } from "lucide-react";
-
+import type { Hotel as HotelModel } from "../../models/trip";
 type Props = {
-  hotel: any;
+  hotel: HotelModel;
 };
 
 export default function HotelCard({ hotel }: Props) {
   if (!hotel) return null;
 
   return (
-    <div className="w-[260px] rounded-2xl border border-border bg-white p-5 shadow-soft">
+    <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-5 shadow-soft">
       <div className="flex items-center justify-between">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <Hotel className="h-5 w-5" />
@@ -20,7 +20,7 @@ export default function HotelCard({ hotel }: Props) {
       </div>
 
       <div className="mt-5">
-        <h3 className="text-lg font-semibold text-ink">
+        <h3 className="line-clamp-2 text-lg font-semibold text-ink">
           {hotel.city || hotel.name || "Recommended Hotel"}
         </h3>
 

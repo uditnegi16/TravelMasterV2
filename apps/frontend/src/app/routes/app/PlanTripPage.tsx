@@ -1,22 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { generatePdf, planTrip, API_URL } from "../../services/api";
-
+import type { PlanTripResponse, Trip } from "../../models/trip";
 import {
   connectProgressSocket,
   waitForSocketOpen,
   type ProgressEvent,
 } from "../../../lib/websocket";
 
-import { AiPromptBox } from "../../components/input/AiPromptBox";
 import TripResult from "../../components/trip/TripResult";
-import AiThinkingLoader from "../../components/loading/AiThinkingLoader";
-
+import PlannerHero from "../../components/planner/PlannerHero";
+import PlannerWorkspace from "../../components/planner/PlannerWorkspace";
 type PdfStatus = "idle" | "generating" | "ready" | "error";
 
 export default function PlanTripPage() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<PlanTripResponse | null>(null);
   const [events, setEvents] = useState<ProgressEvent[]>([]);
   // Phase 5 fix: token events used to be pushed into the same `events`
   // array as progress events. TripProgressTracker only understands
@@ -42,6 +41,7 @@ export default function PlanTripPage() {
       "Planning your journey..."
     );
   }, [events]);
+
 
   useEffect(() => {
     return () => {
@@ -73,7 +73,7 @@ export default function PlanTripPage() {
               setPdfStatus("generating");
             } else if (event.status === "completed") {
               setPdfStatus("ready");
-              const relativeUrl = (event as any).download_url ?? null;
+              const relativeUrl ="download_url" in event ? event.download_url : null;
               setPdfUrl(relativeUrl ? `${API_URL}${relativeUrl}` : null);
             } else if (event.status === "failed") {
               setPdfStatus("error");
@@ -112,24 +112,33 @@ export default function PlanTripPage() {
       } else {
         socketRef.current?.close();
       }
-    } catch (err: any) {
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Unexpected error occurred.";
+
       setResult({
         error: true,
-        message: err.message,
+        message,
       });
+
       setLoading(false);
       socketRef.current?.close();
     }
   }
 
-  async function handleGeneratePdf(sessionId: string, trip: any) {
+  async function handleGeneratePdf(
+  sessionId: string,
+  trip: Trip,
+  ){
     try {
       setPdfStatus("generating");
       await generatePdf(sessionId, trip);
       // Actual "ready"/"error" transition happens via the websocket
       // "pdf" progress events handled in handleSubmit's socket
       // callback above — this call only starts the background task.
-    } catch (err) {
+    } catch {
       setPdfStatus("error");
       socketRef.current?.close();
     }
@@ -137,78 +146,25 @@ export default function PlanTripPage() {
 
   return (
     <div className="min-h-screen bg-surface-subtle">
-      <div className="mx-auto max-w-5xl px-4 py-10 md:px-8">
-        <div className="mb-10">
-          <h1 className="font-display text-4xl font-semibold text-ink">
-            Plan Your Trip
-          </h1>
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:px-8 lg:py-10">
+        <div className="space-y-10 lg:space-y-12">
+          <PlannerHero />
 
-          <p className="mt-3 max-w-2xl text-base text-ink-muted">
-            Describe your destination, budget and travel style.
-            TravelMaster will search flights, hotels,
-            attractions and weather, then build your itinerary.
-          </p>
-        </div>
-
-        <div className="rounded-3xl border border-border bg-white p-6 shadow-raised">
-          <AiPromptBox
-            size="hero"
+          <PlannerWorkspace
+            loading={loading}
+            currentMessage={currentMessage}
+            streamingText={streamingText}
+            pdfStatus={pdfStatus}
+            pdfUrl={pdfUrl}
             onSubmit={handleSubmit}
-            placeholder="Example: Plan a 7-day trip to Bali in August under ₹2.5 lakh..."
           />
+
+          {!loading && (
+            <div className="animate-fadeIn">
+              <TripResult result={result} />
+            </div>
+          )}
         </div>
-
-        {loading && (
-          <>
-            <AiThinkingLoader
-              visible={loading}
-              message={currentMessage}
-            />
-
-            {streamingText && (
-              <div className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-soft animate-fadeIn">
-                <p className="whitespace-pre-wrap text-sm text-ink-muted">
-                  {streamingText}
-                  <span className="animate-pulse">▍</span>
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {!loading && (
-          <div className="animate-fadeIn">
-            <TripResult result={result} />
-
-            {result && !result.error && (
-              <div className="mt-6 rounded-3xl border border-border bg-white p-6 shadow-soft">
-                {pdfStatus === "generating" && (
-                  <p className="text-sm text-ink-muted">
-                    Generating your itinerary PDF...
-                  </p>
-                )}
-
-                {pdfStatus === "ready" && pdfUrl && (
-                  <a
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
-                  >
-                    Download Itinerary PDF
-                  </a>
-                )}
-
-                {pdfStatus === "error" && (
-                  <p className="text-sm text-red-600">
-                    Couldn&apos;t generate the PDF. You can still view
-                    your itinerary above.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

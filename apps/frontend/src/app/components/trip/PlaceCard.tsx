@@ -1,7 +1,9 @@
 import { MapPin } from "lucide-react";
 
+import type { Place } from "../../models/trip";
+
 type Props = {
-  place: any;
+  place: Place;
 };
 
 export default function PlaceCard({ place }: Props) {
@@ -15,7 +17,7 @@ export default function PlaceCard({ place }: Props) {
         </span>
 
         <div>
-          <h3 className="text-lg font-semibold text-ink">
+          <h3  className="line-clamp-2 text-lg font-semibold text-ink">
             {place.name}
           </h3>
 
@@ -29,7 +31,7 @@ export default function PlaceCard({ place }: Props) {
         href={place.maps_url || "#"}
         target="_blank"
         rel="noreferrer"
-        className="mt-5 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-hover"
+        className="mt-5 inline-flex items-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-hover"
       >
         Open Maps
       </a>

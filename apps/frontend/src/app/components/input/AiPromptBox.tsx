@@ -5,7 +5,7 @@ import { cn } from "../../../lib/cn";
 interface AiPromptBoxProps {
   size?: "hero" | "compact";
   placeholder?: string;
-  onSubmit?: (value: string) => void;
+  onSubmit?: (value: string) => void | Promise<void>;
   className?: string;
 }
 
@@ -44,7 +44,7 @@ export function AiPromptBox({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "group relative flex w-full items-end gap-2 rounded-2xl border border-border-strong bg-white p-2.5 shadow-card transition-all duration-200 focus-within:border-brand/50 focus-within:shadow-raised",
+        "group relative flex w-full flex-col gap-3 rounded-2xl border border-border-strong bg-white p-3 shadow-card transition-all duration-200 focus-within:border-brand/50 focus-within:shadow-raised sm:flex-row sm:items-end sm:gap-2 sm:p-2.5",
         isHero ? "pl-5" : "pl-4",
         className
       )}
@@ -56,18 +56,21 @@ export function AiPromptBox({
       )}
 
       <textarea
+      style={{
+          maxHeight: "180px",
+        }}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         rows={isHero ? 2 : 1}
         placeholder={placeholder}
         className={cn(
-          "min-h-[28px] flex-1 resize-none bg-transparent text-ink placeholder:text-ink-faint focus:outline-none",
+          "min-h-[48px] w-full flex-1 resize-none overflow-y-auto bg-transparent text-ink placeholder:text-ink-faint focus:outline-none",
           isHero ? "py-2.5 text-md md:text-lg" : "py-2 text-base"
         )}
       />
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex w-full shrink-0 justify-end gap-2 sm:w-auto sm:items-center">
         <button
           type="button"
           onClick={handleVoiceClick}

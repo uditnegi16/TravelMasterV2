@@ -1,6 +1,7 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 
-const tabs = [
+const RESULT_TABS = [
   "Summary",
   "Flights",
   "Hotels",
@@ -8,8 +9,9 @@ const tabs = [
   "Weather",
 ];
 
+
 type Props = {
-  children: React.ReactNode[];
+  children: ReactNode[];
 };
 
 export default function ResponseTabs({
@@ -19,12 +21,18 @@ export default function ResponseTabs({
 
   return (
     <>
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-1 rail-scroll">
-        {tabs.map((tab, index) => (
+      <div
+        role="tablist"
+        className="mb-6 flex gap-2 overflow-x-auto pb-1 rail-scroll">
+        {RESULT_TABS.map((tab, index) => (
           <button
-            key={tab}
-            onClick={() => setActive(index)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+          key={tab}
+          role="tab"
+          aria-selected={active === index}
+          aria-controls={`tabpanel-${index}`}
+          id={`tab-${index}`}
+          onClick={() => setActive(index)}
+          className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
               active === index
                 ? "bg-ink text-white"
                 : "border border-border bg-white text-ink-muted hover:bg-surface-subtle hover:text-ink"
@@ -35,8 +43,13 @@ export default function ResponseTabs({
         ))}
       </div>
 
-      <div className="animate-fadeIn">
-        {children[active]}
+      <div
+        role="tabpanel"
+        id={`tabpanel-${active}`}
+        aria-labelledby={`tab-${active}`}
+        className="animate-fadeIn"
+      >
+        {children[active] ?? null}
       </div>
     </>
   );

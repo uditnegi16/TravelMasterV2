@@ -1,7 +1,9 @@
 import { CloudSun } from "lucide-react";
 
+import type { Weather } from "../../models/trip";
+
 type Props = {
-  weather: any;
+  weather?: Weather;
 };
 
 export default function WeatherCard({ weather }: Props) {
@@ -25,7 +27,7 @@ export default function WeatherCard({ weather }: Props) {
         </div>
       </div>
 
-      <p className="mt-6 font-mono text-3xl font-semibold text-ink">
+      <p className="mt-6 break-words font-mono text-3xl font-semibold text-ink">
         {weather.temperature ?? "--"}°C
       </p>
     </div>

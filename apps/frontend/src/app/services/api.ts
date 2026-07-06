@@ -1,9 +1,10 @@
 export const API_URL = "http://127.0.0.1:8000";
+import type { PlanTripResponse, Trip } from "../models/trip";
 
 export async function planTrip(
   query: string,
   sessionId: string,
-) {
+): Promise<PlanTripResponse> {
   const response = await fetch(`${API_URL}/plan-trip`, {
     method: "POST",
     headers: {
@@ -27,7 +28,10 @@ export async function planTrip(
 // The actual "ready"/"error" transition arrives later over the
 // existing /ws/progress/{session_id} socket as a "pdf" stage event,
 // not from this response.
-export async function generatePdf(sessionId: string, trip: any) {
+export async function generatePdf(
+  sessionId: string,
+  trip: Trip,
+){
   const response = await fetch(`${API_URL}/generate-pdf`, {
     method: "POST",
     headers: {
