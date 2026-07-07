@@ -1,5 +1,7 @@
 from graph.state import TripPlanState
 from services.flight_service import search_flights
+from services.route_optimizer import enrich_routes
+from services.flight_mapper import map_flights
 from shared.cache import get_cache, set_cache
 import time
 from graph.progress_utils import emit_progress
@@ -17,6 +19,15 @@ def flight_tool(state: TripPlanState) -> TripPlanState:
 
     trip = state["parsed_trip"]
 
+    flight_strategy = state.get(
+        "flight_strategy",
+        "prefer_direct",
+    )
+
+    logger.info(
+        f"Flight Strategy: {flight_strategy}"
+    )
+
     cache_key = (
         f"travelguru:v2:flight:"
         f"{trip['origin']}:"
@@ -24,33 +35,94 @@ def flight_tool(state: TripPlanState) -> TripPlanState:
         f"{trip['start_date']}"
     )
 
-    flights = get_cache(cache_key)
+    cached = get_cache(cache_key)
 
-    if flights is None:
+    if cached is None:
         try:
             flights = search_flights(
-                origin=trip["origin"],
-                destination=trip["destination"],
-                departure_date=trip["start_date"],
-                adults=trip["travelers"],
+            origin=trip["origin"],
+            destination=trip["destination"],
+            departure_date=trip["start_date"],
+            adults=trip["travelers"],
+            flight_strategy=flight_strategy,
+        )
+            if not flights:
+                logger.warning(
+                    "No flights returned."
+                )
+
+                state["errors"].append(
+                    "No flights were found for the selected route."
+                )
+
+                state["flights"] = []
+
+                emit_progress(
+                    state,
+                    "flight",
+                    "completed",
+                )
+
+                return state
+
+            optimized = enrich_routes(
+                flights,
+                budget=trip["budget"],
+                strategy=flight_strategy,
             )
 
-            set_cache(cache_key, flights)
+            flights = map_flights(
+                optimized["all"]
+            )
+
+            cache_payload = {
+                "all": flights,
+                "categorized": optimized["categorized"],
+                "recommended": optimized["recommended"],
+            }
+
+            set_cache(
+                cache_key,
+                cache_payload,
+            )
+
+            state["flight_categories"] = optimized["categorized"]
+
+            state["recommended_flight"] = optimized["recommended"]
 
             state["flights"] = flights
 
         except Exception as e:
-            logger.error(f"Flight Tool Failed | {e}")
+            logger.exception("Flight Tool Failed")
 
             state["flights"] = []
+            state["flight_categories"] = {}
+            state["recommended_flight"] = None
 
-            state["errors"].append("Flight service unavailable.")
+            message = str(e)
 
-            emit_progress(state, "flight", "failed")
+            if "422" in message:
+                state["errors"].append(
+                    "Unable to find flights for the provided route."
+                )
+            else:
+                state["errors"].append(
+                    "Flight service is temporarily unavailable."
+                )
+
+            emit_progress(
+                state,
+                "flight",
+                "failed",
+            )
 
             return state
     else:
-        state["flights"] = flights
+        state["flights"] = cached["all"]
+
+        state["flight_categories"] = cached["categorized"]
+
+        state["recommended_flight"] = cached["recommended"]
 
     logger.info(
         f"Flight Tool | {time.perf_counter() - start:.2f}s"

@@ -23,6 +23,7 @@ def create_offer_request(
     destination: str,
     departure_date: str,
     adults: int = 1,
+    max_connections: int = 1,
 ):
     if not flight_breaker.can_execute():
         logger.warning("Duffel circuit is OPEN")
@@ -45,6 +46,7 @@ def create_offer_request(
                 {"type": "adult"} for _ in range(adults)
             ],
             "cabin_class": "economy",
+            "max_connections": max_connections,
         }
     }
 
@@ -78,12 +80,19 @@ def search_flights(
     destination: str,
     departure_date: str,
     adults: int = 1,
+    flight_strategy: str = "prefer_direct",
 ):
+    max_connections = 1
+
+    if flight_strategy == "direct_only":
+        max_connections = 0
+
     response = create_offer_request(
         origin=origin,
         destination=destination,
         departure_date=departure_date,
         adults=adults,
+        max_connections=max_connections,
     )
 
     offers = response["data"]["offers"]
@@ -91,24 +100,48 @@ def search_flights(
     flights = []
 
     for offer in offers:
+
+        slice_data = offer["slices"][0]
+
+        segments = slice_data["segments"]
+
+        stops = max(0, len(segments) - 1)
+
+        layover_airport = None
+        layover_city = None
+
+        if stops > 0:
+            layover_airport = segments[0]["destination"]["iata_code"]
+            layover_city = segments[0]["destination"]["city_name"]
+
         flights.append(
-                {
-                    "id": offer["id"],
-                    "total_amount": offer["total_amount"],
-                    "currency": offer["total_currency"],
-                    "owner": offer["owner"]["name"],
-                    "expires_at": offer["expires_at"],
+            {
+                "id": offer["id"],
+                "total_amount": offer["total_amount"],
+                "currency": offer["total_currency"],
+                "owner": offer["owner"]["name"],
+                "expires_at": offer["expires_at"],
 
-                    "origin": offer["slices"][0]["origin"]["iata_code"],
-                    "destination": offer["slices"][0]["destination"]["iata_code"],
+                "origin": slice_data["origin"]["iata_code"],
+                "destination": slice_data["destination"]["iata_code"],
 
-                    "origin_city": offer["slices"][0]["origin"]["city_name"],
-                    "destination_city": offer["slices"][0]["destination"]["city_name"],
+                "origin_city": slice_data["origin"]["city_name"],
+                "destination_city": slice_data["destination"]["city_name"],
 
-                    "duration": offer["slices"][0]["duration"],
+                "duration": slice_data["duration"],
 
-                    "slices": offer["slices"],
-                }
-            )
+                "stops": stops,
+
+                "is_direct": stops == 0,
+
+                "layover_airport": layover_airport,
+
+                "layover_city": layover_city,
+
+                "segments": segments,
+
+                "slices": offer["slices"],
+            }
+        )
 
     return flights

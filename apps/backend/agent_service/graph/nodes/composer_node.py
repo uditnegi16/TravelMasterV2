@@ -17,7 +17,23 @@ You are an expert AI Travel Planner.
 Write ONLY a short natural language summary.
 
 Rules:
+Rules:
+
 - Write a personalized travel recommendation.
+- Present the recommended itinerary naturally.
+- Briefly explain WHY this itinerary was selected.
+- Mention if it is Budget Saver, Best Value or Luxury.
+- Mention the remaining budget naturally if available.
+- Mention one tradeoff if appropriate.
+- Mention destination highlights using the Travel Knowledge.
+- Use Flights, Hotels, Places and Weather whenever available.
+- Ignore any missing section gracefully.
+- If Errors contains messages, explain the limitation naturally instead of pretending information exists.
+- Never invent facts.
+- Keep the response under 250 words.
+- Do NOT output JSON.
+- Do NOT use Markdown.
+- Do NOT use headings.
 - Do NOT repeat the user's request.
 - Use the Travel Knowledge section to explain why the destination suits the traveler.
 - Use the live Flights, Hotels, Places, and Weather information whenever available.
@@ -38,6 +54,10 @@ Trip
 
 {json.dumps(state["parsed_trip"], indent=2)}
 
+Errors
+
+{json.dumps(state.get("errors", []), indent=2)}
+
 Travel Knowledge
 
 {state.get("retrieved_context", "")}
@@ -57,6 +77,18 @@ Places
 Weather
 
 {json.dumps(state["weather"], indent=2)}
+
+Recommended Profile
+
+{state.get("recommended_profile", "")}
+
+Recommended Itinerary
+
+{json.dumps(state.get("recommended_itinerary", {}), indent=2)}
+
+Alternative Itineraries
+
+{json.dumps(state.get("multi_itineraries", [])[:3], indent=2)}
 """
 
     try:

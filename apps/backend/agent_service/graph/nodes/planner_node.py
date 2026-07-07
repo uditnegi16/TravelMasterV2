@@ -25,7 +25,10 @@ def planner_node(state: TripPlanState) -> TripPlanState:
             ]
         )
 
-        state["parsed_trip"] = response.model_dump()
+        parsed_trip = response.model_dump()
+
+        state["parsed_trip"] = parsed_trip
+        state["flight_strategy"] = parsed_trip["flight_strategy"]
 
         emit_progress(
             state,

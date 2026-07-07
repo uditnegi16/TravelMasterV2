@@ -30,3 +30,12 @@ class TripPlanState(TypedDict):
 
     # Phase 5
     progress_callback: NotRequired[Callable]
+    flight_strategy: str
+    flight_categories: NotRequired[dict]
+    recommended_flight: NotRequired[dict]
+    
+    itinerary: NotRequired[dict]
+    multi_itineraries: NotRequired[list]
+    recommended_profile: NotRequired[str]
+    recommended_itinerary: NotRequired[dict]
+    hotel_budget: NotRequired[float]
