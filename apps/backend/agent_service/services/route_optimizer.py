@@ -6,7 +6,23 @@ from services.route_enricher import enrich_flight
 from services.route_ranker import score_route
 
 from collections import defaultdict
-
+PROFILE_ROUTE_WEIGHTS = {
+    "Budget Saver": {
+        "price": 0.60,
+        "route": 0.25,
+        "stops": 0.15,
+    },
+    "Best Value": {
+        "price": 0.35,
+        "route": 0.45,
+        "stops": 0.20,
+    },
+    "Luxury": {
+        "price": 0.10,
+        "route": 0.65,
+        "stops": 0.25,
+    },
+}
 def enrich_routes(
     flights: list[dict[str, Any]],
     budget: str = "",
@@ -106,3 +122,65 @@ def select_recommended_route(
         )
 
     return None
+def rank_routes_for_profile(
+    flights: list[dict[str, Any]],
+    profile: str,
+) -> list[dict[str, Any]]:
+
+    if not flights:
+        return []
+
+    weights = PROFILE_ROUTE_WEIGHTS[profile]
+
+    max_price = max(
+        float(f["price"])
+        for f in flights
+    )
+
+    ranked = []
+
+    for flight in flights:
+
+        route_score = (
+            flight.get("route_score", 0)
+            / 100
+        )
+
+        price_score = (
+            1
+            - (
+                float(flight["price"])
+                / max_price
+            )
+        )
+
+        stop_score = (
+            1
+            if flight["is_direct"]
+            else max(
+                0,
+                0.7 - (flight["stops"] * 0.2),
+            )
+        )
+
+        score = (
+            price_score * weights["price"]
+            + route_score * weights["route"]
+            + stop_score * weights["stops"]
+        )
+
+        updated = flight.copy()
+
+        updated["profile_route_score"] = round(
+            score * 100,
+            2,
+        )
+
+        ranked.append(updated)
+
+    ranked.sort(
+        key=lambda f: f["profile_route_score"],
+        reverse=True,
+    )
+
+    return ranked

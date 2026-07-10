@@ -22,31 +22,33 @@ export default function PlannerWorkspace({
   pdfUrl,
   onSubmit,
 }: PlannerWorkspaceProps) {
-  return (
-    <section className="space-y-6 lg:space-y-8">
-      <div className="rounded-3xl border border-border bg-white p-6 shadow-raised">
-        <AiPromptBox
-          size="hero"
-          onSubmit={onSubmit}
-          placeholder="Example: Plan a 7-day trip to Bali in August under ₹2.5 lakh..."
-        />
-      </div>
+return (
+  <section className="space-y-8">
 
-      {loading && (
-        <>
-          <AiThinkingLoader
-            visible={loading}
-            message={currentMessage}
-          />
-
-          <StreamingPanel text={streamingText} />
-        </>
-      )}
-
-      <PdfStatusCard
-        status={pdfStatus}
-        pdfUrl={pdfUrl}
+    <div className="card-surface p-8">
+      <AiPromptBox
+        size="hero"
+        onSubmit={onSubmit}
+        placeholder="Example: Plan a 7-day trip to Bali in August under ₹2.5 lakh..."
       />
-    </section>
-  );
+    </div>
+
+    {loading && (
+      <>
+        <AiThinkingLoader
+          visible={loading}
+          message={currentMessage}
+        />
+
+        <StreamingPanel text={streamingText} />
+      </>
+    )}
+
+    <PdfStatusCard
+      status={pdfStatus}
+      pdfUrl={pdfUrl}
+    />
+
+  </section>
+);
 }

@@ -46,6 +46,7 @@ def flight_tool(state: TripPlanState) -> TripPlanState:
             adults=trip["travelers"],
             flight_strategy=flight_strategy,
         )
+            logger.info(f"Flights returned from Duffel: {len(flights)}")
             if not flights:
                 logger.warning(
                     "No flights returned."
@@ -70,15 +71,29 @@ def flight_tool(state: TripPlanState) -> TripPlanState:
                 budget=trip["budget"],
                 strategy=flight_strategy,
             )
+            logger.info(f"Optimized flights: {len(optimized['all'])}")
+
+            logger.info(f"Recommended flight: {optimized['recommended']}")
 
             flights = map_flights(
                 optimized["all"]
             )
 
+            recommended_mapped = None
+
+            if optimized["recommended"]:
+                recommended_mapped = next(
+                    (
+                        flight
+                        for flight in flights
+                        if flight["id"] == optimized["recommended"]["id"]
+                    ),
+                    None,
+                )
             cache_payload = {
                 "all": flights,
                 "categorized": optimized["categorized"],
-                "recommended": optimized["recommended"],
+                "recommended": recommended_mapped,
             }
 
             set_cache(
@@ -88,7 +103,7 @@ def flight_tool(state: TripPlanState) -> TripPlanState:
 
             state["flight_categories"] = optimized["categorized"]
 
-            state["recommended_flight"] = optimized["recommended"]
+            state["recommended_flight"] = recommended_mapped
 
             state["flights"] = flights
 

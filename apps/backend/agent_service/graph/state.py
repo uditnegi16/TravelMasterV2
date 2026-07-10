@@ -38,4 +38,8 @@ class TripPlanState(TypedDict):
     multi_itineraries: NotRequired[list]
     recommended_profile: NotRequired[str]
     recommended_itinerary: NotRequired[dict]
-    hotel_budget: NotRequired[float]
+    
+    # Chat conversation
+    conversation_type: NotRequired[str]
+    previous_trip: NotRequired[dict]
+    conversation_history: NotRequired[list]

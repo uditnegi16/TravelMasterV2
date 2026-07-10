@@ -15,6 +15,12 @@ from services.pdf_builder import ensure_output_dir, get_pdf_path
 from fastapi import WebSocket, WebSocketDisconnect
 
 from api.websocket_manager import manager
+from api.chat_routes import router as chat_router
+from api.voice_routes import router as voice_router
+
+from api.contact_routes import router as contact_router
+
+
 app = FastAPI(title="TravelMaster API")
 
 app.add_middleware(
@@ -27,7 +33,9 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(payment_router)
-
+app.include_router(chat_router)
+app.include_router(voice_router)
+app.include_router(contact_router)
 
 @app.on_event("startup")
 async def on_startup() -> None:

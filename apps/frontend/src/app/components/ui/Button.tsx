@@ -13,19 +13,24 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<Variant, string> = {
   primary:
-    "bg-ink text-white hover:bg-black shadow-soft active:scale-[0.98]",
+    "bg-brand text-white hover:bg-brand-hover shadow-card hover:shadow-raised active:scale-[0.98]",
+
   secondary:
-    "bg-brand text-white hover:bg-brand-hover shadow-soft active:scale-[0.98]",
+    "bg-ink text-white hover:bg-black shadow-soft active:scale-[0.98]",
+
   outline:
-    "bg-white text-ink border border-border-strong hover:border-ink/40 hover:bg-surface-subtle active:scale-[0.98]",
+    "bg-white text-ink border border-border hover:border-brand hover:text-brand hover:shadow-soft active:scale-[0.98]",
+
   ghost:
-    "bg-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink",
+    "bg-transparent text-ink-muted hover:bg-surface-subtle hover:text-ink",
 };
 
 const sizeStyles: Record<Size, string> = {
-  sm: "h-9 px-3.5 text-sm rounded-lg gap-1.5",
-  md: "h-11 px-5 text-base rounded-xl gap-2",
-  lg: "h-[3.25rem] px-7 text-md rounded-xl gap-2.5",
+  sm: "h-10 px-4 rounded-xl text-sm gap-2",
+
+  md: "h-12 px-6 rounded-2xl text-base gap-2",
+
+  lg: "h-14 px-8 rounded-2xl text-md gap-3",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -46,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center font-semibold tracking-[-0.01em] transition-all duration-150 ease-out disabled:opacity-40 disabled:pointer-events-none focus-ring",
+          "inline-flex items-center justify-center font-semibold tracking-[-0.01em] btn-transition disabled:opacity-40 disabled:pointer-events-none focus-ring",
           variantStyles[variant],
           sizeStyles[size],
           fullWidth && "w-full",

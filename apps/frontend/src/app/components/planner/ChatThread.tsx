@@ -1,34 +1,42 @@
 import ChatTurn from "./ChatTurn";
-
-export type ConversationMessage = {
-  role: "user" | "assistant";
-  message: string;
+import type { Trip } from "../../models/trip";
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  trip_data?: Trip | null;
+  created_at: string;
 };
 
 type ChatThreadProps = {
-  messages: ConversationMessage[];
+  messages: ChatMessage[];
+  streamingText?: string;
 };
 
 export default function ChatThread({
   messages,
+  streamingText = "",
 }: ChatThreadProps) {
-  if (!messages.length) return null;
-
   return (
-    <section className="space-y-4 rounded-3xl border border-border bg-white p-6 shadow-soft">
-      <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-ink-faint">
-        Conversation
-      </h2>
-
-      <div className="space-y-4">
-        {messages.map((msg, index) => (
-          <ChatTurn
-            key={index}
-            role={msg.role}
-            message={msg.message}
+    <section className="space-y-5">
+      {messages.map((message) => (
+        <ChatTurn
+            key={message.id}
+            messageId={message.id}
+            role={message.role}
+            message={message.content}
+            tripData={message.trip_data}
           />
-        ))}
-      </div>
+      ))}
+
+      {streamingText && (
+        <ChatTurn
+          messageId=""
+          role="assistant"
+          message={streamingText}
+          tripData={null}
+        />
+      )}
     </section>
   );
 }

@@ -46,6 +46,12 @@ class FlightOption(BaseModel):
     route_score: float
 
     expires_at: str
+
+    # Untyped on purpose (see hotels field below, and Section 3.5 handoff
+    # note): keeping this as list[dict] instead of a strict nested model
+    # avoids silently stripping segment fields we haven't explicitly
+    # declared yet, the same way profile_route_score was stripped before.
+    segments: list[dict] = Field(default_factory=list)
 class TripItinerary(BaseModel):
     flight: FlightOption | None = None
 

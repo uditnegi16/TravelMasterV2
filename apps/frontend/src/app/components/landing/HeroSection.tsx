@@ -22,7 +22,7 @@ export function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-dot-grid">
       <RoutePathDecoration />
-      <div className="relative mx-auto max-w-[820px] px-4 pb-20 pt-20 text-center md:px-8 md:pb-28 md:pt-28">
+      <div className="relative mx-auto max-w-[820px] px-4 pb-14 pt-16 md:pb-20 md:pt-20 text-center md:px-8 md:pb-28 md:pt-28">
         <span className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted animate-fadeUp">
           <span className="h-1.5 w-1.5 rounded-full bg-accent-green" />
           AI travel planner, not a search engine

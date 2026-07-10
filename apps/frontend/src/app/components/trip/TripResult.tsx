@@ -3,6 +3,7 @@ import HotelCard from "./HotelCard";
 import PlaceCard from "./PlaceCard";
 import ResponseTabs from "./ResponseTabs";
 import WeatherCard from "./WeatherCard";
+import PackageSection from "./PackageSection";
 import type { PlanTripResponse, Place } from "../../models/trip";
 type Props = {
   result: PlanTripResponse | null;
@@ -65,64 +66,12 @@ export default function TripResult({ result }: Props) {
         </p>
       </div>
       <div className="space-y-6">
-        <ResponseTabs>
-          {[
-            <div key="summary" className="max-w-3xl">
-              <h3 className="text-xl font-semibold text-ink">
-                Trip Summary
-              </h3>
-
-              <p className="mt-4 whitespace-pre-wrap leading-8 text-ink-muted">
-                {trip.summary}
-              </p>
-            </div>,
-
-            trip.recommended?.flight ? (
-              <FlightCard
-                key="flight"
-                flight={trip.recommended.flight}
-              />
-            ) : (
-              <p key="flight" className="text-ink-muted">
-                No flight recommendations available.
-              </p>
-            ),
-
-            trip.recommended?.hotel ? (
-              <HotelCard
-                key="hotel"
-                hotel={trip.recommended.hotel}
-              />
-            ) : (
-              <p key="hotel" className="text-ink-muted">
-                No hotel recommendations available.
-              </p>
-            ),
-
-            <div
-                key="places"
-                className="grid gap-4 md:grid-cols-2"
-            >
-              {trip.places?.length ? (
-                trip.places.map((place: Place, index: number) => (
-                  <PlaceCard
-                    key={index}
-                    place={place}
-                  />
-                ))
-              ) : (
-                <p className="text-ink-muted">
-                  No attractions available.
-                </p>
-              )}
-            </div>,
-
-            <WeatherCard
-              key="weather"
-              weather={trip.weather}
-            />,
-          ]}
-        </ResponseTabs>
+        <PackageSection
+          packages={trip.multi_itineraries ?? []}
+          recommendedProfile={trip.recommended?.profile}
+          places={trip.places}
+          weather={trip.weather}
+        />
       </div>
     </div>
   );

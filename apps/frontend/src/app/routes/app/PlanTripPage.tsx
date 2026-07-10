@@ -159,7 +159,7 @@ export default function PlanTripPage() {
             onSubmit={handleSubmit}
           />
 
-          {!loading && (
+          {false && (
             <div className="animate-fadeIn">
               <TripResult result={result} />
             </div>

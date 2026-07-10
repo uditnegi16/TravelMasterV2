@@ -10,7 +10,7 @@ export default function FlightCard({ flight }: Props) {
   if (!flight) return null;
 
   return (
-    <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-5 shadow-soft">
+    <div className="w-full rounded-2xl border border-border bg-white p-6 shadow-soft">
       <div className="flex items-center justify-between">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <Plane className="h-5 w-5" />

@@ -45,7 +45,15 @@ def hotel_tool(state: TripPlanState) -> TripPlanState:
     flight_cost = 0.0
 
     if recommended_flight:
-        flight_cost = recommended_flight["price"]
+        flight_cost = float(
+            recommended_flight.get(
+                "total_amount",
+                recommended_flight.get(
+                    "price",
+                    0,
+                ),
+            )
+        )
 
     remaining_budget = max(
         0.0,
@@ -57,7 +65,10 @@ def hotel_tool(state: TripPlanState) -> TripPlanState:
     state["hotel_budget"] = hotel_budget
     
     
-    city = trip["destination_city"]
+    city = (
+    trip.get("destination_city")
+        or trip.get("destination")
+    )
 
     cache_key = (
         f"travelguru:v2:hotel:"
@@ -70,10 +81,22 @@ def hotel_tool(state: TripPlanState) -> TripPlanState:
         hotels = get_cache(cache_key)
 
         if hotels is None:
-            hotels = search_hotels(
-                city,
-            )
+            hotels = search_hotels(city)
+            logger.info(f"Hotels found: {len(hotels)}")
+            if not hotels:
+                state["errors"].append(
+                    "No hotels found."
+                )
 
+                state["hotels"] = []
+
+                emit_progress(
+                    state,
+                    "hotel",
+                    "completed",
+                )
+
+                return state
             hotels = optimize_hotels(
                 hotels=hotels,
                 hotel_budget=hotel_budget,
@@ -97,7 +120,7 @@ def hotel_tool(state: TripPlanState) -> TripPlanState:
 
         multi_itineraries = generate_itineraries(
             budget=trip["budget"],
-            recommended_flight=recommended_flight,
+            flights=state.get("flights", []),
             hotels=hotels,
         )
 
@@ -123,11 +146,18 @@ def hotel_tool(state: TripPlanState) -> TripPlanState:
         logger.info(
             f"Hotel Budget: ₹{hotel_budget:.2f}"
         )
+        logger.info("===== HOTEL TOOL STATE =====")
+        logger.info(f"hotel_budget = {state.get('hotel_budget')}")
+        logger.info(f"recommended_profile = {state.get('recommended_profile')}")
+        logger.info(f"recommended_itinerary = {state.get('recommended_itinerary')}")
+        logger.info(f"itinerary = {state.get('itinerary')}")
+        logger.info(f"multi_itineraries = {state.get('multi_itineraries')}")
+        logger.info("============================")
 
         emit_progress(state, "hotel", "completed")
 
-    except Exception:
-        logger.exception("Hotel Tool Failed")
+    except Exception as e:
+        logger.exception(e)
 
         state["hotels"] = []
 
@@ -140,7 +170,7 @@ def hotel_tool(state: TripPlanState) -> TripPlanState:
         state["errors"].append(
             "Hotel information is temporarily unavailable."
         )
-
+        
         emit_progress(
             state,
             "hotel",

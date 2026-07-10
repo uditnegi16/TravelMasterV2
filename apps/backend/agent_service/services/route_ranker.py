@@ -12,13 +12,14 @@ def score_route(
     budget: str = "",
 ) -> float:
 
-    price = float(flight["total_amount"])
     price = float(
-    flight.get(
-        "price",
-        flight.get("total_amount", 0),
+        flight.get(
+            "price",
+            flight.get("total_amount", 0),
         )
     )
+
+    score = 100.0
 
     budget_value = _parse_budget(budget)
     if budget_value > 0:
@@ -27,7 +28,6 @@ def score_route(
 
         if price > budget_limit:
             score -= 15
-    score = 100.0
 
     if price <= 5000:
         score += 15
@@ -57,10 +57,43 @@ def score_route(
 
     if flight.get("requires_layover_hotel"):
         score -= HOTEL_REQUIRED_PENALTY
+    # Total journey duration (real data from Duffel's slice duration,
+    # e.g. "PT3H25M") as a comfort factor - distinct from the layover-only
+    # penalty above, since a long direct flight has no layover but is
+    # still less comfortable than a short one.
+    duration_minutes = _parse_duration_minutes(
+        flight.get("duration", "")
+    )
 
+    if duration_minutes > 480:
+        score -= 12
+    elif duration_minutes > 360:
+        score -= 6
+    elif duration_minutes > 240:
+        score -= 3
     return max(0.0, round(score, 2))
 import re
+def _parse_duration_minutes(duration: str) -> int:
+    """
+    Converts an ISO 8601 duration string like "PT3H25M" (as returned by
+    Duffel) into total minutes. Returns 0 for missing/unparseable input.
+    """
 
+    if not duration:
+        return 0
+
+    match = re.match(
+        r"PT(?:(\d+)H)?(?:(\d+)M)?",
+        duration,
+    )
+
+    if not match:
+        return 0
+
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2) or 0)
+
+    return hours * 60 + minutes
 
 def _parse_budget(budget: str) -> float:
     """

@@ -2,8 +2,6 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from graph.progress_utils import emit_progress
 from graph.state import TripPlanState
-from tools.flight_tool import flight_tool
-from tools.hotel_tool import hotel_tool
 from tools.places_tool import places_tool
 from tools.weather_tool import weather_tool
 
@@ -34,18 +32,14 @@ def parallel_tools_node(state: TripPlanState) -> TripPlanState:
     # deepcopy, and that was blowing away the real flight results.
     # Fix: only pull the one key each tool is actually responsible for.
     result_key_by_tool = {
-        "flight": "flights",
-        "hotel": "hotels",
         "places": "places",
         "weather": "weather",
     }
 
     try:
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
 
             futures = {
-                "flight": executor.submit(run, flight_tool),
-                "hotel": executor.submit(run, hotel_tool),
                 "places": executor.submit(run, places_tool),
                 "weather": executor.submit(run, weather_tool),
             }
@@ -53,10 +47,32 @@ def parallel_tools_node(state: TripPlanState) -> TripPlanState:
             for name, future in futures.items():
                 try:
                     result = future.result()
+
                     key = result_key_by_tool[name]
 
                     if key in result:
                         state[key] = result[key]
+
+                    # -------- Flight tool additions --------
+                    if name == "flight":
+                        for field in (
+                            "recommended_flight",
+                            "flight_categories",
+                        ):
+                            if field in result:
+                                state[field] = result[field]
+
+                    # -------- Hotel tool additions --------
+                    if name == "hotel":
+                        for field in (
+                            "hotel_budget",
+                            "itinerary",
+                            "multi_itineraries",
+                            "recommended_profile",
+                            "recommended_itinerary",
+                        ):
+                            if field in result:
+                                state[field] = result[field]
 
                     if result.get("errors"):
                         state["errors"].extend(result["errors"])

@@ -1,50 +1,49 @@
 from __future__ import annotations
 
 
+PROFILE_SCORE = {
+    "Budget Saver": {
+        "budget": 0.45,
+        "flight": 0.25,
+        "hotel": 0.30,
+    },
+    "Best Value": {
+        "budget": 0.30,
+        "flight": 0.35,
+        "hotel": 0.35,
+    },
+    "Luxury": {
+        "budget": 0.10,
+        "flight": 0.45,
+        "hotel": 0.45,
+    },
+}
+
+
 def score_itinerary(
     itinerary: dict,
+    profile: str,
+    flight_score: float = 0,
+    hotel_score: float = 0,
 ) -> float:
-    """
-    Computes an overall score for a complete itinerary.
-    Higher is better.
-    """
 
-    score = 100.0
+    weights = PROFILE_SCORE[profile]
 
-    if not itinerary["within_budget"]:
-        score -= 50
+    score = 0
 
-    remaining = itinerary["remaining_budget"]
+    if itinerary["within_budget"]:
+        score += 100 * weights["budget"]
 
-    if remaining > 0:
-        score += min(
-            remaining / 1000,
-            20,
-        )
+    score += min(
+        itinerary["remaining_budget"] / 1000,
+        20,
+    ) * weights["budget"]
 
-    flight = itinerary.get("flight")
+    score += flight_score * weights["flight"]
 
-    if flight:
-
-        score += flight.get(
-            "route_score",
-            0,
-        ) * 0.30
-
-    hotels = itinerary.get(
-        "hotels",
-        [],
-    )
-
-    if hotels:
-
-        score += hotels[0].get(
-            "hotel_score",
-            0,
-        ) * 0.20
+    score += hotel_score * weights["hotel"]
 
     return round(score, 2)
-
 
 def rank_itineraries(
     itineraries: list[dict],
@@ -61,6 +60,9 @@ def rank_itineraries(
 
         option["overall_score"] = score_itinerary(
             itinerary,
+            option["profile"],
+            option.get("flight_score", 0),
+            option.get("hotel_score", 0),
         )
 
         ranked.append(option)

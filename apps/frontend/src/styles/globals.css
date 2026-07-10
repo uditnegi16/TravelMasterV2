@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --transition-fast: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
@@ -15,8 +20,30 @@ body {
   font-feature-settings: "ss01" on, "cv05" on;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+* {
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+img,
+svg {
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 ::selection {
@@ -24,54 +51,113 @@ body {
   color: #12141c;
 }
 
-/* Tabular / mono figures for prices, times, flight data */
+/* Typography */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Bricolage Grotesque", sans-serif;
+  color: #12141c;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+p {
+  color: #5b5f6e;
+}
+
 .font-mono {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
-/* Custom scrollbars for horizontal card rails */
+/* Scrollbar */
+
 .rail-scroll {
   scrollbar-width: thin;
   scrollbar-color: #d2d6e2 transparent;
 }
+
 .rail-scroll::-webkit-scrollbar {
   height: 6px;
 }
+
 .rail-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .rail-scroll::-webkit-scrollbar-thumb {
-  background-color: #d2d6e2;
+  background: #d2d6e2;
   border-radius: 999px;
 }
+
 .rail-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #b7bccb;
+  background: #b7bccb;
 }
 
-/* Focus ring, consistent + visible */
+/* Focus */
+
 .focus-ring {
   outline: none;
 }
+
 .focus-ring:focus-visible {
-  box-shadow: 0 0 0 4px rgba(36, 84, 224, 0.16);
+  box-shadow: 0 0 0 4px rgba(36, 84, 224, 0.14);
   border-color: #2454e0;
 }
 
-/* Respect reduced motion preference */
+/* Card */
+
+.card-surface {
+  @apply rounded-2xl bg-surface border border-border shadow-card;
+}
+
+/* Input */
+
+.input-surface {
+  @apply rounded-2xl border border-border bg-white shadow-soft;
+}
+
+.input-surface:focus-within {
+  border-color: #2454e0;
+  box-shadow: 0 0 0 4px rgba(36, 84, 224, 0.12);
+}
+
+/* Button */
+
+.btn-transition {
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.btn-transition:hover {
+  transform: translateY(-1px);
+}
+
+.btn-transition:active {
+  transform: translateY(0);
+}
+
+/* Hero Pattern */
+
+.bg-dot-grid {
+  background-image: radial-gradient(circle, #d9dee9 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Reduced Motion */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+    animation: none !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Subtle grain / dot texture used behind the hero, not a gradient wash */
-.bg-dot-grid {
-  background-image: radial-gradient(circle, #d9dee9 1px, transparent 1px);
-  background-size: 22px 22px;
 }

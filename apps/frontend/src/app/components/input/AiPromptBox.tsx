@@ -1,12 +1,20 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Mic, ArrowUp, Sparkles } from "lucide-react";
+import { VoiceStatusPanel } from "../voice/VoiceStatusPanel";
+import { VoicePermissionModal } from "../voice/VoicePermissionModal";
 import { cn } from "../../../lib/cn";
-
+import { useVoiceInput } from "../voice/useVoiceInput";
 interface AiPromptBoxProps {
   size?: "hero" | "compact";
   placeholder?: string;
   onSubmit?: (value: string) => void | Promise<void>;
   className?: string;
+  disabled?: boolean;
 }
 
 export function AiPromptBox({
@@ -14,30 +22,84 @@ export function AiPromptBox({
   placeholder = "Plan a 5-day trip to Kyoto under $1,200...",
   onSubmit,
   className,
+  disabled = false,
 }: AiPromptBoxProps) {
   const [value, setValue] = useState("");
-  const [listening, setListening] = useState(false);
+    const {
+  voice,
+  toggle,
+  permissionModalOpen,
+  setPermissionModalOpen,
+  retryAfterDenied,
+} = useVoiceInput({
+  onResult: (transcript: string) => {
+    setValue((current) =>
+      current ? `${current} ${transcript}` : transcript
+    );
+  },
+
+  transcribeWithWhisper: async (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "voice.webm");
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE}/voice/transcribe`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Whisper transcription failed.");
+    }
+
+    const { transcript } = await response.json();
+    return transcript;
+  },
+});
+  // Guards against a second submit firing (double Enter, double click,
+  // or a stray click landing before the button's disabled state
+  // re-renders) while the previous message is still being sent.
+  const [submitting, setSubmitting] = useState(false);
+  // React state updates aren't synchronous, so two submits fired in the
+  // same tick (e.g. Enter + a click landing before re-render) could both
+  // read stale `submitting` state. The ref is checked/set immediately,
+  // so the second call always sees the first one already in flight.
+  const submittingRef = useRef(false);
 
   const isHero = size === "hero";
+  const isBusy = disabled || submitting;
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!value.trim()) return;
-    onSubmit?.(value.trim());
+    if (disabled || submittingRef.current) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    submittingRef.current = true;
+    setSubmitting(true);
     setValue("");
+    try {
+      await onSubmit?.(trimmed);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      if (isBusy) return;
+      void handleSubmit(e);
     }
   }
 
   // Voice button is UI-only for now — toggles a visual "listening" state,
   // no Web Speech API wiring yet (that lands with backend hookup).
   function handleVoiceClick() {
-    setListening((v) => !v);
+    toggle();
   }
 
   return (
@@ -64,8 +126,9 @@ export function AiPromptBox({
         onKeyDown={handleKeyDown}
         rows={isHero ? 2 : 1}
         placeholder={placeholder}
+        disabled={isBusy}
         className={cn(
-          "min-h-[48px] w-full flex-1 resize-none overflow-y-auto bg-transparent text-ink placeholder:text-ink-faint focus:outline-none",
+          "min-h-[48px] w-full flex-1 resize-none overflow-y-auto bg-transparent text-ink placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed disabled:opacity-60",
           isHero ? "py-2.5 text-md md:text-lg" : "py-2 text-base"
         )}
       />
@@ -74,17 +137,22 @@ export function AiPromptBox({
         <button
           type="button"
           onClick={handleVoiceClick}
-          aria-label={listening ? "Stop voice input" : "Use voice input"}
-          aria-pressed={listening}
+          disabled={isBusy}
+          aria-label={
+            voice.state === "listening"
+              ? "Stop voice input"
+              : "Use voice input"
+          }
+          aria-pressed={voice.state === "listening"}
           className={cn(
-            "relative flex shrink-0 items-center justify-center rounded-full transition-all duration-150 focus-ring",
+            "relative flex shrink-0 items-center justify-center rounded-full transition-all duration-150 focus-ring disabled:cursor-not-allowed disabled:opacity-60",
             isHero ? "h-11 w-11" : "h-9 w-9",
-            listening
+            voice.state === "listening"
               ? "bg-brand-soft text-brand"
               : "bg-surface-sunken text-ink-muted hover:text-ink hover:bg-surface-subtle"
           )}
         >
-          {listening && (
+          {voice.state === "listening" && (
             <span className="absolute inset-0 rounded-full bg-brand/15 animate-pulseSoft" />
           )}
           <Mic className={isHero ? "h-[18px] w-[18px]" : "h-4 w-4"} strokeWidth={2} />
@@ -92,7 +160,7 @@ export function AiPromptBox({
 
         <button
           type="submit"
-          disabled={!value.trim()}
+          disabled={!value.trim() || isBusy}
           aria-label="Send"
           className={cn(
             "flex shrink-0 items-center justify-center rounded-full bg-ink text-white transition-all duration-150 hover:bg-black active:scale-[0.94] disabled:bg-surface-sunken disabled:text-ink-faint focus-ring",
@@ -102,6 +170,20 @@ export function AiPromptBox({
           <ArrowUp className={isHero ? "h-[18px] w-[18px]" : "h-4 w-4"} strokeWidth={2.25} />
         </button>
       </div>
+      <>
+      <VoiceStatusPanel
+        voice={voice}
+        onStop={toggle}
+      />
+
+      <VoicePermissionModal
+        open={permissionModalOpen}
+        denied={voice.state === "permission-denied"}
+        onAllow={retryAfterDenied}
+        onRetry={retryAfterDenied}
+        onCancel={() => setPermissionModalOpen(false)}
+      />
+    </>
     </form>
   );
 }

@@ -12,7 +12,7 @@ export default function PdfStatusCard({
   if (status === "idle") return null;
 
   return (
-    <div className="mt-6 animate-fadeIn rounded-3xl border border-border bg-white p-6 shadow-soft">
+    <div className="mt-6 animate-fadeIn card-surface p-7">
       {status === "generating" && (
         <div className="flex items-center gap-3">
           <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-brand" />
@@ -39,7 +39,7 @@ export default function PdfStatusCard({
             href={pdfUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex h-11 items-center rounded-xl bg-brand px-6 font-semibold text-white hover:bg-brand-hover transition-colors"
           >
             Download PDF
           </a>

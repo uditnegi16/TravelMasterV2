@@ -20,7 +20,7 @@ export function HowItWorks() {
   return (
     <section className="border-t border-border bg-white py-20 md:py-28">
       <div className="mx-auto max-w-[1120px] px-4 md:px-8">
-        <div className="max-w-[46ch]">
+        <div className="max-w-[56ch]">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">
             How it works
           </p>
@@ -29,7 +29,7 @@ export function HowItWorks() {
           </h2>
         </div>
 
-        <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+        <div className="mt-12 grid gap-10grid-cols-1 lg:grid-cols-3 md:gap-8">
           {steps.map((step) => (
             <div key={step.number} className="relative">
               <span className="font-mono text-3xl font-semibold text-border-strong">

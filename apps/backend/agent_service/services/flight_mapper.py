@@ -20,6 +20,24 @@ def map_flights(
 
     for flight in flights:
 
+       raw_segments = flight.get("segments", [])
+
+       segments = [
+           {
+               "origin": segment["origin"]["iata_code"],
+               "destination": segment["destination"]["iata_code"],
+               "origin_city": segment["origin"].get("city_name"),
+               "destination_city": segment["destination"].get("city_name"),
+               "departing_at": segment.get("departing_at"),
+               "arriving_at": segment.get("arriving_at"),
+               "carrier": (
+                   segment.get("marketing_carrier", {}) or {}
+               ).get("name"),
+               "flight_number": segment.get("marketing_carrier_flight_number"),
+           }
+           for segment in raw_segments
+       ]
+
        mapped.append(
     FlightOption(
         id=flight["id"],
@@ -56,6 +74,8 @@ def map_flights(
         route_score=flight["route_score"],
 
         expires_at=flight["expires_at"],
+
+        segments=segments,
     ).model_dump()
 )
     return mapped

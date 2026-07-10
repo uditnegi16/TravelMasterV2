@@ -42,19 +42,19 @@ const columns = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border bg-white">
-      <div className="mx-auto max-w-[1220px] px-4 py-14 md:px-8 md:py-16">
+    <footer className="border-t border-border bg-surface-subtle">
+      <div className="mx-auto max-w-[1280px] px-4 py-14 md:px-8 md:py-16">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-6">
           <div className="col-span-2 md:col-span-2">
             <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand shadow-soft text-white">
                 <Compass className="h-4 w-4" strokeWidth={2.25} />
               </span>
-              <span className="font-display text-lg font-semibold tracking-[-0.02em] text-ink">
+              <span className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">
                 TravelMaster
               </span>
             </Link>
-            <p className="mt-4 max-w-[26ch] text-sm leading-relaxed text-ink-muted">
+            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed text-ink-muted">
               Describe a trip in plain language. Get real flights, real
               hotels, and a plan you can actually book.
             </p>
@@ -68,7 +68,7 @@ export default function Footer() {
                   <li key={link.label}>
                     <Link
                       to={link.to}
-                      className="text-sm text-ink-muted transition-colors hover:text-ink"
+                      className="text-sm text-ink-muted transition-colors hover:text-brand"
                     >
                       {link.label}
                     </Link>
@@ -85,19 +85,19 @@ export default function Footer() {
           </p>
 
           <div className="flex items-center gap-5">
-            <a aria-label="Twitter" href="#" className="text-ink-faint hover:text-ink">
+            <a aria-label="Twitter" href="#" className="text-ink-faint  hover:text-brand">
               <Globe className="h-[18px] w-[18px]" />
             </a>
-            <a aria-label="Instagram" href="#" className="text-ink-faint hover:text-ink">
+            <a aria-label="Instagram" href="#" className="text-ink-faint  hover:text-brand">
               <Mail className="h-[18px] w-[18px]" />
             </a>
-            <a aria-label="LinkedIn" href="#" className="text-ink-faint hover:text-ink">
+            <a aria-label="LinkedIn" href="#" className="text-ink-faint  hover:text-brand">
               <Phone className="h-[18px] w-[18px]" />
             </a>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[0.7rem] font-medium text-ink-faint">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent-green" />
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-[0.7rem] font-medium text-ink-faint">
+            <span className="h-1.5 w-1.5 rounded-xl bg-accent-green" />
             Built with the TravelMaster AI Agent
           </span>
         </div>
