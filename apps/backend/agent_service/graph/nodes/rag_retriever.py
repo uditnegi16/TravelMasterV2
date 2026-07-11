@@ -2,10 +2,13 @@
 LangGraph RAG retrieval node.
 """
 
+import time
+
 from graph.state import TripPlanState
 from retrieval.context_builder import ContextBuilder
 from retrieval.retriever import SemanticRetriever
 from graph.progress_utils import emit_progress
+from shared import metrics
 
 retriever = SemanticRetriever()
 
@@ -25,6 +28,8 @@ def rag_retriever_node(
         "Searching travel knowledge...",
     )
 
+    started = time.perf_counter()
+
     try:
         query = state["user_query"]
 
@@ -33,6 +38,13 @@ def rag_retriever_node(
         context = ContextBuilder.build(documents)
 
         state["retrieved_context"] = context
+
+        metrics.record_latency(
+            "rag_retrieval",
+            (time.perf_counter() - started) * 1000,
+            {"doc_count": len(documents) if documents else 0},
+        )
+        metrics.increment("rag_retrieval_calls")
 
         emit_progress(
             state,
@@ -43,6 +55,7 @@ def rag_retriever_node(
         return state
 
     except Exception:
+        metrics.increment("rag_retrieval_errors")
         emit_progress(
             state,
             "rag",

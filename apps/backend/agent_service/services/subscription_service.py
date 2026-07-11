@@ -9,6 +9,7 @@ class SubscriptionService:
     def create_subscription(
         self,
         account_id: str,
+        clerk_user_id: str,
         order_id: str,
         payment_id: str,
         amount: float,
@@ -20,6 +21,7 @@ class SubscriptionService:
             .insert(
                 {
                     "account_id": account_id,
+                    "clerk_user_id": clerk_user_id,
                     "plan_name": "premium",
                     "status": "active",
                     "razorpay_order_id": order_id,

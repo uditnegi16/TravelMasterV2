@@ -1,6 +1,7 @@
 import json
 
 from shared.logging_config import logger
+from shared import metrics
 
 from core.redis_client import redis_client
 
@@ -10,9 +11,11 @@ def get_cache(key: str):
 
     if data:
         logger.info(f"Cache HIT | {key}")
+        metrics.increment("cache_hit")
         return json.loads(data)
 
     logger.info(f"Cache MISS | {key}")
+    metrics.increment("cache_miss")
     return None
 
 

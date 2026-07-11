@@ -48,8 +48,35 @@ async def get_current_user(request: Request):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception("Clerk auth raised an unexpected error")
+        print("CLERK AUTH ERROR:", repr(exc))
         raise HTTPException(
             status_code=401,
             detail="Unauthorized",
         ) from exc
+
+def _role_from_payload(payload):
+    if not payload:
+        return "user"
+
+    metadata = payload.get("metadata") or {}
+    if isinstance(metadata, dict):
+        role = metadata.get("role")
+        if role:
+            return role
+
+    return payload.get("role", "user")
+
+
+async def require_admin(request: Request):
+    request_state = await get_current_user(request)
+
+    role = _role_from_payload(getattr(request_state, "payload", None))
+
+    if role not in ("admin", "superadmin"):
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required.",
+        )
+
+    request_state.role = role
+    return request_state

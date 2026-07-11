@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth, useUser, SignInButton } from "@clerk/clerk-react";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { cn } from "../../../lib/cn";
+import { createOrder, verifyPayment } from "../../services/api";
 
 const freeFeatures = [
   "Unlimited AI trip planning conversations",
@@ -22,6 +25,51 @@ const premiumFeatures = [
 
 export function PricingPlans() {
   const navigate = useNavigate();
+  const { getToken } = useAuth();
+  const { isSignedIn } = useUser();
+  const [upgrading, setUpgrading] = useState(false);
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        alert("Please sign in first.");
+        return;
+      }
+
+      const order = await createOrder(token);
+
+      const razorpay = new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: "TravelMaster Premium",
+        description: "Premium Subscription",
+        theme: { color: "#2563eb" },
+        handler: async (response) => {
+          try {
+            await verifyPayment(token, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            alert("Premium activated successfully!");
+          } catch {
+            alert("Payment verification failed. Contact support if you were charged.");
+          }
+        },
+      });
+
+      razorpay.open();
+    } catch (error) {
+      console.error(error);
+      alert("Unable to start payment. Please try again.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   return (
     <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-6 md:grid-cols-2">
@@ -66,6 +114,10 @@ export function PricingPlans() {
           <p className="text-sm font-semibold uppercase tracking-[0.06em] text-brand">
             Premium
           </p>
+          {/* TODO(product decision): "Coming soon" badge left as-is on
+              purpose — checkout is now wired and functional, but whether
+              to actually announce launch is a product call, not a code
+              one. Remove/replace this badge when you're ready to sell. */}
           <Badge tone="blue" dot>
             Coming soon
           </Badge>
@@ -89,9 +141,24 @@ export function PricingPlans() {
           ))}
         </ul>
 
-        <Button variant="primary" size="lg" fullWidth className="mt-8" disabled>
-          Notify me at launch
-        </Button>
+        {isSignedIn ? (
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            className="mt-8"
+            onClick={handleUpgrade}
+            disabled={upgrading}
+          >
+            {upgrading ? "Starting checkout..." : "Upgrade to Premium"}
+          </Button>
+        ) : (
+          <SignInButton mode="modal">
+            <Button variant="primary" size="lg" fullWidth className="mt-8">
+              Sign in to upgrade
+            </Button>
+          </SignInButton>
+        )}
       </div>
     </div>
   );

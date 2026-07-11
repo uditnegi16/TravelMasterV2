@@ -19,6 +19,7 @@ from api.chat_routes import router as chat_router
 from api.voice_routes import router as voice_router
 
 from api.contact_routes import router as contact_router
+from api.admin_routes import router as admin_router
 
 
 app = FastAPI(title="TravelMaster API")
@@ -36,6 +37,7 @@ app.include_router(payment_router)
 app.include_router(chat_router)
 app.include_router(voice_router)
 app.include_router(contact_router)
+app.include_router(admin_router)
 
 @app.on_event("startup")
 async def on_startup() -> None:

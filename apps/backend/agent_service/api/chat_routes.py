@@ -36,6 +36,8 @@ from fastapi import Request
 from services.pdf_builder import build_trip_pdf
 from fastapi import Depends
 from core.auth import get_current_user
+from shared import metrics
+import time
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -123,6 +125,8 @@ def post_message(
     socket, same as /plan-trip.
     """
 
+    turn_started = time.perf_counter()
+
     session = chat_service.assert_session_owner(session_id, body.device_id)
 
     chat_service.add_message(session_id, "user", body.query)
@@ -134,6 +138,7 @@ def post_message(
     query=body.query,
     previous_trip=previous_trip,
     )
+    metrics.increment_bucket("conversation_type", conversation_type)
 
     logger.info(
         "Conversation Type | %s",
@@ -206,6 +211,7 @@ def post_message(
             }
 
     except Exception as exc:
+        metrics.increment("chat_turn_errors")
         logger.exception(
             "Agent graph failed for session_id=%s",
             session_id,
@@ -234,6 +240,13 @@ def post_message(
     )
     assistant_message_id = assistant_message["id"]
     chat_service.touch_session(session_id)
+
+    metrics.record_latency(
+        "chat_turn",
+        (time.perf_counter() - turn_started) * 1000,
+        {"conversation_type": conversation_type},
+    )
+    metrics.increment("chat_turn_success")
 
     return {
         "session": session,

@@ -11,7 +11,9 @@ import {
   SignInButton,
   SignUpButton,
   UserButton,
+  useUser,
 } from "@clerk/clerk-react";
+import { ShieldCheck } from "lucide-react";
 const navItems = [
   { label: "Chat", to: "/chat" },
   { label: "Pricing", to: "/pricing" },
@@ -21,6 +23,9 @@ const navItems = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const { user } = useUser();
+  const role = (user?.publicMetadata?.role as string | undefined) ?? "user";
+  const isAdmin = role === "admin" || role === "superadmin";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/92 backdrop-blur-xl">
@@ -86,6 +91,15 @@ export default function Header() {
         </SignedOut>
 
         <SignedIn>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="mr-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-ink-muted hover:bg-brand-soft hover:text-brand"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
           <UserButton afterSignOutUrl="/" />
         </SignedIn>
         </div>
@@ -134,6 +148,16 @@ export default function Header() {
           </SignedOut>
 
           <SignedIn>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="mb-2 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-ink-muted hover:bg-surface-subtle hover:text-ink"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
             <div className="flex w-full justify-center">
               <UserButton afterSignOutUrl="/" />
             </div>
