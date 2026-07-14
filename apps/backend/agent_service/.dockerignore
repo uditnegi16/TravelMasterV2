@@ -1,0 +1,8 @@
+.venv
+.aws-sam
+__pycache__
+*.pyc
+generated_pdfs
+.env
+.git
+.gitignore

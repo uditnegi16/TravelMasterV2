@@ -18,10 +18,12 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
+import tempfile
+from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = BASE_DIR / "templates"
-OUTPUT_DIR = BASE_DIR / "generated_pdfs"
+OUTPUT_DIR = Path(tempfile.gettempdir()) / "generated_pdfs"
 
 MAX_FLIGHTS_IN_PDF = 5
 

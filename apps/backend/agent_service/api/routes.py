@@ -1,22 +1,39 @@
+print("routes: logging")
 import logging
 
+print("routes: fastapi")
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
+print("routes: redis")
 from core.redis_client import redis_client
+
+print("routes: schemas")
 from api.schemas import GeneratePdfRequest, TripRequest, TripResponse
+
+print("routes: build_graph import")
 from graph.build_graph import build_graph
+
+print("routes: pdf_builder")
 from services.pdf_builder import build_trip_pdf
+
+print("routes: response_builder")
 from services.response_builder import build_response
 
+print("routes: asyncio")
 import asyncio
 
+print("routes: websocket")
 from api.websocket_manager import manager
 
+print("routes: logger")
 logger = logging.getLogger(__name__)
 
+print("routes: router")
 router = APIRouter()
 
+print("routes: before build_graph")
 graph = build_graph()
+print("routes: after build_graph")
 
 
 @router.post("/plan-trip")

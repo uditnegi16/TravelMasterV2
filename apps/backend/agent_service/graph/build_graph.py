@@ -1,15 +1,37 @@
+print("bg: StateGraph")
 from langgraph.graph import START, END, StateGraph
 
+print("bg: state")
 from graph.state import TripPlanState
+
+print("bg: planner")
 from graph.nodes.planner_node import planner_node
+
+print("bg: trip_modifier")
 from graph.nodes.trip_modifier_node import trip_modifier_node
+
+print("bg: tool_router")
 from graph.nodes.tool_router_node import tool_router_node
+
+print("bg: location_resolver")
 from graph.nodes.location_resolver_node import location_resolver_node
+
+print("bg: rag")
 from graph.nodes.rag_retriever import rag_retriever_node
+
+print("bg: parallel_tools")
 from graph.nodes.parallel_tools_node import parallel_tools_node
+
+print("bg: flight_tool")
 from tools.flight_tool import flight_tool
+
+print("bg: hotel_tool")
 from tools.hotel_tool import hotel_tool
+
+print("bg: composer")
 from graph.nodes.composer_node import composer_node
+
+print("bg: imports done")
 
 
 def _route_entry(state: TripPlanState) -> str:

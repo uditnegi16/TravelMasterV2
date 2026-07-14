@@ -1,26 +1,71 @@
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# import asyncio
+
+# from fastapi import FastAPI, HTTPException
+# from fastapi.middleware.cors import CORSMiddleware
+# from fastapi.responses import FileResponse
+
+# from api.payment_routes import router as payment_router
+# from api.routes import router
+# from services.pdf_builder import ensure_output_dir, get_pdf_path
+
+# from fastapi import WebSocket, WebSocketDisconnect
+
+# from api.websocket_manager import manager
+# from api.chat_routes import router as chat_router
+# from api.voice_routes import router as voice_router
+
+# from api.contact_routes import router as contact_router
+# from api.admin_routes import router as admin_router
 from dotenv import load_dotenv
+print("1: dotenv")
 
 load_dotenv()
 
 import asyncio
+print("2: asyncio")
 
 from fastapi import FastAPI, HTTPException
+print("3: fastapi")
+
 from fastapi.middleware.cors import CORSMiddleware
+print("4: cors")
+
 from fastapi.responses import FileResponse
+print("5: responses")
 
 from api.payment_routes import router as payment_router
+print("6: payment")
+
+
+
+print("7: before routes")
 from api.routes import router
+print("7: after routes")
+
 from services.pdf_builder import ensure_output_dir, get_pdf_path
+print("8: pdf")
 
 from fastapi import WebSocket, WebSocketDisconnect
+print("9: websocket")
 
 from api.websocket_manager import manager
+print("10: ws manager")
+
 from api.chat_routes import router as chat_router
+print("11: chat")
+
 from api.voice_routes import router as voice_router
+print("12: voice")
 
 from api.contact_routes import router as contact_router
-from api.admin_routes import router as admin_router
+print("13: contact")
 
+from api.admin_routes import router as admin_router
+print("14: admin")
 
 app = FastAPI(title="TravelMaster API")
 

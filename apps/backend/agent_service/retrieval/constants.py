@@ -14,7 +14,8 @@ from pathlib import Path
 # Knowledge Base
 # ------------------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[5]
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 KNOWLEDGE_BASE_DIR = PROJECT_ROOT / "knowledge_base"
 
