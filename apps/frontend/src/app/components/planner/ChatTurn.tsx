@@ -1,6 +1,7 @@
 import TripResult from "../trip/TripResult";
-import type { PlanTripResponse, Trip } from "../../models/trip";
+import type { Trip } from "../../models/trip";
 import { Download, Share2 } from "lucide-react";
+import { API_URL } from "../../services/api";
 type ChatTurnProps = {
   messageId: string;
   role: "user" | "assistant" | "system";
@@ -18,14 +19,14 @@ export default function ChatTurn({
   const isSystem = role === "system";
   const handleDownloadPdf = () => {
     window.open(
-      `http://localhost:8000/chat/messages/${messageId}/pdf`,
+      `${API_URL}/chat/messages/${messageId}/pdf`,
       "_blank",
     );
   };
 
   const handleShare = async () => {
   const response = await fetch(
-    `http://localhost:8000/chat/messages/${messageId}/share`,
+    `${API_URL}/chat/messages/${messageId}/share`,
     {
       method: "POST",
     },

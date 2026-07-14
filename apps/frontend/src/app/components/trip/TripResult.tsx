@@ -1,10 +1,5 @@
-import FlightCard from "./FlightCard";
-import HotelCard from "./HotelCard";
-import PlaceCard from "./PlaceCard";
-import ResponseTabs from "./ResponseTabs";
-import WeatherCard from "./WeatherCard";
 import PackageSection from "./PackageSection";
-import type { PlanTripResponse, Place } from "../../models/trip";
+import type { PlanTripResponse } from "../../models/trip";
 type Props = {
   result: PlanTripResponse | null;
 };

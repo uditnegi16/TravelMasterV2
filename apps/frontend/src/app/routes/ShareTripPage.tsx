@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-
+import { API_URL } from "../services/api";
 import TripResult from "../components/trip/TripResult";
 import type { SharedTripResponse } from "../models/trip";
 
@@ -12,7 +12,7 @@ export default function ShareTripPage() {
   useEffect(() => {
     if (!token) return;
 
-    fetch(`http://localhost:8000/chat/share/${token}`)
+    fetch(`${API_URL}/chat/share/${token}`)
       .then((r) => r.json())
       .then(setData);
   }, [token]);

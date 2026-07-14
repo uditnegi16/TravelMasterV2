@@ -1,3 +1,4 @@
+const WS_URL = import.meta.env.VITE_API_BASE.replace(/^http/, "ws");
 export interface ProgressEvent {
   type: "progress";
   stage: string;
@@ -17,7 +18,7 @@ export function connectProgressSocket(
   onEvent: (event: SocketEvent) => void,
 ): WebSocket {
   const socket = new WebSocket(
-    `ws://127.0.0.1:8000/ws/progress/${sessionId}`,
+    `${WS_URL}/ws/progress/${sessionId}`,
   );
 
   socket.onmessage = (event) => {
