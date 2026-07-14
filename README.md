@@ -1,8 +1,42 @@
-# TravelGuru v2
+<p align="center">
+  <!-- ============================================================ -->
+  <!-- REPLACE: Upload your banner to GitHub and paste the URL here -->
+  <!-- ============================================================ -->
+  <img width="100%" alt="TravelGuru v2 Banner" src="docs/banner.png"/>
+</p>
 
-**AI trip planning, rebuilt from first principles.** Describe a trip in one sentence, and a LangGraph multi-agent pipeline pulls real flights, real hotels, real places, and real weather, ranks them, grounds the writeup in a retrieval-augmented knowledge base, and streams back a narrated, bookable itinerary — with voice input, a chat-style planning surface, Razorpay premium billing, and an admin panel behind it.
+<p align="center">
+  <a href="https://main.d2dqny356lcrsz.amplifyapp.com/chat/"><img src="https://img.shields.io/badge/Live_Demo-Visit_App-7c3aed?style=flat-square" alt="Live Demo" /></a>
+  <a href="https://github.com/uditnegi16/TravelMasterV2"><img src="https://img.shields.io/badge/GitHub-TravelGuru_v2-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/AWS-Deployed-FF9900?style=flat-square&logo=amazonaws&logoColor=white" alt="AWS" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" /></a>
+</p>
 
-TravelGuru v2 is a ground-up rebuild of the original [TravelMaster](https://github.com/uditnegi16/Travelmaster) project. Same core idea, production-minded engineering underneath: owned API keys instead of shared ones, graceful degradation when a provider goes down, a real payment flow, and a RAG layer that gives the AI actual travel knowledge instead of just summarizing API responses.
+<p align="center">
+  <img src="https://img.shields.io/badge/Multi--Agent-LangGraph-orange?style=flat-square" alt="Multi-Agent" />
+  <img src="https://img.shields.io/badge/Serverless-AWS_Lambda_(Container)-FF9900?style=flat-square" alt="Serverless" />
+  <img src="https://img.shields.io/badge/RAG-pgvector-F7931E?style=flat-square" alt="RAG" />
+  <img src="https://img.shields.io/badge/Auth-Clerk_JWT-6C47FF?style=flat-square" alt="Clerk Auth" />
+  <img src="https://img.shields.io/badge/Payments-Razorpay-0B4CE0?style=flat-square" alt="Payments" />
+  <img src="https://img.shields.io/badge/Admin-Panel-blue?style=flat-square" alt="Admin Panel" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Groq-llama--3.3--70b-red?style=flat-square" alt="Groq" />
+  <img src="https://img.shields.io/badge/Fallback-NVIDIA_NIM-76B900?style=flat-square" alt="NVIDIA NIM" />
+  <img src="https://img.shields.io/badge/Flights-Duffel_API-00539B?style=flat-square" alt="Duffel" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL_%2B_pgvector-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" />
+</p>
+
+---
+
+## Overview
+
+TravelGuru v2 is a ground-up rebuild of the original [TravelMaster](https://github.com/uditnegi16/Travelmaster) project — same core idea, production-minded engineering underneath. Describe a trip in one sentence, and a **LangGraph multi-agent pipeline** pulls real flights, real hotels, real places, and real weather, ranks them, grounds the writeup in a **retrieval-augmented knowledge base**, and streams back a narrated itinerary — with voice input, a chat-style planning surface, Razorpay premium billing, and an admin panel behind it.
+
+Owned API keys instead of shared ones. Graceful degradation when a provider goes down — circuit breakers around every external tool, parallel failure-isolated calls, and a dual-LLM fallback so one dead provider or rate limit never takes down the whole plan. A real payment flow. A RAG layer that gives the AI actual travel knowledge instead of just summarizing API responses.
 
 > "Plan a 5-day honeymoon trip from Delhi to Goa for 2, mid-range budget, first week of December"
 >
@@ -10,65 +44,111 @@ TravelGuru v2 is a ground-up rebuild of the original [TravelMaster](https://gith
 
 ---
 
-## Project status
+## Demo
 
-🚧 **Actively developed, running locally against real (free-tier) cloud services — not yet deployed to AWS.**
+<!-- ================================================================ -->
+<!-- HOW TO EMBED YOUR VIDEO (GitHub renders MP4 natively):           -->
+<!-- 1. Go to your repo → Issues → New Issue                          -->
+<!-- 2. Drag and drop your .mp4 file into the comment box             -->
+<!-- 3. GitHub generates a URL like:                                  -->
+<!--    https://github.com/user/repo/assets/USERID/FILEID.mp4        -->
+<!-- 4. Paste that URL below on its own line — no markdown needed     -->
+<!-- 5. Delete these instructions after replacing the URL             -->
+<!-- ================================================================ -->
 
-Development follows an 8-phase SDLC plan (see `docs/`). Per the commit history, **Phases 0–7 are complete**:
-
-| Phase | Scope | Status |
-|---|---|---|
-| 0 | Repo skeleton, accounts, structured logging | ✅ |
-| 1 | Core trip pipeline — real flights/hotels/places/weather, first agent graph | ✅ |
-| 2 | Reliability — Redis caching, circuit breakers, dual-LLM fallback | ✅ |
-| 3 | Payments — Razorpay checkout, webhook, subscription tier | ✅ |
-| 4 | RAG knowledge brain — embeddings + retrieval into the composer prompt | ✅ |
-| 5 | Streaming UX — WebSocket progress events, async PDF generation | ✅ |
-| 6 | Mobile-responsive UI pass | ✅ |
-| 7 | Differentiated features (multi-profile ranking, trip re-planning) | ✅ |
-| 8 | AWS migration (Lambda + Amplify + SAM) | ⏳ not started — `lambda_handler.py` stubs exist in both services, no `template.yaml`/`amplify.yml` yet |
-
-Since finishing the planned SDLC, additional work has landed that wasn't in the original plan: **Clerk authentication, voice input, a contact form, and a full ChatGPT-style session/chat interface** (session history, pin/rename, share links) replacing the original single-shot planner UI.
-
-**Two backend services exist, but only one is real right now:**
-- `agent_service` is where everything actually lives — the LangGraph agent, chat, payments, voice transcription, contact form, and the admin API.
-- `mlops_service` is currently a health-check stub (`main.py` has two routes: `/` and `/health`). The SDLC plan calls for splitting business logic (auth, payments, admin) into this service; that split hasn't happened yet.
+YOUR_GITHUB_VIDEO_ASSET_URL_HERE
 
 ---
 
-## How a trip request flows
+## 🌐 Live Demo
 
-```
-                         ┌────────────────┐
-   user message ───────► │  planner /     │   NEW_TRIP → planner_node
-                         │  trip_modifier │   MODIFY_TRIP → trip_modifier_node
-                         └───────┬────────┘
-                                 ▼
-                       location_resolver_node
-                                 ▼
-                        rag_retriever_node   ← cosine search over travel_knowledge (pgvector)
-                                 ▼
-                         tool_router_node
-                                 ▼
-                    ┌────────────────────────┐
-                    │  flight_tool (Duffel)   │
-                    │  hotel_tool (OSM/       │
-                    │   Nominatim POI search) │
-                    └───────────┬─────────────┘
-                                 ▼
-                       parallel_tools_node     ← places + weather fetched concurrently
-                          (ThreadPoolExecutor)     (asyncio.gather, exceptions swallowed
-                                 ▼                   per-tool so one dead API doesn't
-                          composer_node               kill the whole plan)
-                                 ▼
-                    streamed AI narrative + ranked itinerary
-```
-
-`FOLLOW_UP` and `GENERAL_CHAT` turns never touch the graph at all — they're answered directly by `qa_node` for lower latency on ordinary chat replies.
+| Service | URL | Status |
+|---------|-----|--------|
+| Frontend | https://main.d2dqny356lcrsz.amplifyapp.com/chat/ | ✅ Live on AWS Amplify |
+| Agent API | https://wg9p6esygl.execute-api.ap-south-1.amazonaws.com/prod | ✅ Live — Lambda (container image) via API Gateway |
+| Agent API Health | https://wg9p6esygl.execute-api.ap-south-1.amazonaws.com/prod/health | ✅ |
+| MLOps API | — | ⏳ Not deployed yet — currently a local-only stub |
 
 ---
 
-## Tech stack
+## Screenshots
+
+<!-- ================================================================ -->
+<!-- HOW TO ADD SCREENSHOTS:                                          -->
+<!-- 1. Take screenshots using Windows Snipping Tool (Win+Shift+S)   -->
+<!-- 2. Create a /screenshots folder in your repo                     -->
+<!-- 3. Upload the images listed below                                -->
+<!-- 4. The paths below will auto-resolve once images are uploaded    -->
+<!-- ================================================================ -->
+<!-- Screenshots to capture:                                          -->
+<!-- 1. landing.png    — Landing page hero before login               -->
+<!-- 2. chat.png       — Chat-style trip planning surface             -->
+<!-- 3. trip.png       — AI results (flights/hotels/places visible)   -->
+<!-- 4. pdf.png        — Downloaded PDF opened in browser             -->
+<!-- 5. admin.png      — Admin dashboard with metrics                 -->
+<!-- ================================================================ -->
+
+<p align="center">
+  <img src="screenshots/landing.png" width="48%" alt="Landing Page" />
+  <img src="screenshots/chat.png" width="48%" alt="Chat Planning Surface" />
+</p>
+<p align="center">
+  <img src="screenshots/trip.png" width="48%" alt="Trip Results" />
+  <img src="screenshots/pdf.png" width="48%" alt="PDF Export" />
+</p>
+<p align="center">
+  <img src="screenshots/admin.png" width="48%" alt="Admin Panel" />
+</p>
+
+---
+
+## System Architecture
+
+<!-- ================================================================ -->
+<!-- REPLACE: Upload your architecture diagram to /docs/ in the repo  -->
+<!-- and replace the src URL below                                     -->
+<!-- ================================================================ -->
+
+<p align="center">
+  <img width="90%" alt="TravelGuru v2 System Architecture" src="docs/architecture.png" />
+</p>
+
+---
+
+## Agent Flow
+
+```mermaid
+flowchart TD
+    A["🗣️ User Message\nPlain English or voice — no forms"] --> B["Intent Classifier\nNEW_TRIP · MODIFY_TRIP · FOLLOW_UP · GENERAL_CHAT"]
+    B -->|NEW_TRIP| C["🧠 Planner Node"]
+    B -->|MODIFY_TRIP| C2["🔁 Trip Modifier Node"]
+    B -->|FOLLOW_UP / GENERAL_CHAT| Q["💬 QA Node\nAnswered directly, skips the graph"]
+    C --> D["📍 Location Resolver"]
+    C2 --> D
+    D --> E["📚 RAG Retriever\ncosine search over travel_knowledge (pgvector)"]
+    E --> F["⚡ Tool Router"]
+    F --> G["✈️ Duffel\nFlights"]
+    F --> H["🏨 OSM / Nominatim\nHotel POIs"]
+    G & H --> I["🌍 Parallel Tools Node\nPlaces (OpenTripMap) + Weather (Open-Meteo)\nasyncio.gather — one dead API can't kill the plan"]
+    I --> J["📊 Ranking\nBudget Saver / Best Value / Luxury\nweighted price · rating · convenience"]
+    J --> K["✍️ Composer Node\nAI narrative, streamed token-by-token"]
+    K --> L["🔌 WebSocket + SSE\nLive progress → React chat UI"]
+
+    style A fill:#7c3aed,color:#fff,stroke:#5b21b6
+    style B fill:#1e40af,color:#fff,stroke:#1e3a8a
+    style C fill:#0369a1,color:#fff,stroke:#075985
+    style C2 fill:#0369a1,color:#fff,stroke:#075985
+    style Q fill:#374151,color:#fff,stroke:#1f2937
+    style E fill:#065f46,color:#fff,stroke:#064e3b
+    style F fill:#0369a1,color:#fff,stroke:#075985
+    style J fill:#065f46,color:#fff,stroke:#064e3b
+    style K fill:#0369a1,color:#fff,stroke:#075985
+    style L fill:#7c3aed,color:#fff,stroke:#5b21b6
+```
+
+---
+
+## Tech Stack
 
 ### Frontend
 | | |
@@ -78,32 +158,36 @@ Since finishing the planned SDLC, additional work has landed that wasn't in the 
 | Routing | React Router v7 |
 | Auth | Clerk (`@clerk/clerk-react`) |
 | Motion | Framer Motion |
+| Hosting | AWS Amplify (CI/CD from GitHub) |
 
-### Backend — `agent_service` (the AI brain, port 8000)
+### Backend — `agent_service` (the AI brain)
 | | |
 |---|---|
-| API | FastAPI, Mangum (Lambda adapter, unused until Phase 8) |
+| API | FastAPI, Mangum (Lambda adapter) |
 | Orchestration | LangGraph + LangChain |
 | Primary LLM | Groq — `llama-3.3-70b-versatile` |
-| Fallback LLM | NVIDIA NIM — `meta/llama-3.3-70b-instruct` (auto-fallback on Groq failure/timeout) |
+| Fallback LLM | NVIDIA NIM — `meta/llama-3.1-70b-instruct` (auto-fallback on Groq failure/timeout) |
+| Message classifier | Separate Groq key so classification doesn't compete with planning/composing for quota |
 | RAG embeddings | `sentence-transformers/all-MiniLM-L6-v2`, retrieved via a Supabase `match_travel_knowledge` RPC over pgvector |
-| Voice | `faster-whisper` (local `base` model, int8, CPU) — no external speech API |
-| Ranking | scikit-learn–style weighted scoring across price / rating / convenience, per risk profile (Budget Saver / Best Value / Luxury) |
+| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| Voice | `faster-whisper` (local `base` model, int8, CPU) |
+| Ranking | Weighted scoring across price / rating / convenience, per risk profile (Budget Saver / Best Value / Luxury) |
 | Reliability | Custom `CircuitBreaker` per external tool, `asyncio.gather(..., return_exceptions=True)` for graceful degradation |
 | Cache / rate limiting | Upstash Redis |
 | Payments | Razorpay (order creation, HMAC signature verification, webhook) |
 | PDF | WeasyPrint |
+| Deployment | Docker container image → Amazon ECR → AWS Lambda (container runtime, not zip) — needed to fit `torch`/`sentence-transformers`/`faster-whisper` comfortably within Lambda's container image limits |
 
-### Backend — `mlops_service` (stub, port TBD)
-FastAPI skeleton with `/` and `/health` only. Not wired into the frontend yet.
+### Backend — `mlops_service` (stub — not yet deployed)
+FastAPI skeleton with `/` and `/health` only. Runs locally on port 8001; not wired into the live frontend yet. The SDLC plan calls for splitting auth/payments/admin business logic into this service — that split hasn't happened yet, so `agent_service` still carries all real logic.
 
 ### Data sources (all real, all free-tier)
 | Domain | Provider | Notes |
 |---|---|---|
-| Flights | **Duffel API** | Real offer search (SDLC plan originally specced Skyscanner + Kiwi fallback; the shipped code uses Duffel instead) |
-| Hotels | **OpenStreetMap / Nominatim** structured POI search | Real hotel names, addresses, and coordinates; price and rating are currently synthesized (not yet a real pricing API), and the booking link opens a Google Maps search rather than a bookable listing |
-| Places | **OpenTripMap** | Ported from the V1 project after Nominatim's 1 req/sec limit made it unusable for places |
-| Weather | **Open-Meteo** (via Nominatim geocoding) | SDLC plan specced OpenWeather; shipped code uses Open-Meteo |
+| Flights | **Duffel API** | Real offer search |
+| Hotels | **OpenStreetMap / Nominatim** structured POI search | Real hotel names, addresses, coordinates; price and rating are currently synthesized — no live pricing API wired in yet |
+| Places | **OpenTripMap** | Used after Nominatim's 1 req/sec limit made it unusable for places |
+| Weather | **Open-Meteo** (via Nominatim geocoding) | |
 
 ### Database & infra
 | | |
@@ -111,7 +195,11 @@ FastAPI skeleton with `/` and `/health` only. Not wired into the frontend yet.
 | Database | Supabase (PostgreSQL + pgvector) |
 | Auth | Clerk — JWT verified in `agent_service/core/auth.py`; roles (`user`/`admin`/`superadmin`) live in Clerk `publicMetadata`, not a DB table |
 | Cache | Upstash Redis (serverless, REST-based) |
-| Target infra (Phase 8) | AWS Lambda + API Gateway (backend), AWS Amplify (frontend), AWS SAM — same shape as the original TravelMaster deployment |
+| Secrets | AWS Secrets Manager (agent Lambda env) |
+| Infra as code | AWS SAM |
+| Container registry | Amazon ECR |
+| Frontend hosting | AWS Amplify |
+| Backend hosting | AWS Lambda (container image) + API Gateway (REST) |
 
 ---
 
@@ -120,63 +208,64 @@ FastAPI skeleton with `/` and `/health` only. Not wired into the frontend yet.
 **Shipped and working:**
 - Natural-language trip planning — no forms, describe the trip in plain English or speak it
 - Chat-style planning surface with session history, rename, pin, and delete (like ChatGPT)
-- Trip modification mid-conversation — "make it cheaper" re-enters the graph via `trip_modifier_node` instead of re-planning from scratch
-- Live progress over WebSocket while the agent works, plus token-level streaming of the final narrative
-- RAG-grounded answers — destination, visa, seasonal, and cultural knowledge pulled from a curated `knowledge_base/` (27 markdown files across destinations, visas, seasons, food, festivals, budgets, and travel styles)
+- Trip modification mid-conversation — "make it cheaper" re-enters the graph via the trip modifier node instead of re-planning from scratch
+- Token-level streaming of the final narrative
+- RAG-grounded answers — destination, visa, seasonal, and cultural knowledge pulled from a curated knowledge base, chunked and embedded into `travel_knowledge`
+- Cross-encoder reranking of retrieved knowledge chunks before they reach the composer prompt
 - Three-way itinerary ranking (Budget Saver / Best Value / Luxury) with different price/flight/hotel score weightings per profile
 - Voice input via local Whisper transcription
 - Razorpay premium checkout with signature-verified payments and a real subscription tier
 - Async PDF export and shareable, no-login trip links
-- Admin panel: dashboard, user management (via Clerk), contact-submission triage, analytics, live health/monitoring, and MLOps metrics (latency, cache hit rate, retrieval counts, error rate — all Redis-backed rolling counters)
+- Admin panel: dashboard, user management (via Clerk), contact-submission triage, analytics, live health/monitoring, and MLOps metrics (latency, cache hit rate, retrieval counts, error rate — Redis-backed rolling counters)
 - Circuit breakers and parallel, failure-isolated tool calls so one dead provider doesn't take down the whole plan
-- Dual-LLM fallback (Groq → NVIDIA NIM) with a separate Groq key reserved for the message classifier so it doesn't compete with planning/composing for quota
+- Dual-LLM fallback (Groq → NVIDIA NIM)
+- **Deployed to AWS** — frontend live on Amplify, agent backend live on Lambda (container image) behind API Gateway
 
-**Planned, not yet shipped (see Phase 8 and the gaps below):**
-- AWS deployment (Lambda/Amplify/SAM) — currently local-only
+**Known issues (actively being worked on):**
+- **WebSocket progress (`wss://.../ws/progress/...`) returns 404** — the backend is behind a REST API Gateway, which doesn't support WebSockets. Needs either an API Gateway WebSocket API or an alternative streaming architecture (e.g. SSE). Not blocking core functionality — the frontend still gets the final result — but live progress updates during planning aren't working on the deployed version yet.
+- **Lambda cold-start timeout** — the root `/` endpoint occasionally returns `Endpoint request timed out` after the Lambda initializes for 40–46 seconds before dying. Import-chain binary search has narrowed this to the `retrieval/reranker.py` → `CrossEncoder` load path (torch + transformers + tokenizer + model loading observed consuming ~996MB/1024MB during init). Increasing Lambda memory and/or lazy-loading the reranker on first use (instead of at cold start) are the next things to try.
+
+**Planned, not yet shipped:**
 - Real hotel pricing/availability (current hotel data is real POIs with synthetic prices)
-- `mlops_service` business-logic split
+- `mlops_service` deployment + business-logic split from `agent_service`
+- WebSocket-based (or SSE-based) live progress on the deployed environment
 - Paginated user list, audit log for admin role changes/bans, durable (non-Redis) MLOps metrics storage
 
 ---
 
-## Repository structure
+## Why TravelGuru v2
 
-```
-TravelGuruV2/
-├── apps/
-│   ├── frontend/                     ← React 19 + Vite
-│   │   └── src/app/routes/
-│   │       ├── public/               ← Landing, Pricing, About, Help, Contact, Terms, Privacy
-│   │       ├── app/                  ← PlanTripPage, ChatPage
-│   │       └── admin/                ← Dashboard, Users, Analytics, Monitoring, MLOps, Contact
-│   └── backend/
-│       ├── agent_service/            ← LangGraph agent + all real API routes (port 8000)
-│       │   ├── graph/nodes/          ← planner, trip_modifier, location_resolver,
-│       │   │                            rag_retriever, tool_router, composer
-│       │   ├── tools/                ← flight_tool, hotel_tool
-│       │   ├── services/             ← flight/hotel/places/weather/pdf/whisper/razorpay/...
-│       │   ├── retrieval/            ← embedder, retriever, chunker, ingest (RAG pipeline)
-│       │   ├── api/                  ← routes, chat_routes, admin_routes, payment_routes, voice_routes
-│       │   └── lambda_handler.py     ← Mangum entrypoint (Phase 8)
-│       └── mlops_service/            ← stub FastAPI service (health check only)
-├── database/
-│   ├── schema.sql                    ← placeholder — real tables (chat.sessions, chat.messages,
-│   │                                     subscriptions, travel_knowledge, contact_messages) are
-│   │                                     currently provisioned directly in Supabase
-│   ├── indexes.sql
-│   ├── admin_panel_migration.sql
-│   └── match_travel_knowledge.sql    ← pgvector similarity-search RPC
-├── knowledge_base/                   ← RAG source content (markdown, chunked + embedded)
-└── docs/                             ← SDLC plan, decision log, setup guide, tech stack
-```
+| Traditional Travel Apps | TravelGuru v2 |
+|------------------------|-------------|
+| Search forms with dropdowns | Plain English natural language, or speak it |
+| Manual comparison across tabs | AI-ranked results in one view, three risk profiles |
+| Static results, no scoring | Weighted scoring pipeline by price, rating, convenience |
+| No grounding beyond raw API data | RAG-grounded narrative from a real travel knowledge base |
+| One provider, no fallback | Circuit breakers + dual-LLM fallback so one dead API doesn't kill the plan |
+| No admin control | Full admin panel — users, contact triage, live health, MLOps metrics |
 
 ---
 
-## Local development — 3 terminals
+## AWS Infrastructure
+
+| Service | Purpose |
+|---------|---------|
+| AWS Amplify | Frontend hosting + auto CI/CD from GitHub push |
+| AWS Lambda (container image) | Agent backend — packaged as a Docker image to fit the ML dependency stack |
+| Amazon ECR | Container image registry for the Lambda |
+| Amazon API Gateway (REST) | Public HTTPS endpoint for the agent Lambda |
+| AWS SAM | Infrastructure as code — Lambda + API Gateway |
+| AWS Secrets Manager | Runtime secrets for the agent Lambda |
+| Amazon CloudWatch | Lambda logs and error monitoring |
+
+---
+
+## Local Development — 3 Terminals
 
 ### Prerequisites
 - Python 3.12
 - Node.js 18+
+- Docker (for building/testing the Lambda container image locally)
 - A Supabase project (with the `vector` extension enabled)
 - A Clerk application
 - API keys: Groq, NVIDIA NIM (fallback), Duffel, OpenTripMap, Upstash Redis, Razorpay (test mode)
@@ -210,11 +299,11 @@ npm run dev
 ```
 ✅ Frontend running at `http://localhost:5173`
 
-> Note: several frontend files currently call `http://127.0.0.1:8000` directly rather than reading `VITE_API_BASE` — if you need a different port for the agent service locally, those call sites need updating too.
+> Note: several frontend files call `http://127.0.0.1:8000` directly rather than reading `VITE_API_BASE` — if you need a different port for the agent service locally, those call sites need updating too.
 
 ---
 
-## Environment variables
+## Environment Variables
 
 Real keys, never committed — every one of these comes from an account you create yourself.
 
@@ -233,28 +322,12 @@ RAZORPAY_WEBHOOK_SECRET=
 PREMIUM_PLAN_AMOUNT=
 PREMIUM_PLAN_CURRENCY=
 SUPABASE_URL=
-SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 CLERK_SECRET_KEY=
 CLERK_PUBLISHABLE_KEY=
 CLERK_AUTHORIZED_PARTIES=http://localhost:5173
-```
-
-### `apps/backend/mlops_service/.env`
-```
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-SUPABASE_ANON_KEY=
-CLERK_SECRET_KEY=
-CLERK_JWKS_URL=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-AWS_REGION=
-SES_FROM_EMAIL=
-APP_URL=
-AGENT_SERVICE_URL=http://localhost:8000
+HF_TOKEN=                      # optional — only needed if switching embeddings to the HF Inference API
+ENVIRONMENT=development
 ```
 
 ### `apps/frontend/.env`
@@ -266,7 +339,44 @@ VITE_RAZORPAY_KEY_ID=
 
 ---
 
-## Database setup
+## AWS Deployment
+
+The agent backend deploys as a **Docker container image** (not a zip package) — this was necessary to fit `torch`, `sentence-transformers`, and `faster-whisper` within Lambda's limits, since the zipped-package route (250MB unzipped) can't accommodate that ML stack.
+
+### Prerequisites
+- AWS CLI configured (`aws configure`)
+- SAM CLI installed — [install guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- Docker installed and running
+- An Amazon ECR repository for the agent image
+
+### Deploy Agent Lambda (container image)
+
+```powershell
+cd apps/backend/agent_service
+sam build
+sam deploy --guided
+```
+
+Stack name: `travelguru-agent-service` · Region: `ap-south-1`
+
+Environment variables are set directly on the Lambda function (via `template.yml` or AWS Console/CLI) rather than resolved from Secrets Manager at deploy time — simpler to manage and avoids CloudFormation dynamic-reference edge cases.
+
+### Deploy Frontend
+
+Push to `main` — Amplify auto-deploys on every push.
+
+**Required Amplify environment variables:**
+```
+VITE_CLERK_PUBLISHABLE_KEY = pk_live_your_key
+VITE_API_BASE = https://wg9p6esygl.execute-api.ap-south-1.amazonaws.com/prod
+```
+
+### Deploy MLOps Lambda
+Not yet deployed — `mlops_service` is still local-only. Deployment steps will mirror the agent service once the business-logic split is done.
+
+---
+
+## Database Setup
 
 1. Create a Supabase project and enable the `vector` extension.
 2. Run `database/schema.sql` and `database/indexes.sql`.
@@ -274,7 +384,9 @@ VITE_RAZORPAY_KEY_ID=
 4. Run `database/admin_panel_migration.sql` before opening the admin panel's Contact tab — it adds the workflow-status column the `PATCH` route needs.
 5. Ingest the knowledge base: run the embedding pipeline in `retrieval/ingest.py` to chunk and embed every file in `knowledge_base/` into the `travel_knowledge` table.
 
-## Admin access
+---
+
+## Admin Setup
 
 Roles live in Clerk `publicMetadata.role`, not a database table:
 
@@ -286,15 +398,59 @@ Once you have one admin, you can promote or demote others from the Admin Panel's
 
 ---
 
-## Known gaps
+## Common Issues
 
-- Hotel results are real venues (via OSM) but simulated price/rating — no live pricing API is wired in yet.
-- `mlops_service` is a stub; all real logic currently lives in `agent_service`.
-- MLOps metrics (latency, cache hit rate, error rate) live in Redis counters with no durable store — they reset if Redis is flushed.
-- Admin user list isn't paginated in the UI yet (backend supports `limit`/`offset`).
-- No audit log yet for admin role changes or bans.
-- AWS deployment (Phase 8) hasn't started — everything above runs against real cloud services (Supabase, Upstash, Groq, Razorpay test mode) but from local dev, not Lambda/Amplify.
+**WebSocket returns 404 on the deployed environment** — expected for now. REST API Gateway doesn't support WebSocket connections; the live progress feature only works in local development until this is migrated to an API Gateway WebSocket API (or replaced with SSE).
+
+**Lambda times out on cold start (`Endpoint request timed out`)** — under active investigation. Prime suspect is `CrossEncoder` model loading in `retrieval/reranker.py` pulling in torch/transformers at import time. If you hit this locally in the container, try increasing Lambda memory first (currently 1024MB, close to the observed ~996MB peak during init) before changing any code.
+
+**`Invalid API key` (Supabase)** — Ensure `SUPABASE_SECRET_KEY` has no extra whitespace and matches the *secret* key (formerly "service role key"), not the publishable/anon key.
+
+**Hotels not showing real pricing** — Expected. Hotel data comes from OpenStreetMap/Nominatim (real venues, real addresses) but price/rating are currently synthesized — no live hotel pricing API is wired in yet.
+
+**PDF generation fails locally with a `libpango` / WeasyPrint error** — WeasyPrint needs system-level font/rendering libraries. On the deployed container this is handled in the Dockerfile (Amazon Linux packages); locally, install the OS-level dependencies WeasyPrint's docs specify for your platform.
+
+---
+
+## Project Structure
+
+```
+TravelGuruV2/
+├── apps/
+│   ├── frontend/                     ← React 19 + Vite (AWS Amplify)
+│   │   └── src/app/routes/
+│   │       ├── public/               ← Landing, Pricing, About, Help, Contact, Terms, Privacy
+│   │       ├── app/                  ← PlanTripPage, ChatPage
+│   │       └── admin/                ← Dashboard, Users, Analytics, Monitoring, MLOps, Contact
+│   └── backend/
+│       ├── agent_service/            ← LangGraph agent + all real API routes (Lambda, container image)
+│       │   ├── graph/nodes/          ← planner, trip_modifier, location_resolver,
+│       │   │                            rag_retriever, tool_router, composer
+│       │   ├── tools/                ← flight_tool, hotel_tool
+│       │   ├── services/             ← flight/hotel/places/weather/pdf/whisper/razorpay/...
+│       │   ├── retrieval/            ← embedder, retriever, reranker, chunker, ingest (RAG pipeline)
+│       │   ├── api/                  ← routes, chat_routes, admin_routes, payment_routes, voice_routes
+│       │   ├── Dockerfile            ← Lambda container image build (Amazon Linux base)
+│       │   ├── template.yml          ← SAM deployment config
+│       │   └── lambda_handler.py     ← Mangum entrypoint
+│       └── mlops_service/            ← stub FastAPI service (health check only, local only)
+├── database/
+│   ├── schema.sql
+│   ├── indexes.sql
+│   ├── admin_panel_migration.sql
+│   └── match_travel_knowledge.sql    ← pgvector similarity-search RPC
+├── knowledge_base/                   ← RAG source content (markdown, chunked + embedded)
+└── docs/                             ← SDLC plan, decision log, setup guide, tech stack
+```
+
+---
 
 ## License
 
 No `LICENSE` file is committed yet. TravelMaster v1 shipped under MIT — happy to add the same here if that's the intent; let me know and I'll drop in a `LICENSE` file.
+
+---
+
+<p align="center">
+  Built with ☕ and frustration in India 🇮🇳
+</p>
