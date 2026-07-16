@@ -6,7 +6,6 @@ resolve_s3 = true
 s3_prefix = "travelguru-agent-service"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-image_repositories = ["TravelGuruAgentFunction=381492009163.dkr.ecr.ap-south-1.amazonaws.com/travelguruagentservice219294c3/travelguruagentfunction7e17afc5repo"]
-
+resolve_image_repos = true
 [default.global.parameters]
 region = "ap-south-1"

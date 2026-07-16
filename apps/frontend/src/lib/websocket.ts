@@ -12,7 +12,7 @@ export interface TokenEvent {
 
 export type SocketEvent = ProgressEvent | TokenEvent;
 
-const WS_URL = import.meta.env.VITE_WS_URL;
+const WS_URL=import.meta.env.VITE_WS_URL;
 
 export function connectProgressSocket(
   sessionId: string,
