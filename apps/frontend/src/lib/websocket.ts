@@ -46,6 +46,29 @@ export function waitForSocketOpen(socket: WebSocket): Promise<void> {
   }
 
   return new Promise((resolve) => {
-    socket.addEventListener("open", () => resolve(), { once: true });
+    const cleanup = () => {
+      socket.removeEventListener("open", onOpen);
+      socket.removeEventListener("error", onError);
+      clearTimeout(timer);
+    };
+
+    const onOpen = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      resolve(); // don't block chat just because live progress updates aren't available
+    };
+
+    socket.addEventListener("open", onOpen, { once: true });
+    socket.addEventListener("error", onError, { once: true });
+
+    // Safety net: never wait more than 3s regardless of what the socket does
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, 3000);
   });
 }
