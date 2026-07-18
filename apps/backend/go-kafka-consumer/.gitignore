@@ -1,0 +1,20 @@
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/aggregator
+/go-kafka-consumer
+
+# Test / coverage artifacts
+*.test
+*.out
+coverage/
+
+# Local tooling
+.vscode/
+.idea/
+
+# Env files
+.env

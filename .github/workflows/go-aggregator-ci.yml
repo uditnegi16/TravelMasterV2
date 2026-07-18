@@ -1,0 +1,72 @@
+name: Go Aggregator CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+    branches:
+      - main
+      - develop
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  go-ci:
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/backend/go-kafka-consumer
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/backend/go-kafka-consumer/go.mod
+          cache: true
+
+      - name: Download Dependencies
+        run: go mod download
+
+      - name: Verify Dependencies
+        run: go mod verify
+
+      - name: Go Format Check
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "The following files are not formatted:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
+      - name: Go Vet
+        run: go vet ./...
+
+      - name: Run Tests
+        run: go test ./... -v
+
+      - name: Build Binary
+        run: go build .
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/backend/go-kafka-consumer
+          file: apps/backend/go-kafka-consumer/Dockerfile
+          push: false
+          tags: travelmaster-go-aggregator:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
