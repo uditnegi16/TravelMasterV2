@@ -2,45 +2,65 @@
   <!-- ============================================================ -->
   <!-- REPLACE: Upload your banner to GitHub and paste the URL here -->
   <!-- ============================================================ -->
-  <img width="100%" alt="TravelGuru v2 Banner" src="docs/banner.png"/>
+  <img width="100%" alt="TravelMaster Banner" src="docs/banner.png"/>
 </p>
 
 <p align="center">
-  <a href="https://main.d2dqny356lcrsz.amplifyapp.com/chat/"><img src="https://img.shields.io/badge/Live_Demo-Visit_App-7c3aed?style=flat-square" alt="Live Demo" /></a>
-  <a href="https://github.com/uditnegi16/TravelMasterV2"><img src="https://img.shields.io/badge/GitHub-TravelGuru_v2-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+  <a href="https://main.d2dqny356lcrsz.amplifyapp.com"><img src="https://img.shields.io/badge/Live_Demo-Visit_App-7c3aed?style=flat-square" alt="Live Demo" /></a>
+  <a href="https://github.com/uditnegi16/TravelMasterV2"><img src="https://img.shields.io/badge/GitHub-TravelMaster-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+  <a href="https://github.com/uditnegi16/TravelMasterV2/actions/workflows/go-aggregator-ci.yml"><img src="https://github.com/uditnegi16/TravelMasterV2/actions/workflows/go-aggregator-ci.yml/badge.svg" alt="Go Aggregator CI" /></a>
   <a href="#"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/AWS-Deployed-FF9900?style=flat-square&logo=amazonaws&logoColor=white" alt="AWS" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" /></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12" />
+  <img src="https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.24" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/AWS-Lambda_%2B_EKS-FF9900?style=flat-square&logo=amazonaws&logoColor=white" alt="AWS" />
+  <img src="https://img.shields.io/badge/Kafka-Event_Bus-231F20?style=flat-square&logo=apachekafka&logoColor=white" alt="Kafka" />
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Multi--Agent-LangGraph-orange?style=flat-square" alt="Multi-Agent" />
-  <img src="https://img.shields.io/badge/Serverless-AWS_Lambda_(Container)-FF9900?style=flat-square" alt="Serverless" />
-  <img src="https://img.shields.io/badge/RAG-pgvector-F7931E?style=flat-square" alt="RAG" />
+  <img src="https://img.shields.io/badge/Serverless-AWS_Lambda-FF9900?style=flat-square" alt="Serverless" />
+  <img src="https://img.shields.io/badge/Kubernetes-HPA_Autoscaling-326CE5?style=flat-square&logo=kubernetes&logoColor=white" alt="Kubernetes" />
+  <img src="https://img.shields.io/badge/Load_Tested-k6-7D64FF?style=flat-square&logo=k6&logoColor=white" alt="Load Tested with k6" />
   <img src="https://img.shields.io/badge/Auth-Clerk_JWT-6C47FF?style=flat-square" alt="Clerk Auth" />
-  <img src="https://img.shields.io/badge/Payments-Razorpay-0B4CE0?style=flat-square" alt="Payments" />
   <img src="https://img.shields.io/badge/Admin-Panel-blue?style=flat-square" alt="Admin Panel" />
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Groq-llama--3.3--70b-red?style=flat-square" alt="Groq" />
-  <img src="https://img.shields.io/badge/Fallback-NVIDIA_NIM-76B900?style=flat-square" alt="NVIDIA NIM" />
-  <img src="https://img.shields.io/badge/Flights-Duffel_API-00539B?style=flat-square" alt="Duffel" />
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL_%2B_pgvector-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Flights-Duffel_API-0B5FFF?style=flat-square" alt="Duffel" />
+  <img src="https://img.shields.io/badge/Voice-faster--whisper-4B0082?style=flat-square" alt="Voice" />
+  <img src="https://img.shields.io/badge/Payments-Razorpay-02042B?style=flat-square" alt="Razorpay" />
+  <img src="https://img.shields.io/badge/Supabase-pgvector_RAG-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" />
 </p>
 
 ---
 
 ## Overview
 
-TravelGuru v2 is a ground-up rebuild of the original [TravelMaster](https://github.com/uditnegi16/Travelmaster) project — same core idea, production-minded engineering underneath. Describe a trip in one sentence, and a **LangGraph multi-agent pipeline** pulls real flights, real hotels, real places, and real weather, ranks them, grounds the writeup in a **retrieval-augmented knowledge base**, and streams back a narrated itinerary — with voice input, a chat-style planning surface, Razorpay premium billing, and an admin panel behind it.
+TravelMaster is a full-stack AI SaaS that plans complete trips from a single sentence. Type a natural language query — TravelMaster orchestrates a **LangGraph multi-agent system** that searches flights, hotels, places, and weather **in parallel**, ranks results with a scoring pipeline, transcribes voice input, and generates an AI travel narrative.
 
-Owned API keys instead of shared ones. Graceful degradation when a provider goes down — circuit breakers around every external tool, parallel failure-isolated calls, and a dual-LLM fallback so one dead provider or rate limit never takes down the whole plan. A real payment flow. A RAG layer that gives the AI actual travel knowledge instead of just summarizing API responses.
+It's deployed serverless on **AWS Lambda** by default, with an alternative **Kubernetes deployment (HPA autoscaling 2→8 replicas)** for steady high-throughput traffic, and a production **Kafka event bus** — including a load-tested, CI/CD-backed **Go aggregation microservice** — as a scalable path for consuming agent output at volume. It also ships a full admin panel, tier-based rate limiting, Razorpay payments, PDF export, and shareable trip links.
 
-> "Plan a 5-day honeymoon trip from Delhi to Goa for 2, mid-range budget, first week of December"
+> *"Plan a 3-day trip from Delhi to Mumbai for 2 adults, budget ₹30k, March 25–27"*
 >
-> → Ranked flights · Ranked hotels · Nearby places · Live weather · AI-written itinerary, streamed turn by turn in a chat interface — with the whole trip re-plannable by just asking for a change.
+> → Ranked flights · Hotels · Places to visit · Weather forecast · Budget breakdown · AI narrative — in seconds. Type it, or say it — voice input is built in.
+
+---
+
+## What's Recently Shipped
+
+A running log of the platform's evolution beyond the original MVP — the parts that tend to matter most to anyone reviewing the engineering, not just the product:
+
+- **Kafka-based agent bus** — agents can publish results to per-topic Kafka streams instead of returning them in-process, toggled with a single env var (`AGENT_BUS=direct|kafka`), with zero change to the trip-planning API surface. See [`docs/kafka-architecture.md`](docs/kafka-architecture.md).
+- **Go aggregation microservice** — a standalone, production-hardened Go service that consumes those Kafka topics, merges results by session, and serves them over HTTP. Ships with graceful shutdown, config validation, Prometheus metrics, pprof profiling, and a GitHub Actions CI pipeline (format → vet → test → build → Docker). See [`apps/backend/go-kafka-consumer`](apps/backend/go-kafka-consumer).
+- **Load-tested with k6** — benchmarked at 10 / 50 / 100 concurrent virtual users with 0 failed requests across all runs. See [Performance & Load Testing](#performance--load-testing) below.
+- **Dual deployment targets for the agent service** — the same LangGraph service ships both as an AWS Lambda (per-invocation scaling, the default) and as a Kubernetes Deployment with an HPA (CPU/memory-based autoscaling for steady-state load). See [`k8s/agent-service`](k8s/agent-service).
+- **Resilience patterns** — a circuit breaker around the flights provider, feature flags, and a subscription guard protecting rate-limited endpoints.
+- **RAG evaluation harness** — a scored retrieval evaluation suite (`evaluations/evaluate_retrieval.py`) against a fixed test dataset, instead of eyeballing RAG quality.
 
 ---
 
@@ -62,12 +82,13 @@ YOUR_GITHUB_VIDEO_ASSET_URL_HERE
 
 ## 🌐 Live Demo
 
-| Service | URL | Status |
-|---------|-----|--------|
-| Frontend | https://main.d2dqny356lcrsz.amplifyapp.com/chat/ | ✅ Live on AWS Amplify |
-| Agent API | https://wg9p6esygl.execute-api.ap-south-1.amazonaws.com/prod | ✅ Live — Lambda (container image) via API Gateway |
-| Agent API Health | https://wg9p6esygl.execute-api.ap-south-1.amazonaws.com/prod/health | ✅ |
-| MLOps API | — | ⏳ Not deployed yet — currently a local-only stub |
+| Service | URL |
+|---------|-----|
+| Frontend | https://main.d2dqny356lcrsz.amplifyapp.com |
+| MLOps API | https://g2d019moz2.execute-api.ap-south-1.amazonaws.com/prod/health |
+| Agent API | https://napum590vf.execute-api.ap-south-1.amazonaws.com/prod/health |
+
+> ⚠️ Double-check these are still live before sharing this README externally — endpoints on free/dev AWS tiers tend to drift.
 
 ---
 
@@ -75,29 +96,30 @@ YOUR_GITHUB_VIDEO_ASSET_URL_HERE
 
 <!-- ================================================================ -->
 <!-- HOW TO ADD SCREENSHOTS:                                          -->
-<!-- 1. Take screenshots using Windows Snipping Tool (Win+Shift+S)   -->
+<!-- 1. Take screenshots using Windows Snipping Tool (Win+Shift+S)    -->
 <!-- 2. Create a /screenshots folder in your repo                     -->
-<!-- 3. Upload the images listed below                                -->
+<!-- 3. Upload the images below                                       -->
 <!-- 4. The paths below will auto-resolve once images are uploaded    -->
 <!-- ================================================================ -->
 <!-- Screenshots to capture:                                          -->
 <!-- 1. landing.png    — Landing page hero before login               -->
-<!-- 2. chat.png       — Chat-style trip planning surface             -->
-<!-- 3. trip.png       — AI results (flights/hotels/places visible)   -->
+<!-- 2. chat.png       — Chat / plan-trip experience with results     -->
+<!-- 3. trip.png       — Flights/hotels/places/weather results        -->
 <!-- 4. pdf.png        — Downloaded PDF opened in browser             -->
 <!-- 5. admin.png      — Admin dashboard with metrics                 -->
+<!-- 6. kafka-ui.png   — Kafka UI showing agent topics (nice touch)   -->
 <!-- ================================================================ -->
 
 <p align="center">
-  <img src="screenshots/landing.png" width="48%" alt="Landing Page" />
-  <img src="screenshots/chat.png" width="48%" alt="Chat Planning Surface" />
+  <img src="screenshots/Screenshot 2026-03-21 122015.png" width="48%" alt="Landing Page" />
+  <img src="screenshots/Screenshot 2026-03-21 122343.png" width="48%" alt="Dashboard" />
 </p>
 <p align="center">
-  <img src="screenshots/trip.png" width="48%" alt="Trip Results" />
-  <img src="screenshots/pdf.png" width="48%" alt="PDF Export" />
+  <img src="screenshots/Screenshot 2026-03-21 122541.png" width="48%" alt="Trip Results" />
+  <img src="screenshots/Screenshot 2026-03-21 122445.png" width="48%" alt="PDF Export" />
 </p>
 <p align="center">
-  <img src="screenshots/admin.png" width="48%" alt="Admin Panel" />
+  <img src="screenshots/Screenshot 2026-03-21 122257.png" width="48%" alt="Admin Panel" />
 </p>
 
 ---
@@ -106,348 +128,488 @@ YOUR_GITHUB_VIDEO_ASSET_URL_HERE
 
 <!-- ================================================================ -->
 <!-- REPLACE: Upload your architecture diagram to /docs/ in the repo  -->
-<!-- and replace the src URL below                                     -->
+<!-- and replace the src URL below, or keep the Mermaid diagram below -->
 <!-- ================================================================ -->
-
-<p align="center">
-  <img width="90%" alt="TravelGuru v2 System Architecture" src="docs/architecture.png" />
-</p>
-
----
-
-## Agent Flow
 
 ```mermaid
 flowchart TD
-    A["🗣️ User Message\nPlain English or voice — no forms"] --> B["Intent Classifier\nNEW_TRIP · MODIFY_TRIP · FOLLOW_UP · GENERAL_CHAT"]
-    B -->|NEW_TRIP| C["🧠 Planner Node"]
-    B -->|MODIFY_TRIP| C2["🔁 Trip Modifier Node"]
-    B -->|FOLLOW_UP / GENERAL_CHAT| Q["💬 QA Node\nAnswered directly, skips the graph"]
-    C --> D["📍 Location Resolver"]
-    C2 --> D
-    D --> E["📚 RAG Retriever\ncosine search over travel_knowledge (pgvector)"]
-    E --> F["⚡ Tool Router"]
-    F --> G["✈️ Duffel\nFlights"]
-    F --> H["🏨 OSM / Nominatim\nHotel POIs"]
-    G & H --> I["🌍 Parallel Tools Node\nPlaces (OpenTripMap) + Weather (Open-Meteo)\nasyncio.gather — one dead API can't kill the plan"]
-    I --> J["📊 Ranking\nBudget Saver / Best Value / Luxury\nweighted price · rating · convenience"]
-    J --> K["✍️ Composer Node\nAI narrative, streamed token-by-token"]
-    K --> L["🔌 WebSocket + SSE\nLive progress → React chat UI"]
+    U["🗣️ User Query\nText or voice — no forms"] --> FE["🖥️ React Frontend\nAWS Amplify"]
+    FE --> MLOPS["MLOps Service\nFastAPI · Clerk Auth · Rate Limiting · Payments"]
+    MLOPS --> AGENT["Agent Service\nLangGraph Orchestrator\n(Lambda or Kubernetes + HPA)"]
 
-    style A fill:#7c3aed,color:#fff,stroke:#5b21b6
-    style B fill:#1e40af,color:#fff,stroke:#1e3a8a
-    style C fill:#0369a1,color:#fff,stroke:#075985
-    style C2 fill:#0369a1,color:#fff,stroke:#075985
-    style Q fill:#374151,color:#fff,stroke:#1f2937
-    style E fill:#065f46,color:#fff,stroke:#064e3b
-    style F fill:#0369a1,color:#fff,stroke:#075985
-    style J fill:#065f46,color:#fff,stroke:#064e3b
-    style K fill:#0369a1,color:#fff,stroke:#075985
-    style L fill:#7c3aed,color:#fff,stroke:#5b21b6
+    AGENT --> PLANNER["🧠 Planner Agent"]
+    PLANNER --> ROUTER{"AGENT_BUS"}
+
+    ROUTER -->|"direct (default)"| DIRECT["⚡ In-process ThreadPoolExecutor\nflights · hotels · places · weather"]
+    ROUTER -->|"kafka"| PRODUCE["📤 Agents publish per-topic"]
+
+    PRODUCE --> KAFKA[("🧵 Kafka\ntravelguru.agents.{flights,hotels,places,weather}")]
+    KAFKA --> PYCONSUMER["Python ephemeral consumer\n(per-session aggregation)"]
+    KAFKA --> GOAGG["🐹 Go Aggregation Service\nSessionStore · CI/CD · k6 load-tested"]
+
+    DIRECT --> COMPOSER["✍️ Composer Agent\nAI Narrative Generation"]
+    PYCONSUMER --> COMPOSER
+    GOAGG --> POLL["Python polling"] --> COMPOSER
+
+    COMPOSER --> DB[("💾 Supabase\nPostgreSQL + pgvector RAG")]
+    DB --> FE
+
+    style U fill:#7c3aed,color:#fff,stroke:#5b21b6
+    style FE fill:#7c3aed,color:#fff,stroke:#5b21b6
+    style MLOPS fill:#1e40af,color:#fff,stroke:#1e3a8a
+    style AGENT fill:#1e40af,color:#fff,stroke:#1e3a8a
+    style PLANNER fill:#0369a1,color:#fff,stroke:#075985
+    style KAFKA fill:#231f20,color:#fff,stroke:#000
+    style GOAGG fill:#00ADD8,color:#000,stroke:#007d99
+    style COMPOSER fill:#0369a1,color:#fff,stroke:#075985
+    style DB fill:#065f46,color:#fff,stroke:#064e3b
 ```
+
+**Two independent scaling levers, by design:**
+
+1. **How agent orchestration runs** — `AGENT_BUS=direct` (default, no infra) vs `AGENT_BUS=kafka` (replayable, decoupled, observable via `/admin/kafka/lag`). Full write-up: [`docs/kafka-architecture.md`](docs/kafka-architecture.md).
+2. **Where the agent service runs** — AWS Lambda (default, per-invocation scaling, zero idle cost) vs a Kubernetes Deployment with an HPA (steady-state, predictable-load scaling). Full write-up: [`k8s/agent-service/README.md`](k8s/agent-service/README.md).
+
+---
+
+## Performance & Load Testing
+
+The Go aggregation service was load-tested with **k6** at 10, 50, and 100 concurrent virtual users (30s per run) against `GET /result/{session_id}`, returning a full aggregated trip payload (~625 KB/response).
+
+| Virtual Users | Requests/sec | Avg Latency | p95 Latency | Errors |
+|---|---|---|---|---|
+| 10  | 490 req/s | 19.97 ms  | 39.24 ms  | 0 |
+| 50  | **981 req/s** | 49.60 ms  | 105.16 ms | 0 |
+| 100 | 734 req/s | 133.09 ms | 253.38 ms | 0 |
+
+- **66,317 requests served across all benchmark runs — 0 failures, 100% success rate.**
+- Throughput scaled nearly linearly from 10→50 VUs; 50→100 VUs showed graceful degradation (throughput dipped ~25%, latency rose ~2.7×) consistent with the service becoming CPU/serialization-bound rather than failing outright.
+- Full methodology, per-run breakdowns, and optimization backlog (gzip compression, `sync.Pool`, HTTP/2, response caching) are recorded in [`docs/phase-logs/phase-10.md`](docs/phase-logs/phase-10.md).
 
 ---
 
 ## Tech Stack
 
-### Frontend
-| | |
-|---|---|
-| Framework | React 19, TypeScript, Vite |
-| Styling | Tailwind CSS |
-| Routing | React Router v7 |
-| Auth | Clerk (`@clerk/clerk-react`) |
-| Motion | Framer Motion |
-| Hosting | AWS Amplify (CI/CD from GitHub) |
-
-### Backend — `agent_service` (the AI brain)
-| | |
-|---|---|
-| API | FastAPI, Mangum (Lambda adapter) |
-| Orchestration | LangGraph + LangChain |
-| Primary LLM | Groq — `llama-3.3-70b-versatile` |
-| Fallback LLM | NVIDIA NIM — `meta/llama-3.1-70b-instruct` (auto-fallback on Groq failure/timeout) |
-| Message classifier | Separate Groq key so classification doesn't compete with planning/composing for quota |
-| RAG embeddings | `sentence-transformers/all-MiniLM-L6-v2`, retrieved via a Supabase `match_travel_knowledge` RPC over pgvector |
-| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
-| Voice | `faster-whisper` (local `base` model, int8, CPU) |
-| Ranking | Weighted scoring across price / rating / convenience, per risk profile (Budget Saver / Best Value / Luxury) |
-| Reliability | Custom `CircuitBreaker` per external tool, `asyncio.gather(..., return_exceptions=True)` for graceful degradation |
-| Cache / rate limiting | Upstash Redis |
-| Payments | Razorpay (order creation, HMAC signature verification, webhook) |
-| PDF | WeasyPrint |
-| Deployment | Docker container image → Amazon ECR → AWS Lambda (container runtime, not zip) — needed to fit `torch`/`sentence-transformers`/`faster-whisper` comfortably within Lambda's container image limits |
-
-### Backend — `mlops_service` (stub — not yet deployed)
-FastAPI skeleton with `/` and `/health` only. Runs locally on port 8001; not wired into the live frontend yet. The SDLC plan calls for splitting auth/payments/admin business logic into this service — that split hasn't happened yet, so `agent_service` still carries all real logic.
-
-### Data sources (all real, all free-tier)
-| Domain | Provider | Notes |
-|---|---|---|
-| Flights | **Duffel API** | Real offer search |
-| Hotels | **OpenStreetMap / Nominatim** structured POI search | Real hotel names, addresses, coordinates; price and rating are currently synthesized — no live pricing API wired in yet |
-| Places | **OpenTripMap** | Used after Nominatim's 1 req/sec limit made it unusable for places |
-| Weather | **Open-Meteo** (via Nominatim geocoding) | |
-
-### Database & infra
-| | |
-|---|---|
-| Database | Supabase (PostgreSQL + pgvector) |
-| Auth | Clerk — JWT verified in `agent_service/core/auth.py`; roles (`user`/`admin`/`superadmin`) live in Clerk `publicMetadata`, not a DB table |
-| Cache | Upstash Redis (serverless, REST-based) |
-| Secrets | AWS Secrets Manager (agent Lambda env) |
-| Infra as code | AWS SAM |
-| Container registry | Amazon ECR |
-| Frontend hosting | AWS Amplify |
-| Backend hosting | AWS Lambda (container image) + API Gateway (REST) |
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Vite, TypeScript, React Router 7, Tailwind CSS, Framer Motion |
+| Auth | Clerk (JWT-based, protected routes) |
+| MLOps Backend | FastAPI, Python 3.12, Mangum (Lambda adapter) |
+| AI Agent Service | LangGraph, LangChain, FastAPI, Python 3.12 — deployable to Lambda **or** Kubernetes |
+| LLM | Groq `llama-3.3-70b-versatile`, NVIDIA NIM |
+| Voice Input | `faster-whisper` (local CPU transcription, no external API call) |
+| Flights | Duffel API, behind a circuit breaker |
+| Hotels | OpenStreetMap Nominatim (structured lodging search) |
+| Places | OpenTripMap API |
+| Weather | Open-Meteo |
+| RAG / Knowledge Base | Supabase `pgvector`, with a dedicated retrieval evaluation harness |
+| Async Event Bus | Apache Kafka (`kafka-python` on the Python side) |
+| High-Throughput Aggregation | **Go 1.24**, `segmentio/kafka-go`, Prometheus client, k6-load-tested |
+| Database | Supabase (PostgreSQL) |
+| Cache | Upstash Redis |
+| PDF Export | ReportLab + AWS S3 presigned URLs |
+| Payments | Razorpay (REST API) |
+| Email | AWS SES (boto3) |
+| Frontend Hosting | AWS Amplify (CI/CD from GitHub) |
+| Backend Hosting | AWS Lambda + API Gateway, **or** Kubernetes (Deployment + HPA + Service) |
+| Infrastructure as Code | AWS SAM (Lambda), raw manifests (Kubernetes) |
+| CI/CD | GitHub Actions (format, vet, unit tests, build, Docker image build) |
+| Observability | AWS CloudWatch, Prometheus metrics + pprof (Go service), Kafka consumer-lag endpoint |
 
 ---
 
 ## Features
 
-**Shipped and working:**
-- Natural-language trip planning — no forms, describe the trip in plain English or speak it
-- Chat-style planning surface with session history, rename, pin, and delete (like ChatGPT)
-- Trip modification mid-conversation — "make it cheaper" re-enters the graph via the trip modifier node instead of re-planning from scratch
-- Token-level streaming of the final narrative
-- RAG-grounded answers — destination, visa, seasonal, and cultural knowledge pulled from a curated knowledge base, chunked and embedded into `travel_knowledge`
-- Cross-encoder reranking of retrieved knowledge chunks before they reach the composer prompt
-- Three-way itinerary ranking (Budget Saver / Best Value / Luxury) with different price/flight/hotel score weightings per profile
-- Voice input via local Whisper transcription
-- Razorpay premium checkout with signature-verified payments and a real subscription tier
-- Async PDF export and shareable, no-login trip links
-- Admin panel: dashboard, user management (via Clerk), contact-submission triage, analytics, live health/monitoring, and MLOps metrics (latency, cache hit rate, retrieval counts, error rate — Redis-backed rolling counters)
-- Circuit breakers and parallel, failure-isolated tool calls so one dead provider doesn't take down the whole plan
-- Dual-LLM fallback (Groq → NVIDIA NIM)
-- **Deployed to AWS** — frontend live on Amplify, agent backend live on Lambda (container image) behind API Gateway
-
-**Known issues (actively being worked on):**
-- **WebSocket progress (`wss://.../ws/progress/...`) returns 404** — the backend is behind a REST API Gateway, which doesn't support WebSockets. Needs either an API Gateway WebSocket API or an alternative streaming architecture (e.g. SSE). Not blocking core functionality — the frontend still gets the final result — but live progress updates during planning aren't working on the deployed version yet.
-- **Lambda cold-start timeout** — the root `/` endpoint occasionally returns `Endpoint request timed out` after the Lambda initializes for 40–46 seconds before dying. Import-chain binary search has narrowed this to the `retrieval/reranker.py` → `CrossEncoder` load path (torch + transformers + tokenizer + model loading observed consuming ~996MB/1024MB during init). Increasing Lambda memory and/or lazy-loading the reranker on first use (instead of at cold start) are the next things to try.
-
-**Planned, not yet shipped:**
-- Real hotel pricing/availability (current hotel data is real POIs with synthetic prices)
-- `mlops_service` deployment + business-logic split from `agent_service`
-- WebSocket-based (or SSE-based) live progress on the deployed environment
-- Paginated user list, audit log for admin role changes/bans, durable (non-Redis) MLOps metrics storage
+- **Natural Language Planning** — no forms, no dropdowns, describe the trip in plain English (or speak it)
+- **Voice Input** — on-device transcription via `faster-whisper`, no third-party voice API dependency
+- **LangGraph Multi-Agent** — planner agent → tool router → composer agent, with flights/hotels/places/weather fetched in parallel
+- **Resilience Built In** — circuit breaker around the flights provider, feature flags, subscription guard on rate-limited routes
+- **Kafka Event Bus (optional)** — swap the in-process agent pipeline for a Kafka-mediated one with one env var; replay any session's raw agent output for debugging, observe per-topic consumer lag
+- **Go Aggregation Microservice** — a purpose-built, benchmarked, CI-tested Go service for consuming agent output at volume
+- **Tier-Based Rate Limiting** — free vs premium quotas, configurable from the admin panel without a redeploy
+- **Session History** — all past trips saved, searchable, re-openable
+- **PDF Export** — full trip plan downloaded via an AWS S3 presigned URL
+- **Trip Sharing** — public read-only link, no login required
+- **Payments** — Razorpay checkout for premium tier upgrades
+- **Contact & Support Flow** — public contact form with a triage workflow (`new → in_progress → resolved`) in the admin panel
+- **Admin Suite** — dashboard, user management, live health checks, config flags, audit log, Kafka monitoring, MLOps status, analytics
+- **Dark / Light Mode** — system preference detection with manual toggle and persistence
+- **Dual Deployment** — the agent service runs identically on Lambda (serverless) or Kubernetes (HPA-autoscaled)
+- **RAG Quality Evaluation** — a scored retrieval eval harness against a fixed test dataset, not manual spot-checks
+- **Email Notifications** — welcome, limit reached, trip ready — via AWS SES
 
 ---
 
-## Why TravelGuru v2
+## Why TravelMaster
 
-| Traditional Travel Apps | TravelGuru v2 |
+| Traditional Travel Apps | TravelMaster |
 |------------------------|-------------|
-| Search forms with dropdowns | Plain English natural language, or speak it |
-| Manual comparison across tabs | AI-ranked results in one view, three risk profiles |
-| Static results, no scoring | Weighted scoring pipeline by price, rating, convenience |
-| No grounding beyond raw API data | RAG-grounded narrative from a real travel knowledge base |
-| One provider, no fallback | Circuit breakers + dual-LLM fallback so one dead API doesn't kill the plan |
-| No admin control | Full admin panel — users, contact triage, live health, MLOps metrics |
+| Search forms with dropdowns | Plain English (or voice) natural language input |
+| Manual comparison across tabs | AI-ranked results in one view |
+| Static results, no scoring | Scoring pipeline across price, rating, convenience |
+| No narrative or context | Full budget breakdown + AI trip narrative |
+| No admin control | Full ops dashboard with real-time config flags and Kafka lag monitoring |
+| Fixed rate limits in code | Configurable per tier from the database, zero redeploy |
+| One deployment target | Ships to Lambda *or* Kubernetes from the same codebase |
+| "It works on my machine" | CI pipeline (format → vet → test → build → Docker) gates every commit to the Go service, plus a k6-backed performance baseline |
 
 ---
 
-## AWS Infrastructure
+## Infrastructure
 
 | Service | Purpose |
 |---------|---------|
 | AWS Amplify | Frontend hosting + auto CI/CD from GitHub push |
-| AWS Lambda (container image) | Agent backend — packaged as a Docker image to fit the ML dependency stack |
-| Amazon ECR | Container image registry for the Lambda |
-| Amazon API Gateway (REST) | Public HTTPS endpoint for the agent Lambda |
-| AWS SAM | Infrastructure as code — Lambda + API Gateway |
-| AWS Secrets Manager | Runtime secrets for the agent Lambda |
+| AWS Lambda | MLOps backend + Agent backend (serverless, default) |
+| Kubernetes (EKS-compatible manifests) | Alternative agent-service deployment — 2–8 replica HPA, `travelguru` namespace |
+| Amazon API Gateway | Public HTTPS endpoints for both Lambdas |
+| Amazon S3 (`travelmaster-pdfs`) | PDF storage + presigned URL delivery |
+| AWS SAM | Infrastructure as code for the Lambda deployments |
+| Apache Kafka | Async agent-result event bus (`infra/kafka/docker-compose.yml` for local dev) |
 | Amazon CloudWatch | Lambda logs and error monitoring |
+| AWS SES | Transactional emails |
+| GitHub Actions | CI pipeline for the Go aggregation service |
 
 ---
 
-## Local Development — 3 Terminals
+## Local Development
 
 ### Prerequisites
+
 - Python 3.12
 - Node.js 18+
-- Docker (for building/testing the Lambda container image locally)
-- A Supabase project (with the `vector` extension enabled)
-- A Clerk application
-- API keys: Groq, NVIDIA NIM (fallback), Duffel, OpenTripMap, Upstash Redis, Razorpay (test mode)
+- Go 1.24 (only needed if you're working on the Kafka aggregation path)
+- [uv](https://github.com/astral-sh/uv) — `pip install uv`
+- Docker (for local Kafka, optional)
+- Supabase account + project
+- Clerk account
+- [Duffel](https://duffel.com) API token (flights, sandbox available)
+- Groq API key — free at [console.groq.com](https://console.groq.com)
+- [OpenTripMap](https://opentripmap.io) API key (places)
+- Razorpay account (payments, optional for local dev)
 
-### Terminal 1 — Agent service (port 8000)
+> Hotels (Nominatim) and weather (Open-Meteo) need no API key.
+
+### Clone
+
+```bash
+git clone https://github.com/uditnegi16/TravelMasterV2.git
+cd TravelMasterV2
+```
+
+### Terminal 1 — Agent Service (LangGraph)
+
 ```bash
 cd apps/backend/agent_service
 ```
-Create `.env` (see [Environment variables](#environment-variables) below), then:
-```bash
-python -m venv .venv
-.venv\Scripts\activate        # or source .venv/bin/activate on macOS/Linux
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-✅ Agent running at `http://127.0.0.1:8000`
 
-### Terminal 2 — MLOps service (stub)
+Create a `.env` with (see `services/*.py` for the full list each service reads):
+
+```env
+DUFFEL_API_TOKEN=your_duffel_token
+OPENTRIPMAP_API_KEY=your_opentripmap_key
+GROQ_API_KEY=your_groq_key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+AGENT_BUS=direct
+```
+
+Install and run:
+
 ```bash
-cd apps/backend/mlops_service
-pip install -r requirements.txt
+uv venv
+source .venv/bin/activate   # .venv\Scripts\activate on Windows
+uv pip install -r requirements.txt
 uvicorn main:app --reload --port 8001
 ```
-✅ Returns `{"status": "healthy"}` at `/health` — no real endpoints yet.
 
-### Terminal 3 — Frontend (port 5173)
+✅ Agent service running at `http://127.0.0.1:8001`
+
+### Terminal 2 — MLOps Backend
+
+```bash
+cd apps/backend/mlops_service
+```
+
+Create a `.env` from `.env.example`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_ANON_KEY=your_anon_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_JWKS_URL=https://your-clerk-domain.clerk.accounts.dev/.well-known/jwks.json
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+AGENT_SERVICE_URL=http://localhost:8001
+APP_URL=http://localhost:5173
+```
+
+Run:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+✅ MLOps backend running at `http://127.0.0.1:8000`
+
+### Terminal 3 — Frontend
+
 ```bash
 cd apps/frontend
+```
+
+Create a `.env` from `.env.example`:
+
+```env
+VITE_API_BASE=http://127.0.0.1:8000
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
+```
+
+Run:
+
+```bash
 npm install
 npm run dev
 ```
+
 ✅ Frontend running at `http://localhost:5173`
 
-> Note: several frontend files call `http://127.0.0.1:8000` directly rather than reading `VITE_API_BASE` — if you need a different port for the agent service locally, those call sites need updating too.
+---
+
+## Kafka Path (Optional, Local)
+
+To exercise the Kafka-mediated agent pipeline instead of the in-process default:
+
+```bash
+docker compose -f infra/kafka/docker-compose.yml up -d
+# Kafka on localhost:9092, Kafka UI on http://localhost:8080
+
+cd apps/backend/agent_service
+export AGENT_BUS=kafka
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+uvicorn main:app --reload --port 8001
+```
+
+`POST /plan-trip` behaves identically — what changes is that `travelguru.agents.{flights,hotels,places,weather}` now carry messages, inspectable via Kafka UI or `GET /admin/kafka/lag`. Full details: [`docs/kafka-architecture.md`](docs/kafka-architecture.md).
+
+### Go Aggregation Service
+
+```bash
+cd apps/backend/go-kafka-consumer
+go mod download
+go run .
+```
+
+Runs three HTTP servers: the aggregation API (`:8081`, results at `GET /result/{session_id}`, health at `/health/live` and `/health/ready`), Prometheus metrics (`:2112/metrics`), and pprof (`:6060`). Config is env-driven and validated at startup — see `internal/config/config.go`.
+
+Run the test suite / CI checks locally:
+
+```bash
+gofmt -l .
+go vet ./...
+go test ./... -v -race
+go build .
+```
 
 ---
 
-## Environment Variables
-
-Real keys, never committed — every one of these comes from an account you create yourself.
-
-### `apps/backend/agent_service/.env`
-```
-GROQ_API_KEY=
-GROQ_CLASSIFIER_API_KEY=       # optional — separate quota from the main Groq key
-NVIDIA_API_KEY=
-DUFFEL_API_TOKEN=
-OPENTRIPMAP_API_KEY=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
-PREMIUM_PLAN_AMOUNT=
-PREMIUM_PLAN_CURRENCY=
-SUPABASE_URL=
-SUPABASE_SECRET_KEY=
-CLERK_SECRET_KEY=
-CLERK_PUBLISHABLE_KEY=
-CLERK_AUTHORIZED_PARTIES=http://localhost:5173
-HF_TOKEN=                      # optional — only needed if switching embeddings to the HF Inference API
-ENVIRONMENT=development
-```
-
-### `apps/frontend/.env`
-```
-VITE_API_BASE=http://localhost:8000
-VITE_CLERK_PUBLISHABLE_KEY=
-VITE_RAZORPAY_KEY_ID=
-```
-
----
-
-## AWS Deployment
-
-The agent backend deploys as a **Docker container image** (not a zip package) — this was necessary to fit `torch`, `sentence-transformers`, and `faster-whisper` within Lambda's limits, since the zipped-package route (250MB unzipped) can't accommodate that ML stack.
+## AWS Deployment (Lambda)
 
 ### Prerequisites
+
 - AWS CLI configured (`aws configure`)
 - SAM CLI installed — [install guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
-- Docker installed and running
-- An Amazon ECR repository for the agent image
+- S3 bucket: `aws s3 mb s3://travelmaster-pdfs --region ap-south-1`
 
-### Deploy Agent Lambda (container image)
+### Deploy Agent Lambda
 
-```powershell
+```bash
 cd apps/backend/agent_service
 sam build
 sam deploy --guided
 ```
 
-Stack name: `travelguru-agent-service` · Region: `ap-south-1`
+Stack name: `travelmaster-agent` · Region: `ap-south-1`
 
-Environment variables are set directly on the Lambda function (via `template.yml` or AWS Console/CLI) rather than resolved from Secrets Manager at deploy time — simpler to manage and avoids CloudFormation dynamic-reference edge cases.
+### Deploy MLOps Lambda
+
+```bash
+cd apps/backend/mlops_service
+sam build
+sam deploy --guided
+```
+
+Stack name: `travelmaster-mlops` · Region: `ap-south-1`
 
 ### Deploy Frontend
 
 Push to `main` — Amplify auto-deploys on every push.
 
 **Required Amplify environment variables:**
+
 ```
 VITE_CLERK_PUBLISHABLE_KEY = pk_live_your_key
-VITE_API_BASE = https://wg9p6esygl.execute-api.ap-south-1.amazonaws.com/prod
+VITE_API_BASE = https://g2d019moz2.execute-api.ap-south-1.amazonaws.com/prod
 ```
 
-### Deploy MLOps Lambda
-Not yet deployed — `mlops_service` is still local-only. Deployment steps will mirror the agent service once the business-logic split is done.
+---
+
+## Kubernetes Deployment (Alternative to Lambda)
+
+The agent service also ships as a standalone Kubernetes Deployment — same codebase, different entrypoint (`uvicorn main:app` via `Dockerfile.k8s` instead of the Lambda handler), for workloads that benefit from steady-state HPA autoscaling instead of per-invocation Lambda scaling.
+
+```bash
+cd apps/backend/agent_service
+docker build -f Dockerfile.k8s -t travelguru/agent-service:latest .
+
+kubectl apply -f ../../../k8s/agent-service/namespace.yaml
+kubectl apply -f ../../../k8s/agent-service/configmap.yaml
+
+cp ../../../k8s/agent-service/secret.example.yaml /tmp/secret.yaml
+# fill in /tmp/secret.yaml, then:
+kubectl apply -f /tmp/secret.yaml
+rm /tmp/secret.yaml
+
+kubectl apply -f ../../../k8s/agent-service/deployment.yaml
+kubectl apply -f ../../../k8s/agent-service/service.yaml
+kubectl apply -f ../../../k8s/agent-service/hpa.yaml
+```
+
+Scales 2→8 replicas on CPU (70%) / memory (80%) utilization. Full details: [`k8s/agent-service/README.md`](k8s/agent-service/README.md).
 
 ---
 
 ## Database Setup
 
-1. Create a Supabase project and enable the `vector` extension.
-2. Run `database/schema.sql` and `database/indexes.sql`.
-3. Run `database/match_travel_knowledge.sql` to install the pgvector similarity-search RPC used by `retrieval/retriever.py`.
-4. Run `database/admin_panel_migration.sql` before opening the admin panel's Contact tab — it adds the workflow-status column the `PATCH` route needs.
-5. Ingest the knowledge base: run the embedding pipeline in `retrieval/ingest.py` to chunk and embed every file in `knowledge_base/` into the `travel_knowledge` table.
+Run these, in order, in your Supabase SQL editor:
+
+1. 📄 [`database/schema.sql`](database/schema.sql) — core tables
+2. 📄 [`database/indexes.sql`](database/indexes.sql) — indexes
+3. 📄 [`database/match_travel_knowledge.sql`](database/match_travel_knowledge.sql) — pgvector similarity search function for RAG
+4. 📄 [`database/admin_panel_migration.sql`](database/admin_panel_migration.sql) — admin panel contact-triage workflow
 
 ---
 
 ## Admin Setup
 
-Roles live in Clerk `publicMetadata.role`, not a database table:
+Get your Clerk user ID from Clerk Dashboard → Users → click your account → copy the `user_xxx` ID.
 
-1. Clerk Dashboard → **Sessions** → **Customize session token** → add `{ "metadata": "{{user.public_metadata}}" }`.
-2. Clerk Dashboard → **Users** → your user → **Metadata** → set public metadata to `{"role": "admin"}`.
-3. Sign in — the app checks `payload.metadata.role` on every request via `core/auth.py`'s `require_admin` dependency.
+```sql
+INSERT INTO user_db.admin_users (clerk_user_id, email, role, is_active)
+VALUES ('user_your_clerk_id_here', 'your@email.com', 'super_admin', true);
+```
 
-Once you have one admin, you can promote or demote others from the Admin Panel's Users page instead of going back into Clerk.
+Sign in on the live app → auto-redirected to `/admin/dashboard`.
+
+---
+
+## User Tiers
+
+| Feature | Free | Premium |
+|---------|------|---------|
+| AI trip searches / month | **5** | **100** |
+| Flights + Hotels + Places | ✅ | ✅ |
+| Weather + Budget breakdown | ✅ | ✅ |
+| Voice input | ✅ | ✅ |
+| Session history | ✅ | ✅ |
+| Save trips | ✅ | ✅ |
+| PDF export | ✅ | ✅ |
+| Shareable trip links | ✅ | ✅ |
+
+> Limits reset at the start of every month. Admins can manually reset any user from the Admin panel.
+
+---
+
+## Admin Panel
+
+| Page | Purpose |
+|------|---------|
+| Dashboard | Business metrics — users, searches, success rate |
+| Users | Upgrade tier, ban users, reset monthly limit |
+| Health | Live Lambda + Supabase service status |
+| Config | Edit rate limits + feature flags — no redeploy needed |
+| Monitoring | Kafka consumer lag and cluster health (`/admin/kafka/*`) |
+| MLOps | MLOps service status and metrics |
+| Analytics | Usage trends over time |
+| Contact | Contact form submissions with a `new → in_progress → resolved` triage workflow |
+| Audit Log | All admin actions with timestamp |
 
 ---
 
 ## Common Issues
 
-**WebSocket returns 404 on the deployed environment** — expected for now. REST API Gateway doesn't support WebSocket connections; the live progress feature only works in local development until this is migrated to an API Gateway WebSocket API (or replaced with SSE).
+**Flights come back empty** — check `DUFFEL_API_TOKEN`; the flights service is wrapped in a circuit breaker, so a bad/missing token trips it open rather than retrying indefinitely.
 
-**Lambda times out on cold start (`Endpoint request timed out`)** — under active investigation. Prime suspect is `CrossEncoder` model loading in `retrieval/reranker.py` pulling in torch/transformers at import time. If you hit this locally in the container, try increasing Lambda memory first (currently 1024MB, close to the observed ~996MB peak during init) before changing any code.
+**Places search unavailable** — `OPENTRIPMAP_API_KEY` isn't set. It's required; there's no fallback provider currently wired in for places.
 
-**`Invalid API key` (Supabase)** — Ensure `SUPABASE_SECRET_KEY` has no extra whitespace and matches the *secret* key (formerly "service role key"), not the publishable/anon key.
+**Hotels/places search feels slow or occasionally empty** — hotel and (fallback) place lookups hit OpenStreetMap's public Nominatim instance, which enforces a strict 1 request/sec policy. This is a known, documented tradeoff of using a free geocoder.
 
-**Hotels not showing real pricing** — Expected. Hotel data comes from OpenStreetMap/Nominatim (real venues, real addresses) but price/rating are currently synthesized — no live hotel pricing API is wired in yet.
+**`Invalid API key` (Supabase)** — ensure `SUPABASE_SERVICE_ROLE_KEY` starts with `eyJ` with no surrounding whitespace.
 
-**PDF generation fails locally with a `libpango` / WeasyPrint error** — WeasyPrint needs system-level font/rendering libraries. On the deployed container this is handled in the Dockerfile (Amazon Linux packages); locally, install the OS-level dependencies WeasyPrint's docs specify for your platform.
+**`monthly_limit_reached`** — go to Admin → Users → Reset, or:
+```sql
+UPDATE user_db.user_profiles SET searches_this_month = 0 WHERE email = 'your@email.com';
+```
+
+**PDF corrupted** — ensure S3 presigned URL delivery is used, not a direct binary response through API Gateway.
+
+**Go service: `go: go.mod requires go >= 1.24`** — install Go 1.24+; the aggregation service is pinned to match its dependencies' minimum version.
 
 ---
 
 ## Project Structure
 
 ```
-TravelGuruV2/
+TravelMasterV2/
 ├── apps/
-│   ├── frontend/                     ← React 19 + Vite (AWS Amplify)
-│   │   └── src/app/routes/
-│   │       ├── public/               ← Landing, Pricing, About, Help, Contact, Terms, Privacy
-│   │       ├── app/                  ← PlanTripPage, ChatPage
-│   │       └── admin/                ← Dashboard, Users, Analytics, Monitoring, MLOps, Contact
-│   └── backend/
-│       ├── agent_service/            ← LangGraph agent + all real API routes (Lambda, container image)
-│       │   ├── graph/nodes/          ← planner, trip_modifier, location_resolver,
-│       │   │                            rag_retriever, tool_router, composer
-│       │   ├── tools/                ← flight_tool, hotel_tool
-│       │   ├── services/             ← flight/hotel/places/weather/pdf/whisper/razorpay/...
-│       │   ├── retrieval/            ← embedder, retriever, reranker, chunker, ingest (RAG pipeline)
-│       │   ├── api/                  ← routes, chat_routes, admin_routes, payment_routes, voice_routes
-│       │   ├── Dockerfile            ← Lambda container image build (Amazon Linux base)
-│       │   ├── template.yml          ← SAM deployment config
-│       │   └── lambda_handler.py     ← Mangum entrypoint
-│       └── mlops_service/            ← stub FastAPI service (health check only, local only)
-├── database/
-│   ├── schema.sql
-│   ├── indexes.sql
-│   ├── admin_panel_migration.sql
-│   └── match_travel_knowledge.sql    ← pgvector similarity-search RPC
-├── knowledge_base/                   ← RAG source content (markdown, chunked + embedded)
-└── docs/                             ← SDLC plan, decision log, setup guide, tech stack
+│   ├── backend/
+│   │   ├── agent_service/            ← LangGraph AI agent (FastAPI)
+│   │   │   ├── graph/                ← Planner, Composer, Tool Router, Kafka aggregator node
+│   │   │   ├── services/             ← Duffel, OpenTripMap, Open-Meteo, Nominatim, Razorpay, Whisper
+│   │   │   ├── shared/                ← Circuit breaker, feature flags, subscription guard, cache
+│   │   │   ├── retrieval/            ← RAG chunking, embedding, reranking
+│   │   │   ├── evaluations/          ← Retrieval quality evaluation harness
+│   │   │   ├── kafka_bus/            ← Kafka producer/consumer, admin/lag helpers
+│   │   │   ├── api/                  ← chat, admin, payment, contact, voice, kafka-monitor routes
+│   │   │   ├── lambda_handler.py     ← AWS Lambda entry point
+│   │   │   ├── Dockerfile            ← Lambda container image
+│   │   │   ├── Dockerfile.k8s        ← Kubernetes container image
+│   │   │   └── template.yml          ← SAM deployment config
+│   │   ├── mlops_service/            ← FastAPI MLOps backend (auth, rate limiting, payments)
+│   │   │   ├── utils/                ← Health logging, etc.
+│   │   │   └── lambda_handler.py     ← AWS Lambda entry point
+│   │   └── go-kafka-consumer/        ← Go aggregation microservice
+│   │       ├── internal/
+│   │       │   ├── aggregator/       ← Session aggregation + trip builder
+│   │       │   ├── api/              ← HTTP API (results, health endpoints)
+│   │       │   ├── config/           ← Env-driven, validated configuration
+│   │       │   ├── kafka/            ← Kafka consumer
+│   │       │   └── metrics/          ← Prometheus metrics
+│   │       ├── benchmarks/           ← k6 load test script
+│   │       └── Dockerfile
+│   └── frontend/                     ← React app (AWS Amplify)
+│       ├── src/app/routes/           ← Public, app, and admin/ pages
+│       └── src/app/components/       ← Shared UI, chat, trip result components
+├── infra/kafka/                      ← Local Kafka + Kafka UI docker-compose
+├── k8s/agent-service/                ← Kubernetes manifests (Deployment, HPA, Service, ConfigMap)
+├── database/                         ← SQL schema, indexes, RAG search function, migrations
+├── knowledge_base/                   ← RAG source documents (destinations, visas, budgets, etc.)
+├── docs/                             ← Architecture notes, phase logs, decision log
+└── README.md
 ```
 
 ---
 
 ## License
 
-No `LICENSE` file is committed yet. TravelMaster v1 shipped under MIT — happy to add the same here if that's the intent; let me know and I'll drop in a `LICENSE` file.
+MIT — built for portfolio demonstration purposes.
 
 ---
 
