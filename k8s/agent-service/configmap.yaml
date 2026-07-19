@@ -1,0 +1,29 @@
+# Local-dev override of configmap.yaml.
+#
+# configmap.yaml assumes Kafka is reachable at a real cluster/service
+# address (kafka.travelguru.svc.cluster.local) - that's what a managed
+# Kafka (AWS MSK / Confluent Cloud) or a Strimzi-operator-run Kafka
+# would look like from inside the cluster in a real deployment.
+#
+# Locally, Kafka is just the docker-compose container from
+# infra/kafka/docker-compose.yml, running on the host machine, not in
+# this Kubernetes cluster. Docker Desktop's Kubernetes nodes can reach
+# the host via the special DNS name host.docker.internal - so this
+# override just swaps that one value for local testing.
+#
+# Usage: apply configmap.yaml normally, or apply this INSTEAD of it for
+# local testing:
+#   kubectl apply -f k8s/agent-service/configmap.local.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-service-config
+  namespace: travelguru
+data:
+  AGENT_BUS: "kafka"
+  KAFKA_BOOTSTRAP_SERVERS: "host.docker.internal:9094"
+  KAFKA_AGGREGATOR_TIMEOUT: "15"
+  KAFKA_MONITOR_GROUP: "travelguru-monitor"
+  AWS_REGION: "ap-south-1"
+  OPENTRIPMAP_TIMEOUT: "10"
+  PREMIUM_PLAN_CURRENCY: "INR"

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-service
+  namespace: travelguru
+  labels:
+    app: agent-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agent-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: agent-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: agent-service
+          image: travelguru/agent-service:latest # built from Dockerfile.k8s
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: agent-service-config
+            - secretRef:
+                name: agent-service-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          # GET / returns {"status": "ok"} - cheap, no external calls, so
+          # it's safe for both probes without adding load to Redis/RAG/Kafka.
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3

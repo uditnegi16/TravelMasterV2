@@ -1,0 +1,37 @@
+# Kubernetes/server variant of this service.
+#
+# The existing ./Dockerfile targets AWS Lambda (public.ecr.aws/lambda/python
+# base image, CMD = lambda_handler.handler). This variant runs the same
+# FastAPI app (main.py) as a normal long-lived HTTP server via uvicorn, for
+# deployment onto Kubernetes - see ../../k8s/agent-service/.
+FROM python:3.12-slim-bookworm
+
+# Native libraries required by WeasyPrint (PDF generation), same set the
+# Lambda Dockerfile installs via dnf.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi8 \
+    fontconfig \
+    libfreetype6 \
+    libharfbuzz0b \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Non-root user - Kubernetes SecurityContext (see deployment.yaml) also
+# sets runAsNonRoot, but the image should be correct on its own too.
+RUN useradd --create-home --uid 10001 appuser
+USER 10001
+
+EXPOSE 8000
+
+# GET / already returns {"status": "ok"} - reused as the liveness probe.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
