@@ -22,6 +22,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from api.chat_schemas import (
     CreateSessionRequest,
+    DeviceScopedRequest,
     PinSessionRequest,
     RenameSessionRequest,
     SendMessageRequest,
@@ -35,7 +36,7 @@ from fastapi.responses import RedirectResponse
 from fastapi import Request
 from services.pdf_builder import build_trip_pdf, upload_pdf_and_get_presigned_url
 from fastapi import Depends
-from core.auth import get_current_user
+from core.auth import get_current_user, get_account_id
 from shared import metrics
 import time
 logger = logging.getLogger(__name__)
@@ -48,10 +49,10 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 # -------------------------
 @router.get("/sessions")
 def get_sessions(
-    device_id: str = Query(...),
     user=Depends(get_current_user),
 ):
-    return {"sessions": chat_service.list_sessions(device_id)}
+    account_id = get_account_id(user)
+    return {"sessions": chat_service.list_sessions(account_id)}
 
 
 @router.post("/sessions")
@@ -59,7 +60,32 @@ def post_session(
     body: CreateSessionRequest,
     user=Depends(get_current_user),
 ):
-    return chat_service.create_session(body.device_id, body.title)
+    account_id = get_account_id(user)
+    return chat_service.create_session(account_id, body.device_id, body.title)
+
+
+@router.get("/sessions/claimable")
+def get_claimable_sessions(
+    device_id: str = Query(...),
+    user=Depends(get_current_user),
+):
+    """
+    Powers the explicit "import your previous trips?" prompt -- read
+    only, never claims anything itself. See POST /sessions/claim for
+    the actual, user-confirmed migration action.
+    """
+    account_id = get_account_id(user)
+    return {"claimable": chat_service.find_claimable_sessions(device_id, account_id)}
+
+
+@router.post("/sessions/claim")
+def post_claim_sessions(
+    body: DeviceScopedRequest,
+    user=Depends(get_current_user),
+):
+    account_id = get_account_id(user)
+    claimed = chat_service.claim_sessions(body.device_id, account_id)
+    return {"claimed": claimed}
 
 
 @router.patch("/sessions/{session_id}")
@@ -68,7 +94,8 @@ def patch_session(
     body: RenameSessionRequest,
     user=Depends(get_current_user),
 ):
-    return chat_service.rename_session(session_id, body.device_id, body.title)
+    account_id = get_account_id(user)
+    return chat_service.rename_session(session_id, account_id, body.title)
 
 
 @router.patch("/sessions/{session_id}/pin")
@@ -77,16 +104,17 @@ def patch_session_pin(
     body: PinSessionRequest,
     user=Depends(get_current_user),
 ):
-    return chat_service.set_pinned(session_id, body.device_id, body.pinned)
+    account_id = get_account_id(user)
+    return chat_service.set_pinned(session_id, account_id, body.pinned)
 
 
 @router.delete("/sessions/{session_id}")
 def delete_session(
     session_id: str,
-    device_id: str = Query(...),
     user=Depends(get_current_user),
 ):
-    chat_service.delete_session(session_id, device_id)
+    account_id = get_account_id(user)
+    chat_service.delete_session(session_id, account_id)
     return {"ok": True, "deleted": session_id}
 
 
@@ -96,10 +124,10 @@ def delete_session(
 @router.get("/sessions/{session_id}/messages")
 def get_messages(
     session_id: str,
-    device_id: str = Query(...),
     user=Depends(get_current_user),
 ):
-    return {"messages": chat_service.list_messages(session_id, device_id)}
+    account_id = get_account_id(user)
+    return {"messages": chat_service.list_messages(session_id, account_id)}
 
 
 def _emit(session_id: str, event: dict) -> None:
@@ -127,7 +155,8 @@ def post_message(
 
     turn_started = time.perf_counter()
 
-    session = chat_service.assert_session_owner(session_id, body.device_id)
+    account_id = get_account_id(user)
+    session = chat_service.assert_session_owner(session_id, account_id)
 
     chat_service.add_message(session_id, "user", body.query)
     chat_service.maybe_set_title_from_first_message(session_id, body.query)

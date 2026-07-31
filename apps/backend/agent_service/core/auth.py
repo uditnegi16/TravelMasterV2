@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 
 from dotenv import load_dotenv
 from fastapi import HTTPException, Request
@@ -53,6 +54,29 @@ async def get_current_user(request: Request):
             status_code=401,
             detail="Unauthorized",
         ) from exc
+
+def get_account_id(user) -> str:
+    """
+    Derives the authoritative account_id from an authenticated Clerk
+    user -- the SAME derivation already used in payment_routes.py
+    (uuid5(NAMESPACE_DNS, clerk_user_id)) and by the RLS policies added
+    in Issue 4 (public.current_account_id() in the database, keyed off
+    the same JWT `sub` claim). Kept in one place so every caller
+    (chat_routes.py, payment_routes.py, anything future) derives the
+    identical value -- a second, slightly-different implementation here
+    would silently break ownership checks and RLS matching alike.
+
+    Raises 401 rather than returning None/empty if the token has no
+    `sub` claim -- every caller already requires get_current_user first,
+    so this should be unreachable in practice, but failing loudly here
+    is safer than letting a blank identity flow into an ownership check.
+    """
+    payload = getattr(user, "payload", None) or {}
+    clerk_user_id = payload.get("sub")
+    if not clerk_user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, clerk_user_id))
+
 
 def _role_from_payload(payload):
     if not payload:

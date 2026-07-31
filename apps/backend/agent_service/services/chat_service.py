@@ -6,10 +6,19 @@ Objective: Chat UI + History Sidebar. Every function takes/returns
 plain dicts, matching the style already used by vector_store_service.py
 and V1's session_routes.py, rather than introducing a new ORM layer.
 
-Ownership today is by `device_id` only (see database/schema.sql for
-why account_id is present-but-unused). Every function that reads or
-mutates a session verifies device_id ownership first, the same way
-V1's `_assert_session_owner` guarded on account_id.
+Ownership is by `account_id` (Issue 2 fix, 2026-07-31) -- derived from
+the authenticated Clerk user via core/auth.py::get_account_id(), the
+same derivation payment_routes.py already used and the RLS policies
+from Issue 4 already key off. Every /chat/* route already requires a
+valid Clerk session (Depends(get_current_user)), so this was never
+about blocking anonymous access -- it was that a signed-in user's
+ownership check trusted a client-supplied `device_id` instead of their
+own authenticated identity, letting anyone who obtained another user's
+device_id access that user's sessions despite both being authenticated.
+
+`device_id` is retained on chat.sessions, but only for the explicit,
+user-confirmed migration flow (find_claimable_sessions /
+claim_sessions) -- it is never used for authorization anymore.
 """
 
 from __future__ import annotations
@@ -33,14 +42,14 @@ def _messages_table():
     return supabase.schema("chat").table("messages")
 
 
-def assert_session_owner(session_id: str, device_id: str) -> Dict[str, Any]:
-    """Raises 404 if the session doesn't exist or isn't owned by this device."""
+def assert_session_owner(session_id: str, account_id: str) -> Dict[str, Any]:
+    """Raises 404 if the session doesn't exist or isn't owned by this account."""
 
     res = (
         _sessions_table()
         .select("*")
         .eq("id", session_id)
-        .eq("device_id", device_id)
+        .eq("account_id", account_id)
         .neq("status", "deleted")
         .limit(1)
         .execute()
@@ -51,11 +60,11 @@ def assert_session_owner(session_id: str, device_id: str) -> Dict[str, Any]:
     return cast(Dict[str, Any], rows[0])
 
 
-def list_sessions(device_id: str) -> List[Dict[str, Any]]:
+def list_sessions(account_id: str) -> List[Dict[str, Any]]:
     res = (
         _sessions_table()
         .select("id,title,status,pinned,last_message_at,created_at")
-        .eq("device_id", device_id)
+        .eq("account_id", account_id)
         .neq("status", "deleted")
         .order("pinned", desc=True)
         .order("last_message_at", desc=True)
@@ -64,20 +73,70 @@ def list_sessions(device_id: str) -> List[Dict[str, Any]]:
     return cast(List[Dict[str, Any]], getattr(res, "data", None) or [])
 
 
-def create_session(device_id: str, title: Optional[str] = None) -> Dict[str, Any]:
-    ins = (
-        _sessions_table()
-        .insert({"device_id": device_id, "title": (title or "New trip").strip()[:120]})
-        .execute()
-    )
+def create_session(
+    account_id: str, device_id: Optional[str] = None, title: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    device_id is stored alongside account_id (not used for ownership)
+    purely so a future browser session on the same device, before the
+    user signs back in elsewhere, has something to match against for
+    find_claimable_sessions() -- kept, not removed, per the "nothing
+    here needs to change" note in the frontend's deviceId.ts.
+    """
+    payload: Dict[str, Any] = {
+        "account_id": account_id,
+        "title": (title or "New trip").strip()[:120],
+    }
+    if device_id:
+        payload["device_id"] = device_id
+
+    ins = _sessions_table().insert(payload).execute()
     data = getattr(ins, "data", None) or []
     if not data:
         raise HTTPException(status_code=500, detail="Failed to create session")
     return cast(Dict[str, Any], data[0])
 
 
-def rename_session(session_id: str, device_id: str, title: str) -> Dict[str, Any]:
-    assert_session_owner(session_id, device_id)
+def find_claimable_sessions(device_id: str, account_id: str) -> List[Dict[str, Any]]:
+    """
+    Sessions matching this device_id that aren't yet linked to any
+    account -- candidates to show the user in an explicit "import your
+    previous trips?" prompt. Never auto-claims; see claim_sessions()
+    for the actual, user-confirmed migration action.
+    """
+    res = (
+        _sessions_table()
+        .select("id,title,last_message_at,created_at")
+        .eq("device_id", device_id)
+        .is_("account_id", "null")
+        .neq("status", "deleted")
+        .order("last_message_at", desc=True)
+        .execute()
+    )
+    return cast(List[Dict[str, Any]], getattr(res, "data", None) or [])
+
+
+def claim_sessions(device_id: str, account_id: str) -> int:
+    """
+    The actual migration action -- only runs after the user explicitly
+    confirms via the prompt find_claimable_sessions() powers. Only
+    touches rows matching device_id AND currently unclaimed
+    (account_id is null); never reassigns a row someone else already
+    owns.
+    """
+    res = (
+        _sessions_table()
+        .update({"account_id": account_id})
+        .eq("device_id", device_id)
+        .is_("account_id", "null")
+        .execute()
+    )
+    data = getattr(res, "data", None) or []
+    return len(data)
+
+
+def rename_session(session_id: str, account_id: str, title: str) -> Dict[str, Any]:
+    assert_session_owner(session_id, account_id)
     up = (
         _sessions_table()
         .update({"title": title.strip()[:120]})
@@ -88,24 +147,24 @@ def rename_session(session_id: str, device_id: str, title: str) -> Dict[str, Any
     return cast(Dict[str, Any], data[0]) if data else {"id": session_id, "title": title}
 
 
-def set_pinned(session_id: str, device_id: str, pinned: bool) -> Dict[str, Any]:
-    assert_session_owner(session_id, device_id)
+def set_pinned(session_id: str, account_id: str, pinned: bool) -> Dict[str, Any]:
+    assert_session_owner(session_id, account_id)
     up = _sessions_table().update({"pinned": pinned}).eq("id", session_id).execute()
     data = getattr(up, "data", None) or []
     return cast(Dict[str, Any], data[0]) if data else {"id": session_id, "pinned": pinned}
 
 
-def archive_session(session_id: str, device_id: str) -> None:
-    assert_session_owner(session_id, device_id)
+def archive_session(session_id: str, account_id: str) -> None:
+    assert_session_owner(session_id, account_id)
     _sessions_table().update({"status": "archived"}).eq("id", session_id).execute()
 
 
-def delete_session(session_id: str, device_id: str) -> None:
+def delete_session(session_id: str, account_id: str) -> None:
     # Soft delete — keeps the row (and its messages, via FK cascade
     # only fires on hard delete) so nothing is unrecoverable from a
     # misclick. Messages are left in place; list_sessions() and
     # assert_session_owner() both filter out status='deleted'.
-    assert_session_owner(session_id, device_id)
+    assert_session_owner(session_id, account_id)
     _sessions_table().update({"status": "deleted"}).eq("id", session_id).execute()
 
 
@@ -123,8 +182,8 @@ def maybe_set_title_from_first_message(session_id: str, content: str) -> None:
         _sessions_table().update({"title": auto_title}).eq("id", session_id).execute()
 
 
-def list_messages(session_id: str, device_id: str) -> List[Dict[str, Any]]:
-    assert_session_owner(session_id, device_id)
+def list_messages(session_id: str, account_id: str) -> List[Dict[str, Any]]:
+    assert_session_owner(session_id, account_id)
     res = (
         _messages_table()
         .select("id,role,content,trip_data,created_at")
