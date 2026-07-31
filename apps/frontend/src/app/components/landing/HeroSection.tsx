@@ -16,7 +16,7 @@ export function HeroSection() {
   const navigate = useNavigate();
 
   function goToPlanner(prompt?: string) {
-    navigate("/plan", { state: prompt ? { prompt } : undefined });
+    navigate("/chat", { state: prompt ? { prompt } : undefined });
   }
 
   return (

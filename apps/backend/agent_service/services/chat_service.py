@@ -100,6 +100,72 @@ def create_session(
     return cast(Dict[str, Any], data[0])
 
 
+def has_used_guest_trial(device_id: str) -> bool:
+    """
+    True if this device already has an unclaimed (account_id IS NULL)
+    session -- the one-free-trip guest allowance is used up. Once a
+    guest signs in and claims that session (claim_sessions sets
+    account_id), this returns False again for that device -- correct,
+    since the allowance is meant per anonymous identity, not a
+    permanent device ban.
+    """
+    res = (
+        _sessions_table()
+        .select("id")
+        .eq("device_id", device_id)
+        .is_("account_id", "null")
+        .neq("status", "deleted")
+        .limit(1)
+        .execute()
+    )
+    rows = getattr(res, "data", None) or []
+    return len(rows) > 0
+
+
+def create_guest_session(device_id: str, title: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Anonymous session -- account_id stays null until/unless the guest
+    later signs in and explicitly claims it (claim_sessions). Caller is
+    responsible for checking has_used_guest_trial() first; this
+    function itself doesn't enforce the one-trial limit, so it stays a
+    plain insert, consistent with create_session().
+    """
+    payload: Dict[str, Any] = {
+        "device_id": device_id,
+        "title": (title or "New trip").strip()[:120],
+    }
+    ins = _sessions_table().insert(payload).execute()
+    data = getattr(ins, "data", None) or []
+    if not data:
+        raise HTTPException(status_code=500, detail="Failed to create session")
+    return cast(Dict[str, Any], data[0])
+
+
+def assert_guest_session_owner(session_id: str, device_id: str) -> Dict[str, Any]:
+    """
+    Anonymous equivalent of assert_session_owner() -- only matches a
+    session that (a) belongs to this device_id AND (b) has never been
+    claimed by an account. Once claimed, account_id is no longer null
+    and this stops matching -- correctly forcing sign-in for any
+    further access to that session, rather than leaving a permanent
+    unauthenticated backdoor into data that now belongs to an account.
+    """
+    res = (
+        _sessions_table()
+        .select("*")
+        .eq("id", session_id)
+        .eq("device_id", device_id)
+        .is_("account_id", "null")
+        .neq("status", "deleted")
+        .limit(1)
+        .execute()
+    )
+    rows = getattr(res, "data", None) or []
+    if not rows:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return cast(Dict[str, Any], rows[0])
+
+
 def find_claimable_sessions(device_id: str, account_id: str) -> List[Dict[str, Any]]:
     """
     Sessions matching this device_id that aren't yet linked to any
@@ -187,6 +253,20 @@ def maybe_set_title_from_first_message(session_id: str, content: str) -> None:
 
 def list_messages(session_id: str, account_id: str) -> List[Dict[str, Any]]:
     assert_session_owner(session_id, account_id)
+    res = (
+        _messages_table()
+        .select("id,role,content,trip_data,created_at")
+        .eq("session_id", session_id)
+        .order("created_at")
+        .execute()
+    )
+    return cast(List[Dict[str, Any]], getattr(res, "data", None) or [])
+
+
+def list_guest_messages(session_id: str, device_id: str) -> List[Dict[str, Any]]:
+    """Anonymous equivalent of list_messages -- lets a guest refresh the
+    page and still see their one trip's conversation."""
+    assert_guest_session_owner(session_id, device_id)
     res = (
         _messages_table()
         .select("id,role,content,trip_data,created_at")

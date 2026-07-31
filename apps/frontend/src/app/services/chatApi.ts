@@ -20,16 +20,41 @@ export interface ChatMessage {
 
 async function handle<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(detail || `Request failed with ${response.status}`);
+    const raw = await response.text().catch(() => "");
+    let message = raw || `Request failed with ${response.status}`;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.detail === "string") {
+        message = parsed.detail;
+      }
+    } catch {
+      // raw wasn't JSON -- fall back to the raw text as-is.
+    }
+    const error = new Error(message) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
 
-function authHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
+function authHeaders(token: string | null): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function claimSessions(
+  deviceId: string,
+  token: string,
+): Promise<{ claimed: number }> {
+  const res = await fetch(`${API_URL}/chat/sessions/claim`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ device_id: deviceId }),
+  });
+
+  return handle<{ claimed: number }>(res);
 }
 
 export async function listSessions(
@@ -49,7 +74,7 @@ export async function listSessions(
 
 export async function createSession(
   deviceId: string,
-  token: string,
+  token: string | null,
   title?: string,
 ): Promise<ChatSessionSummary> {
   const res = await fetch(`${API_URL}/chat/sessions`, {
@@ -128,7 +153,7 @@ export async function deleteSession(
 export async function listMessages(
   sessionId: string,
   deviceId: string,
-  token: string,
+  token: string | null,
 ): Promise<ChatMessage[]> {
   const res = await fetch(
     `${API_URL}/chat/sessions/${sessionId}/messages?device_id=${encodeURIComponent(deviceId)}`,
@@ -152,7 +177,7 @@ export interface SendMessageResponse {
 export async function sendMessage(
   sessionId: string,
   deviceId: string,
-  token: string,
+  token: string | null,
   query: string,
 ): Promise<SendMessageResponse> {
   const res = await fetch(`${API_URL}/chat/sessions/${sessionId}/messages`, {

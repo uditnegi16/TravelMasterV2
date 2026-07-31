@@ -78,6 +78,25 @@ def get_account_id(user) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, clerk_user_id))
 
 
+async def get_current_user_optional(request: Request):
+    """
+    Like get_current_user, but returns None instead of raising 401 when
+    no valid session is present. Used ONLY by the specific guest-trial
+    entry points (Issue 1: one free trip, no account required) --
+    every other route keeps requiring get_current_user outright.
+
+    Deliberately does not distinguish "no token provided" from
+    "invalid/expired token" -- both fall back to being treated as
+    anonymous, subject to the guest-trial quota (one session per
+    device_id). This doesn't grant elevated access on a bad token, only
+    the same limited allowance any first-time visitor gets.
+    """
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
+
+
 def _role_from_payload(payload):
     if not payload:
         return "user"

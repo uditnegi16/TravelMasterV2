@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getDeviceId } from "../../../lib/deviceId";
 import {
   connectProgressSocket,
@@ -6,6 +7,7 @@ import {
   type SocketEvent,
 } from "../../../lib/websocket";
 import {
+  claimSessions,
   createSession,
   deleteSession,
   listMessages,
@@ -21,7 +23,8 @@ import ChatSidebar from "../../components/chat/ChatSidebar";
 import ChatThread from "../../components/planner/ChatThread";
 import { AiPromptBox } from "../../components/input/AiPromptBox";
 import AiThinkingLoader from "../../components/loading/AiThinkingLoader";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, SignInButton } from "@clerk/clerk-react";
+
 export default function ChatPage() {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
@@ -30,8 +33,18 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [currentStage, setCurrentStage] = useState("");
+  const [guestTrialUsed, setGuestTrialUsed] = useState(false);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn, isLoaded } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Issue 1: a prompt carried from the landing page's hero box (guest
+  // or signed-in, either way) -- consumed once on mount, then cleared
+  // from history state so a refresh doesn't resubmit it.
+  const carriedPrompt =
+    (location.state as { prompt?: string } | null)?.prompt ?? null;
+
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading, streamingText, currentStage]);
@@ -43,10 +56,7 @@ export default function ChatPage() {
   const refreshSessions = useCallback(
     async (id: string) => {
       const token = await getToken();
-
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
+      if (!token) return []; // signed out -- guests get no sidebar history
 
       const list = await listSessions(id, token);
       setSessions(list);
@@ -55,83 +65,101 @@ export default function ChatPage() {
     [getToken],
   );
 
+  // Signed-in flow: load session history and open the most recent one,
+  // same as before. Guests skip this entirely -- no history to load
+  // until they sign in (see claim-on-login, Issue 2).
   useEffect(() => {
-    if (!deviceId) return;
+    if (!deviceId || !isLoaded) return;
+    if (!isSignedIn) return;
 
     void (async () => {
       const list = await refreshSessions(deviceId);
-      if (list.length > 0) {
+      if (list.length > 0 && !carriedPrompt) {
         void openSession(list[0].id);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId, refreshSessions]);
+  }, [deviceId, isLoaded, isSignedIn, refreshSessions]);
+
+  // A prompt carried from the landing page -- submit it once, whether
+  // the visitor is a guest (Issue 1: one free trip, no account) or
+  // already signed in. Clears the carried state afterward so a page
+  // refresh doesn't resubmit it.
+  useEffect(() => {
+    if (!deviceId || !isLoaded || !carriedPrompt) return;
+
+    void handleSubmit(carriedPrompt);
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceId, isLoaded, carriedPrompt]);
+
+  // A guest just signed in -- claim whatever session(s) this device
+  // had (Issue 2's explicit-migration design: only ever fires right
+  // after a real sign-in action, never silently on page load, and
+  // only touches rows this device_id created that no account owns
+  // yet). Without this, a guest's just-planned trial trip would
+  // vanish the moment they create an account.
+  const wasSignedIn = useRef(false);
+  useEffect(() => {
+    if (!deviceId || !isLoaded) return;
+
+    if (isSignedIn && !wasSignedIn.current) {
+      void (async () => {
+        const token = await getToken();
+        if (!token) return;
+        await claimSessions(deviceId, token);
+        setGuestTrialUsed(false);
+        await refreshSessions(deviceId);
+      })();
+    }
+    wasSignedIn.current = !!isSignedIn;
+  }, [deviceId, isLoaded, isSignedIn, getToken, refreshSessions]);
 
   async function openSession(sessionId: string) {
     if (!deviceId) return;
 
     const token = await getToken();
-
-    if (!token) {
-      throw new Error("Not authenticated");
-    }
-
     setActiveSessionId(sessionId);
     setMessages(await listMessages(sessionId, deviceId, token));
   }
 
   async function handleNewChat() {
-    if (!deviceId) return;
+    if (!deviceId || !isSignedIn) return; // account feature only
 
     const token = await getToken();
-
-    if (!token) {
-      throw new Error("Not authenticated");
-    }
+    if (!token) return;
 
     const session = await createSession(deviceId, token);
-
     await refreshSessions(deviceId);
-
     setActiveSessionId(session.id);
     setMessages([]);
   }
 
   async function handleRename(sessionId: string, title: string) {
-    if (!deviceId) return;
+    if (!deviceId || !isSignedIn) return;
 
     const token = await getToken();
-
-    if (!token) {
-      throw new Error("Not authenticated");
-    }
+    if (!token) return;
 
     await renameSession(sessionId, deviceId, token, title);
-
     await refreshSessions(deviceId);
   }
 
-async function handleTogglePin(sessionId: string, pinned: boolean) {
-  if (!deviceId) return;
+  async function handleTogglePin(sessionId: string, pinned: boolean) {
+    if (!deviceId || !isSignedIn) return;
 
-  const token = await getToken();
+    const token = await getToken();
+    if (!token) return;
 
-  if (!token) {
-    throw new Error("Not authenticated");
+    await setSessionPinned(sessionId, deviceId, token, pinned);
+    await refreshSessions(deviceId);
   }
 
-  await setSessionPinned(sessionId, deviceId, token, pinned);
-
-  await refreshSessions(deviceId);
-}
-
   async function handleDelete(sessionId: string) {
-    if (!deviceId) return;
-   const token = await getToken();
+    if (!deviceId || !isSignedIn) return;
 
-    if (!token) {
-      throw new Error("Not authenticated");
-    }
+    const token = await getToken();
+    if (!token) return;
 
     await deleteSession(sessionId, deviceId, token);
     const list = await refreshSessions(deviceId);
@@ -149,21 +177,28 @@ async function handleTogglePin(sessionId: string, pinned: boolean) {
   async function handleSubmit(query: string) {
     if (!deviceId) return;
 
-    const token = await getToken();
-
-    if (!token) {
-      throw new Error("Not authenticated");
-    }
+    // Signed-in visitors always send a real token; guests send null
+    // and the backend treats the request as anonymous (Issue 1).
+    const token = isSignedIn ? await getToken() : null;
 
     let sessionId = activeSessionId;
 
     if (!sessionId) {
-      const session = await createSession(deviceId, token, query);
-
-      sessionId = session.id;
-      setActiveSessionId(sessionId);
-
-      await refreshSessions(deviceId);
+      try {
+        const session = await createSession(deviceId, token, query);
+        sessionId = session.id;
+        setActiveSessionId(sessionId);
+        if (token) await refreshSessions(deviceId);
+      } catch (err) {
+        const status = (err as { status?: number } | undefined)?.status;
+        if (status === 403) {
+          // Guest trial already used on this device -- ask them to
+          // sign in rather than showing a generic error bubble.
+          setGuestTrialUsed(true);
+          return;
+        }
+        throw err;
+      }
     }
 
     setMessages((prev) => [
@@ -183,9 +218,7 @@ async function handleTogglePin(sessionId: string, pinned: boolean) {
 
     const socket = connectProgressSocket(sessionId, (event: SocketEvent) => {
       if (event.type === "progress") {
-        setCurrentStage(
-          event.message ?? "TravelMaster is working..."
-        );
+        setCurrentStage(event.message ?? "TravelMaster is working...");
       } else if (event.type === "token") {
         setStreamingText((prev) => prev + event.token);
       }
@@ -193,15 +226,10 @@ async function handleTogglePin(sessionId: string, pinned: boolean) {
 
     try {
       await waitForSocketOpen(socket);
-      const response = await sendMessage(
-        sessionId,
-        deviceId,
-        token,
-        query,
-      );
+      const response = await sendMessage(sessionId, deviceId, token, query);
 
       setMessages(await listMessages(sessionId, deviceId, token));
-      await refreshSessions(deviceId);
+      if (token) await refreshSessions(deviceId);
       void response;
     } catch (err) {
       setMessages((prev) => [
@@ -226,15 +254,17 @@ async function handleTogglePin(sessionId: string, pinned: boolean) {
 
   return (
     <div className="flex h-[calc(100dvh-72px)] overflow-hidden bg-surface-subtle">
-      <ChatSidebar
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onSelect={openSession}
-        onNewChat={handleNewChat}
-        onRename={handleRename}
-        onTogglePin={handleTogglePin}
-        onDelete={handleDelete}
-      />
+      {isSignedIn && (
+        <ChatSidebar
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelect={openSession}
+          onNewChat={handleNewChat}
+          onRename={handleRename}
+          onTogglePin={handleTogglePin}
+          onDelete={handleDelete}
+        />
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex w-full flex-1 justify-center overflow-y-auto px-6 py-8">
@@ -246,9 +276,9 @@ async function handleTogglePin(sessionId: string, pinned: boolean) {
               </h2>
 
               <p className="mt-2 max-w-xl text-ink-muted">
-                  Plan complete trips, modify existing itineraries, compare options,
-                  ask destination questions, get travel advice, or continue any previous
-                  conversation. Your trip planning and chat stay together in one place.
+                {isSignedIn
+                  ? "Plan complete trips, modify existing itineraries, compare options, ask destination questions, get travel advice, or continue any previous conversation. Your trip planning and chat stay together in one place."
+                  : "Describe a trip and TravelMaster will plan it — no account needed for your first trip."}
               </p>
             </div>
           ) : (
@@ -266,12 +296,27 @@ async function handleTogglePin(sessionId: string, pinned: boolean) {
 
         <div className="border-t border-border bg-white px-4 py-4 sm:px-6">
           <div className="mx-auto w-full max-w-4xl">
-            <AiPromptBox
-              size="compact"
-              onSubmit={handleSubmit}
-              disabled={loading}
-              placeholder="Plan a trip or ask anything about travel..."
-            />
+            {guestTrialUsed ? (
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface-subtle px-4 py-5 text-center">
+                <p className="text-sm text-ink-muted">
+                  You've used your free trip. Sign in to keep planning —
+                  your account gets more trips per month and saves your
+                  history.
+                </p>
+                <SignInButton mode="modal">
+                  <button className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white">
+                    Sign in
+                  </button>
+                </SignInButton>
+              </div>
+            ) : (
+              <AiPromptBox
+                size="compact"
+                onSubmit={handleSubmit}
+                disabled={loading}
+                placeholder="Plan a trip or ask anything about travel..."
+              />
+            )}
           </div>
         </div>
       </div>

@@ -60,7 +60,11 @@ class FakeQuery:
     def limit(self, *a, **kw):
         return self
 
-    def is_(self, *a, **kw):
+    def is_(self, column, value):
+        if value == "null":
+            self._rows = [r for r in self._rows if r.get(column) is None]
+        else:
+            self._rows = [r for r in self._rows if r.get(column) is not None]
         return self
 
     def not_(self):

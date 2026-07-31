@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Layout from "./app/layout/Layout";
 
@@ -15,7 +15,6 @@ import TermsPage from "./app/routes/public/TermsPage";
 import NotFoundPage from "./app/routes/NotFoundPage";
 import ErrorPage from "./app/routes/ErrorPage";
 import OfflinePage from "./app/routes/OfflinePage";
-import ProtectedRoute from "./app/layout/ProtectedRoute";
 import AdminRoute from "./app/layout/AdminRoute";
 import AdminDashboardPage from "./app/routes/admin/AdminDashboardPage";
 import AdminUsersPage from "./app/routes/admin/AdminUsersPage";
@@ -24,19 +23,28 @@ import AdminAnalyticsPage from "./app/routes/admin/AdminAnalyticsPage";
 import AdminMonitoringPage from "./app/routes/admin/AdminMonitoringPage";
 import AdminMlopsPage from "./app/routes/admin/AdminMlopsPage";
 
+// /plan is no longer used by the landing page (HeroSection navigates
+// directly to /chat now), kept only so any old bookmark/link to /plan
+// still works -- and, unlike the old bare <Navigate>, actually
+// preserves whatever navigation state was passed in, instead of
+// silently dropping it (the root cause of Issue 1's prompt-loss bug).
+function PlanRedirect() {
+  const location = useLocation();
+  return <Navigate to="/chat" replace state={location.state} />;
+}
+
 export default function App() {
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<LandingPage />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/chat" element={<ChatPage />} />
-          </Route>          
-        </Route>
+        <Route path="/chat" element={<ChatPage />} />
 
-        <Route path="/plan" element={<Navigate to="/chat" replace />} />
+        <Route
+          path="/plan"
+          element={<PlanRedirect />}
+        />
 
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminDashboardPage />} />

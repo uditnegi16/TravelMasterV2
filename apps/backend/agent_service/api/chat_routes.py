@@ -37,7 +37,7 @@ from fastapi.responses import RedirectResponse
 from fastapi import Request
 from services.pdf_builder import build_trip_pdf, upload_pdf_and_get_presigned_url
 from fastapi import Depends
-from core.auth import get_current_user, get_account_id
+from core.auth import get_current_user, get_current_user_optional, get_account_id
 from shared import metrics
 import time
 logger = logging.getLogger(__name__)
@@ -59,10 +59,23 @@ def get_sessions(
 @router.post("/sessions")
 def post_session(
     body: CreateSessionRequest,
-    user=Depends(get_current_user),
+    user=Depends(get_current_user_optional),
 ):
-    account_id = get_account_id(user)
-    return chat_service.create_session(account_id, body.device_id, body.title)
+    if user is not None:
+        account_id = get_account_id(user)
+        return chat_service.create_session(account_id, body.device_id, body.title)
+
+    # Issue 1: guest trial -- one free trip, no account required.
+    # Gated here (creation), not on message-sending, so a guest can
+    # have a full back-and-forth conversation about their one trip
+    # without hitting a wall mid-conversation; starting a SECOND
+    # session is what actually requires sign-in.
+    if chat_service.has_used_guest_trial(body.device_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Guest trial already used. Sign in to keep planning trips.",
+        )
+    return chat_service.create_guest_session(body.device_id, body.title)
 
 
 @router.get("/sessions/claimable")
@@ -125,10 +138,14 @@ def delete_session(
 @router.get("/sessions/{session_id}/messages")
 def get_messages(
     session_id: str,
-    user=Depends(get_current_user),
+    device_id: str = Query(...),
+    user=Depends(get_current_user_optional),
 ):
-    account_id = get_account_id(user)
-    return {"messages": chat_service.list_messages(session_id, account_id)}
+    if user is not None:
+        account_id = get_account_id(user)
+        return {"messages": chat_service.list_messages(session_id, account_id)}
+
+    return {"messages": chat_service.list_guest_messages(session_id, device_id)}
 
 
 def _emit(session_id: str, event: dict) -> None:
@@ -144,7 +161,7 @@ def _emit(session_id: str, event: dict) -> None:
 def post_message(
     session_id: str,
     body: SendMessageRequest,
-    user=Depends(get_current_user),
+    user=Depends(get_current_user_optional),
 ):
     """
     Sends a user query into an existing session, runs the agent graph,
@@ -152,12 +169,19 @@ def post_message(
     trip_data) before returning the result. Progress/token events for
     this turn stream over the existing /ws/progress/{session_id}
     socket, same as /plan-trip.
+
+    Works for both authenticated users and guests continuing their one
+    free-trial session (Issue 1) -- ownership check differs by path,
+    everything downstream (graph invocation, message storage) is
+    identical either way.
     """
 
     turn_started = time.perf_counter()
 
-    account_id = get_account_id(user)
-    session = chat_service.assert_session_owner(session_id, account_id)
+    if user is not None:
+        session = chat_service.assert_session_owner(session_id, get_account_id(user))
+    else:
+        session = chat_service.assert_guest_session_owner(session_id, body.device_id)
 
     chat_service.add_message(session_id, "user", body.query)
     chat_service.maybe_set_title_from_first_message(session_id, body.query)
