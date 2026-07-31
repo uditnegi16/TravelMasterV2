@@ -83,13 +83,19 @@ def test_upload_pdf_and_get_presigned_url_cleans_up_local_file(s3_bucket, tmp_pa
     assert not local_pdf.exists()
 
 
-def test_download_route_redirects_to_s3_not_filestream(s3_bucket):
+def test_download_route_returns_presigned_url_as_json(s3_bucket):
     """
     Given a message with trip data, owned by the authenticated caller
     When GET /chat/messages/{id}/pdf is called
-    Then the response is a redirect to an S3 URL
-    (not a FileResponse streaming local/tmp bytes through API Gateway --
-    the actual bug: base64 response body never decoded back to binary).
+    Then the response is JSON containing the S3 presigned URL
+    (not an HTTP redirect -- a redirect would require the frontend's
+    fetch() to follow it cross-origin and read response.url, which
+    depends on the S3 bucket having CORS configured for the frontend's
+    origin. JSON keeps this a same-origin API call; the frontend does
+    its own window.open() with the returned URL, a top-level navigation
+    that never needs CORS. Also not a FileResponse streaming local/tmp
+    bytes through API Gateway -- the original bug: base64 response body
+    never decoded back to binary.)
     """
     with patch("api.chat_routes.chat_service.get_owned_message") as mock_get_message, \
          patch("api.chat_routes.build_trip_pdf") as mock_build_pdf:
@@ -111,7 +117,7 @@ def test_download_route_redirects_to_s3_not_filestream(s3_bucket):
         fake_user.payload = {"sub": "test-clerk-user"}
         app.dependency_overrides[get_current_user] = lambda: fake_user
 
-        client = TestClient(app, follow_redirects=False)
+        client = TestClient(app)
 
         try:
             with patch("api.chat_routes.upload_pdf_and_get_presigned_url") as mock_upload:
@@ -126,6 +132,7 @@ def test_download_route_redirects_to_s3_not_filestream(s3_bucket):
             # override so it doesn't leak into unrelated tests.
             app.dependency_overrides.pop(get_current_user, None)
 
-    assert response.status_code == 307
-    assert "s3" in response.headers["location"]
-    assert "test-travelmaster-pdfs" in response.headers["location"]
+    assert response.status_code == 200
+    body = response.json()
+    assert "s3" in body["url"]
+    assert "test-travelmaster-pdfs" in body["url"]

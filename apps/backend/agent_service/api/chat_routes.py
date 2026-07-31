@@ -33,7 +33,6 @@ from api.websocket_manager import manager
 from services import chat_service
 from services.response_builder import build_response
 from graph.nodes.qa_node import itinerary_qa_node, general_chat_node
-from fastapi.responses import RedirectResponse
 from fastapi import Request
 from services.pdf_builder import build_trip_pdf, upload_pdf_and_get_presigned_url
 from fastapi import Depends
@@ -333,12 +332,15 @@ def download_trip_pdf(
         pdf_path,
     )
 
-    # Redirect rather than stream the file through API Gateway/Lambda --
-    # verified live on 2026-07-31 that FileResponse here produces a
-    # downloaded file containing the raw base64 response body, never
-    # decoded to binary. window.open() on the frontend follows this
-    # redirect transparently, so no frontend change is needed.
-    return RedirectResponse(url=presigned_url, status_code=307)
+    # Returns the URL as JSON rather than an HTTP redirect. A redirect
+    # would require the frontend's fetch() (needed here since this
+    # route requires an Authorization header, which window.open() can't
+    # attach) to follow it cross-origin and read response.url -- which
+    # depends on the S3 bucket having CORS configured for the frontend's
+    # origin, unverified and fragile. JSON sidesteps that: the frontend
+    # gets the URL as data and does its own window.open(), a top-level
+    # navigation that never needs CORS at all.
+    return {"url": presigned_url}
 @router.post("/messages/{message_id}/share")
 def create_share_link(
     request: Request,

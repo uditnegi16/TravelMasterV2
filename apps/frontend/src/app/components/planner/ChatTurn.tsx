@@ -2,6 +2,7 @@ import TripResult from "../trip/TripResult";
 import type { Trip } from "../../models/trip";
 import { Download, Share2 } from "lucide-react";
 import { API_URL } from "../../services/api";
+import { useAuth } from "@clerk/clerk-react";
 type ChatTurnProps = {
   messageId: string;
   role: "user" | "assistant" | "system";
@@ -17,27 +18,62 @@ export default function ChatTurn({
 }: ChatTurnProps) {
   const isUser = role === "user";
   const isSystem = role === "system";
-  const handleDownloadPdf = () => {
-    window.open(
+  const { getToken } = useAuth();
+
+  const handleDownloadPdf = async () => {
+    const token = await getToken();
+    if (!token) {
+      alert("Sign in to download a PDF of this trip.");
+      return;
+    }
+
+    // window.open() can't attach an Authorization header, so this
+    // route (correctly requires auth + ownership as of Issue 3) has to
+    // go through fetch instead. Backend returns the presigned S3 URL
+    // as JSON (not an HTTP redirect) specifically so this stays a
+    // same-origin API call -- no dependency on the S3 bucket having
+    // CORS configured for this frontend's origin.
+    const response = await fetch(
       `${API_URL}/chat/messages/${messageId}/pdf`,
-      "_blank",
+      { headers: { Authorization: `Bearer ${token}` } },
     );
+
+    if (!response.ok) {
+      alert("Couldn't generate the PDF. Please try again.");
+      return;
+    }
+
+    const data = await response.json();
+    window.open(data.url, "_blank");
   };
 
   const handleShare = async () => {
-  const response = await fetch(
-    `${API_URL}/chat/messages/${messageId}/share`,
-    {
-      method: "POST",
-    },
-  );
+    const token = await getToken();
+    if (!token) {
+      alert("Sign in to share this trip.");
+      return;
+    }
 
-  const data = await response.json();
+    const response = await fetch(
+      `${API_URL}/chat/messages/${messageId}/share`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
 
-  await navigator.clipboard.writeText(data.url);
+    if (!response.ok) {
+      alert("Couldn't create a share link. Please try again.");
+      return;
+    }
 
-  alert("Public share link copied to clipboard.");
-};
+    const data = await response.json();
+    await navigator.clipboard.writeText(data.url);
+    alert("Public share link copied to clipboard.");
+  };
   if (isUser) {
     return (
       <div className="flex justify-end">
