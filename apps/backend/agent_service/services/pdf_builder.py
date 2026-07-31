@@ -141,6 +141,12 @@ def upload_pdf_and_get_presigned_url(session_id: str, local_path: str) -> str:
     Uploads a locally-rendered PDF to S3 and returns a short-lived
     presigned download URL, then deletes the local copy.
 
+    Key convention (pdfs/{id}/travelguru_new_trip.pdf) matches what was
+    already found live in the travelmaster-pdfs bucket (9 pre-existing
+    UUID-keyed folders, confirmed 2026-07-31) -- a prior version of this
+    code evidently had working S3 delivery already; this restores that
+    pattern rather than inventing a new one alongside it.
+
     This is the fix for a real bug found live on 2026-07-31: the
     previous approach (FileResponse streaming local/tmp disk bytes
     through API Gateway) requires API Gateway's BinaryMediaTypes to
@@ -162,7 +168,7 @@ def upload_pdf_and_get_presigned_url(session_id: str, local_path: str) -> str:
             "function replaces, not a valid fallback."
         )
 
-    key = f"trip-pdfs/{session_id}.pdf"
+    key = f"pdfs/{session_id}/travelguru_new_trip.pdf"
     client = boto3.client("s3", region_name=os.getenv("AWS_REGION", "ap-south-1"))
 
     client.upload_file(
@@ -174,7 +180,15 @@ def upload_pdf_and_get_presigned_url(session_id: str, local_path: str) -> str:
 
     url = client.generate_presigned_url(
         "get_object",
-        Params={"Bucket": PDF_S3_BUCKET, "Key": key},
+        Params={
+            "Bucket": PDF_S3_BUCKET,
+            "Key": key,
+            # Internal key uses the legacy "travelguru_new_trip.pdf" name
+            # (matching the pre-existing pdfs/{id}/ convention found live
+            # in the bucket) -- override what the browser actually shows
+            # as the downloaded filename.
+            "ResponseContentDisposition": 'attachment; filename="TravelMaster-Itinerary.pdf"',
+        },
         ExpiresIn=PDF_PRESIGNED_URL_TTL_SECONDS,
     )
 

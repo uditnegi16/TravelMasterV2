@@ -56,8 +56,13 @@ def test_upload_pdf_and_get_presigned_url_uploads_to_s3(s3_bucket, tmp_path):
     assert "test-travelmaster-pdfs" in url
     assert "session123" in url
 
-    # The object must genuinely exist in S3 -- not just a URL that looks right.
-    head = s3_bucket.head_object(Bucket="test-travelmaster-pdfs", Key="trip-pdfs/session123.pdf")
+    # The object must genuinely exist in S3 -- not just a URL that looks
+    # right. Key matches the pre-existing pdfs/{id}/travelguru_new_trip.pdf
+    # convention found live in the real bucket.
+    head = s3_bucket.head_object(
+        Bucket="test-travelmaster-pdfs",
+        Key="pdfs/session123/travelguru_new_trip.pdf",
+    )
     assert head["ContentLength"] > 0
 
 
