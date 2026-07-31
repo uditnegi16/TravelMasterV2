@@ -16,10 +16,20 @@ import re
 from pathlib import Path
 from typing import Any
 
+import logging
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML
 import tempfile
 from pathlib import Path
+import os
+import boto3
+
+logger = logging.getLogger(__name__)
+
+PDF_S3_BUCKET = os.getenv("PDF_S3_BUCKET")
+PDF_PRESIGNED_URL_TTL_SECONDS = 900  # 15 minutes -- generous for an
+# immediate "click to download" flow, short enough that a leaked/logged
+# URL doesn't stay valid indefinitely.
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -124,3 +134,55 @@ def build_trip_pdf(session_id: str, trip: dict[str, Any]) -> str:
     HTML(string=html_string).write_pdf(target=str(output_path))
 
     return str(output_path)
+
+
+def upload_pdf_and_get_presigned_url(session_id: str, local_path: str) -> str:
+    """
+    Uploads a locally-rendered PDF to S3 and returns a short-lived
+    presigned download URL, then deletes the local copy.
+
+    This is the fix for a real bug found live on 2026-07-31: the
+    previous approach (FileResponse streaming local/tmp disk bytes
+    through API Gateway) requires API Gateway's BinaryMediaTypes to
+    exactly match the request's Accept header to correctly base64-decode
+    the response back to real binary. In practice this failed --
+    browsers downloaded the raw base64 string as the "PDF", which no
+    reader could open. Serving the file directly from S3 sidesteps API
+    Gateway's binary-response handling entirely; the browser downloads
+    real bytes straight from S3, not through Lambda.
+
+    Raises RuntimeError if PDF_S3_BUCKET isn't configured, rather than
+    silently falling back to local-disk serving -- a silent fallback
+    would reintroduce the exact bug this function exists to fix.
+    """
+    if not PDF_S3_BUCKET:
+        raise RuntimeError(
+            "PDF_S3_BUCKET is not configured. PDF delivery requires S3; "
+            "serving local/tmp disk through API Gateway is the bug this "
+            "function replaces, not a valid fallback."
+        )
+
+    key = f"trip-pdfs/{session_id}.pdf"
+    client = boto3.client("s3", region_name=os.getenv("AWS_REGION", "ap-south-1"))
+
+    client.upload_file(
+        local_path,
+        PDF_S3_BUCKET,
+        key,
+        ExtraArgs={"ContentType": "application/pdf"},
+    )
+
+    url = client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": PDF_S3_BUCKET, "Key": key},
+        ExpiresIn=PDF_PRESIGNED_URL_TTL_SECONDS,
+    )
+
+    try:
+        Path(local_path).unlink()
+    except OSError:
+        # Cleanup failure shouldn't fail the request -- the presigned URL
+        # is already valid and that's what the caller actually needs.
+        logger.warning("Failed to clean up local PDF copy at %s", local_path)
+
+    return url

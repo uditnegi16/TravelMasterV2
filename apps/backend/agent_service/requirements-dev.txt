@@ -1,0 +1,7 @@
+# Minimal dev/test deps needed to run Issue 4's schema tests now, ahead of
+# Issue 7's full CI/test-framework build-out. Issue 7 will supersede/expand
+# this file (pytest-asyncio, respx, testcontainers, coverage config, etc.)
+-r requirements.txt
+pytest==8.3.3
+psycopg2-binary==2.9.9
+moto[s3]==5.0.13

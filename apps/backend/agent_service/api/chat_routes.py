@@ -31,9 +31,9 @@ from api.websocket_manager import manager
 from services import chat_service
 from services.response_builder import build_response
 from graph.nodes.qa_node import itinerary_qa_node, general_chat_node
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from fastapi import Request
-from services.pdf_builder import build_trip_pdf
+from services.pdf_builder import build_trip_pdf, upload_pdf_and_get_presigned_url
 from fastapi import Depends
 from core.auth import get_current_user
 from shared import metrics
@@ -272,11 +272,17 @@ def download_trip_pdf(
         trip,
     )
 
-    return FileResponse(
-        path=pdf_path,
-        media_type="application/pdf",
-        filename="TravelMaster-Itinerary.pdf",
+    presigned_url = upload_pdf_and_get_presigned_url(
+        message_id,
+        pdf_path,
     )
+
+    # Redirect rather than stream the file through API Gateway/Lambda --
+    # verified live on 2026-07-31 that FileResponse here produces a
+    # downloaded file containing the raw base64 response body, never
+    # decoded to binary. window.open() on the frontend follows this
+    # redirect transparently, so no frontend change is needed.
+    return RedirectResponse(url=presigned_url, status_code=307)
 @router.post("/messages/{message_id}/share")
 def create_share_link(
     request: Request,
