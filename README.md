@@ -111,15 +111,15 @@ YOUR_GITHUB_VIDEO_ASSET_URL_HERE
 <!-- ================================================================ -->
 
 <p align="center">
-  <img src="screenshots/Screenshot 2026-03-21 122015.png" width="48%" alt="Landing Page" />
-  <img src="screenshots/Screenshot 2026-03-21 122343.png" width="48%" alt="Dashboard" />
+  <img src="Screenshots/LP.png" width="48%" alt="Landing Page" />
+  <img src="Screenshots/paymentgateway.png" width="48%" alt="Payment Gateway" /> 
 </p>
 <p align="center">
-  <img src="screenshots/Screenshot 2026-03-21 122541.png" width="48%" alt="Trip Results" />
-  <img src="screenshots/Screenshot 2026-03-21 122445.png" width="48%" alt="PDF Export" />
+  <img src="Screenshots/Chatbot.png" width="48%" alt="ChatBot" />
+  <img src="Screenshots/TripResults.png" width="48%" alt="Trip Results" />
 </p>
 <p align="center">
-  <img src="screenshots/Screenshot 2026-03-21 122257.png" width="48%" alt="Admin Panel" />
+  <img src="Screenshots/admin.png" width="48%" alt="Admin Panel" />
 </p>
 
 ---
