@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -285,8 +286,10 @@ def post_message(
 @router.get("/messages/{message_id}/pdf")
 def download_trip_pdf(
     message_id: str,
+    user=Depends(get_current_user),
 ):
-    message = chat_service.get_message_by_id(message_id)
+    account_id = get_account_id(user)
+    message = chat_service.get_owned_message(message_id, account_id)
 
     trip = message.get("trip_data")
 
@@ -316,8 +319,10 @@ def download_trip_pdf(
 def create_share_link(
     request: Request,
     message_id: str,
+    user=Depends(get_current_user),
 ):
-    message = chat_service.get_message_by_id(message_id)
+    account_id = get_account_id(user)
+    message = chat_service.get_owned_message(message_id, account_id)
 
     if not message.get("trip_data"):
         raise HTTPException(
@@ -325,21 +330,38 @@ def create_share_link(
             detail="Trip snapshot not found.",
         )
 
-    token = message.get("share_token")
+    # Every call issues a fresh token (see create_share_token's
+    # docstring -- raw tokens are never stored, so there's no previous
+    # plaintext to return even if one already existed).
+    token = chat_service.create_share_token(message_id)
 
-    if not token:
-        token = chat_service.create_share_token(message_id)
-
-    base = str(request.base_url).rstrip("/")
+    # APP_URL, if configured, wins -- request.base_url reflects
+    # whatever domain the API itself is reached at (the backend's
+    # domain), not the frontend's, so it was never actually correct
+    # here even before the hardcoded-localhost bug.
+    base = os.getenv("APP_URL") or "https://main.d2dqny356lcrsz.amplifyapp.com"
 
     return {
-    "url": f"http://localhost:5173/share/{token}",
+        "url": f"{base}/share/{token}",
     }
 @router.get("/share/{token}")
 def get_shared_trip(
     token: str,
 ):
+    """
+    Deliberately public, no auth dependency -- this endpoint IS the
+    share link. Access control is the token itself: high-entropy,
+    hashed at rest, expiring, revocable. Returns 410 (not 404) for
+    invalid/expired/revoked tokens -- distinct from "never existed",
+    matching the acceptance criteria's "controlled 404/410 state."
+    """
     message = chat_service.get_message_by_share_token(token)
+
+    if not message:
+        raise HTTPException(
+            status_code=410,
+            detail="This share link is invalid or has expired.",
+        )
 
     return {
         "trip": message.get("trip_data"),

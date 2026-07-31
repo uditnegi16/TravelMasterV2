@@ -19,7 +19,7 @@ S3 upload + redirect is implemented.
 """
 
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import boto3
 import pytest
@@ -85,13 +85,13 @@ def test_upload_pdf_and_get_presigned_url_cleans_up_local_file(s3_bucket, tmp_pa
 
 def test_download_route_redirects_to_s3_not_filestream(s3_bucket):
     """
-    Given a message with trip data
+    Given a message with trip data, owned by the authenticated caller
     When GET /chat/messages/{id}/pdf is called
     Then the response is a redirect to an S3 URL
     (not a FileResponse streaming local/tmp bytes through API Gateway --
     the actual bug: base64 response body never decoded back to binary).
     """
-    with patch("api.chat_routes.chat_service.get_message_by_id") as mock_get_message, \
+    with patch("api.chat_routes.chat_service.get_owned_message") as mock_get_message, \
          patch("api.chat_routes.build_trip_pdf") as mock_build_pdf:
         mock_get_message.return_value = {
             "id": "msg1",
@@ -103,15 +103,28 @@ def test_download_route_redirects_to_s3_not_filestream(s3_bucket):
         # the test S3 bucket env var set by the s3_bucket fixture.
         from main import app
         from fastapi.testclient import TestClient
+        from core.auth import get_current_user
+
+        # The route requires authentication (Issue 2) -- override the
+        # real Clerk dependency rather than hitting Clerk's API in a test.
+        fake_user = MagicMock()
+        fake_user.payload = {"sub": "test-clerk-user"}
+        app.dependency_overrides[get_current_user] = lambda: fake_user
 
         client = TestClient(app, follow_redirects=False)
 
-        with patch("api.chat_routes.upload_pdf_and_get_presigned_url") as mock_upload:
-            mock_upload.return_value = (
-                "https://test-travelmaster-pdfs.s3.ap-south-1.amazonaws.com/"
-                "trip-pdfs/msg1.pdf?X-Amz-Signature=fake"
-            )
-            response = client.get("/chat/messages/msg1/pdf")
+        try:
+            with patch("api.chat_routes.upload_pdf_and_get_presigned_url") as mock_upload:
+                mock_upload.return_value = (
+                    "https://test-travelmaster-pdfs.s3.ap-south-1.amazonaws.com/"
+                    "trip-pdfs/msg1.pdf?X-Amz-Signature=fake"
+                )
+                response = client.get("/chat/messages/msg1/pdf")
+        finally:
+            # Module-level `app` is cached across tests (from main import
+            # app resolves to the same object each time) -- clear the
+            # override so it doesn't leak into unrelated tests.
+            app.dependency_overrides.pop(get_current_user, None)
 
     assert response.status_code == 307
     assert "s3" in response.headers["location"]

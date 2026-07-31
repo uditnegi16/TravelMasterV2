@@ -29,10 +29,15 @@ class FakeQuery:
 
     def __init__(self, rows):
         self._rows = rows
+        self._single = False
         self.eq_calls = []
         self.neq_calls = []
         self.updated_with = None
         self.inserted_with = None
+
+    def single(self):
+        self._single = True
+        return self
 
     def select(self, *a, **kw):
         return self
@@ -72,7 +77,10 @@ class FakeQuery:
 
     def execute(self):
         response = MagicMock()
-        response.data = self._rows
+        if self._single:
+            response.data = self._rows[0] if self._rows else None
+        else:
+            response.data = self._rows
         return response
 
 

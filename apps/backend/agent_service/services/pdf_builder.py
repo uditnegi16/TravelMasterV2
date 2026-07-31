@@ -85,8 +85,14 @@ def pdf_exists(session_id: str) -> bool:
 
 
 def _flight_price(flight: dict[str, Any]) -> float:
+    # flight_mapper.py::FlightOption renames Duffel's raw total_amount
+    # to `price` before this data is ever stored -- using the old raw
+    # name here silently produced float("inf") for every flight
+    # (TypeError on None), which is why every flight sorted as
+    # "cheapest" arbitrarily and the price column rendered blank.
+    # Confirmed by reading flight_mapper.py directly, 2026-07-31.
     try:
-        return float(flight.get("total_amount"))
+        return float(flight.get("price"))
     except (TypeError, ValueError):
         return float("inf")
 

@@ -33,6 +33,9 @@ from shared.trip_summary import previous_trip_highlights
 import json
 import re
 import logging
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
 logger = logging.getLogger(__name__)
 def _sessions_table():
     return supabase.schema("chat").table("sessions")
@@ -427,11 +430,17 @@ def _heuristic_classify(query: str) -> str:
         return "FOLLOW_UP"
 
     return "FOLLOW_UP"
+SHARE_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days -- product decision, 2026-07-31
+
+
 def get_message_by_id(
     message_id: str,
 ) -> Dict[str, Any]:
     """
-    Returns a single stored chat message.
+    Returns a single stored chat message, UNCHECKED -- no ownership
+    verification. Only call this directly for genuinely public paths
+    (share-token lookup, which has its own token-based access control).
+    Everything else should go through get_owned_message() instead.
     """
 
     response = (
@@ -447,21 +456,63 @@ def get_message_by_id(
 
     return response.data
 
-import secrets
-def create_share_token(
-    message_id: str,
-) -> str:
-    """
-    Creates a public share token for a trip snapshot.
-    """
 
-    token = secrets.token_urlsafe(16)
+def get_owned_message(message_id: str, account_id: str) -> Dict[str, Any]:
+    """
+    Fetches a message only if it belongs to a session owned by
+    account_id. Closes the real gap found 2026-07-31: PDF export and
+    share-link creation both called get_message_by_id() directly, with
+    no ownership check at all -- anyone who knew/guessed a message_id
+    could pull it. Raises 404 (not a distinguishable "exists but not
+    yours" response) either way, so this can't be used to enumerate
+    valid message IDs.
+    """
+    try:
+        message = get_message_by_id(message_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    session_id = message.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    assert_session_owner(session_id, account_id)  # raises 404 if not owned
+    return message
+
+
+def _hash_token(token: str) -> str:
+    # sha256 -- verified to produce identical hex output to Postgres's
+    # encode(digest(token, 'sha256'), 'hex'), used by
+    # database/share_token_hashing_migration.sql to backfill
+    # already-issued plaintext tokens onto this same scheme.
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_share_token(message_id: str) -> str:
+    """
+    Generates a fresh, high-entropy share token. Only its hash (+ a
+    7-day expiry) is ever persisted -- the raw token exists only in
+    this function's return value, this one time. A necessary
+    consequence: since the raw token is never stored anywhere, calling
+    this again for the same message cannot "return the existing link"
+    -- there IS no existing plaintext to return. Every call issues a
+    genuinely new token and invalidates whatever token existed before
+    (the old hash is overwritten). This is intentional, not an
+    oversight -- matches how e.g. API-key regeneration works -- but
+    means the frontend's "Share" action always rotates the link.
+    """
+    token = secrets.token_urlsafe(32)
+    expires_at = (
+        datetime.now(timezone.utc) + timedelta(seconds=SHARE_TOKEN_TTL_SECONDS)
+    ).isoformat()
 
     (
         _messages_table()
         .update(
             {
-                "share_token": token,
+                "share_token_hash": _hash_token(token),
+                "share_token_expires_at": expires_at,
+                "share_token_revoked_at": None,
             }
         )
         .eq("id", message_id)
@@ -469,52 +520,45 @@ def create_share_token(
     )
 
     return token
-def get_message_by_share_token(
-    token: str,
-):
+
+
+def get_message_by_share_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    Looks up a message by the hash of the provided token -- the raw
+    token is never stored, only compared by hash. Returns None (not an
+    exception) for missing, expired, or revoked tokens, so the route
+    layer can return one uniform "invalid or expired" response without
+    distinguishing why -- avoids leaking whether a token ever existed.
+    """
+    token_hash = _hash_token(token)
     response = (
         _messages_table()
         .select("*")
-        .eq("share_token", token)
-        .single()
+        .eq("share_token_hash", token_hash)
         .execute()
     )
+    rows = getattr(response, "data", None) or []
+    if not rows:
+        return None
 
-    if not response.data:
-        raise ValueError("Invalid share token")
+    message = rows[0]
 
-    return response.data
-def create_share_token(
-    message_id: str,
-) -> str:
-    import secrets
+    if message.get("share_token_revoked_at"):
+        return None
 
-    token = secrets.token_urlsafe(16)
+    expires_at = message.get("share_token_expires_at")
+    if expires_at:
+        expires_dt = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00"))
+        if expires_dt < datetime.now(timezone.utc):
+            return None
 
-    (
-        _messages_table()
-        .update(
-            {
-                "share_token": token,
-            }
-        )
-        .eq("id", message_id)
-        .execute()
-    )
+    return message
 
-    return token
-def get_message_by_share_token(
-    token: str,
-):
-    response = (
-        _messages_table()
-        .select("*")
-        .eq("share_token", token)
-        .single()
-        .execute()
-    )
 
-    if not response.data:
-        raise ValueError("Invalid share token")
-
-    return response.data
+def revoke_share_token(message_id: str, account_id: str) -> None:
+    """Explicit revocation -- owner-only. Distinct from create_share_token's
+    implicit rotation: this kills the link without issuing a new one."""
+    message = get_owned_message(message_id, account_id)
+    _messages_table().update(
+        {"share_token_revoked_at": datetime.now(timezone.utc).isoformat()}
+    ).eq("id", message["id"]).execute()

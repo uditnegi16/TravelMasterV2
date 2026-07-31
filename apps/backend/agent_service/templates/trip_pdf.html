@@ -141,8 +141,8 @@
 
         {% if trip.recommended.flight %}
         <p><strong>Flight</strong><span class="recommended-badge">RECOMMENDED</span><br>
-        {{ trip.recommended.flight.owner | default("—", true) }} —
-        {{ trip.recommended.flight.total_amount | default("—", true) }} {{ trip.recommended.flight.currency | default("", true) }}
+        {{ trip.recommended.flight.airline | default("—", true) }} —
+        {{ trip.recommended.flight.price | default("—", true) }} {{ trip.recommended.flight.currency | default("", true) }}
         ({{ trip.recommended.flight.duration | human_duration }})</p>
         {% endif %}
 
@@ -164,9 +164,9 @@
             <tr><th>Airline</th><th>Route</th><th>Price</th><th>Duration</th></tr>
             {% for f in trip.flights %}
             <tr>
-                <td>{{ f.owner | default("—", true) }}</td>
+                <td>{{ f.airline | default("—", true) }}</td>
                 <td>{{ f.origin_city | default(f.origin, true) }} → {{ f.destination_city | default(f.destination, true) }}</td>
-                <td>{{ f.total_amount | default("—", true) }} {{ f.currency | default("", true) }}</td>
+                <td>{{ f.price | default("—", true) }} {{ f.currency | default("", true) }}</td>
                 <td>{{ f.duration | human_duration }}</td>
             </tr>
             {% endfor %}
