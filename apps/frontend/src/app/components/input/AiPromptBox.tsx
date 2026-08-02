@@ -118,6 +118,7 @@ export function AiPromptBox({
       )}
 
       <textarea
+      aria-label="Describe the trip you want to plan"
       style={{
           maxHeight: "180px",
         }}

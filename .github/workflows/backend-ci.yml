@@ -1,0 +1,97 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: apps/backend/agent_service
+
+    # Real Postgres + pgvector, not a mock -- Issue 4's schema tests
+    # (tests/db/) apply the real migrations and run RLS isolation
+    # checks against an actual database, the same way they were
+    # verified by hand before ever landing.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Dummy values for services never actually called in this suite --
+      # every test here mocks its own external dependency (Supabase,
+      # Redis, Razorpay, Clerk) rather than hitting the real thing.
+      # Real credentials never touch CI.
+      GROQ_API_KEY: dummy
+      SUPABASE_URL: https://dummy.supabase.co
+      SUPABASE_SECRET_KEY: dummy
+      SUPABASE_PUBLISHABLE_KEY: dummy
+      CLERK_SECRET_KEY: dummy
+      CLERK_JWKS_URL: https://dummy/.well-known/jwks.json
+      DUFFEL_API_TOKEN: dummy
+      OPENTRIPMAP_API_KEY: dummy
+      RAZORPAY_KEY_ID: rzp_test_dummy
+      RAZORPAY_KEY_SECRET: dummy_secret
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/backend/agent_service/requirements*.txt
+
+      - name: Install Dependencies
+        run: |
+          pip install --break-system-packages -r requirements.txt
+          pip install --break-system-packages -r requirements-dev.txt
+
+      - name: Type Check (non-blocking for now)
+        run: pip install --break-system-packages mypy && mypy --ignore-missing-imports services/chat_service.py shared/quota_guard.py || true
+
+      - name: Real Unit + Integration Tests
+        run: |
+          pytest tests/services/ tests/shared/ tests/api/ -v \
+            --cov=services --cov=shared --cov=api --cov=core \
+            --cov-report=term-missing --cov-report=xml
+
+      - name: Database Migration + RLS Tests
+        run: pytest tests/db/ -v
+
+      - name: Coverage Threshold -- auth/billing/quota (80%, per backlog)
+        run: |
+          pip install --break-system-packages coverage
+          coverage report --include="shared/quota_guard.py,core/auth.py,api/payment_routes.py,services/subscription_service.py" --fail-under=80
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/agent_service/coverage.xml

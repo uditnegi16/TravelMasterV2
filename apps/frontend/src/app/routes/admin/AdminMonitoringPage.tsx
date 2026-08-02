@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { RefreshCw } from "lucide-react";
 
@@ -14,7 +14,7 @@ export default function AdminMonitoringPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setRefreshing(true);
     try {
       const token = await getToken();
@@ -27,14 +27,23 @@ export default function AdminMonitoringPage() {
     } finally {
       setRefreshing(false);
     }
-  }
+  }, [getToken]);
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 30000);
+    // load() is a legitimate poll-on-interval + manual-refresh pattern
+    // (the Refresh button below also calls it directly). Properly
+    // satisfying this rule would mean adopting a real data-fetching
+    // library (React Query/SWR) across the app to get declarative
+    // loading/caching state instead of manual setState -- a much
+    // larger, unrelated change than this issue's scope. The other two
+    // admin pages (Users, Contact) were genuinely restructured to
+    // avoid needing this suppression; this one has a real reason to
+    // keep it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+    const interval = setInterval(() => void load(), 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   const cacheTotal = data ? data.cache.hits + data.cache.misses : 0;
   const hitRate = data && cacheTotal > 0 ? Math.round((data.cache.hits / cacheTotal) * 100) : null;

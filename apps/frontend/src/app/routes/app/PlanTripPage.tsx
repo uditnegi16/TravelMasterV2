@@ -8,14 +8,13 @@ import {
   type ProgressEvent,
 } from "../../../lib/websocket";
 
-import TripResult from "../../components/trip/TripResult";
 import PlannerHero from "../../components/planner/PlannerHero";
 import PlannerWorkspace from "../../components/planner/PlannerWorkspace";
 type PdfStatus = "idle" | "generating" | "ready" | "error";
 
 export default function PlanTripPage() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PlanTripResponse | null>(null);
+  const [, setResult] = useState<PlanTripResponse | null>(null);
   const [events, setEvents] = useState<ProgressEvent[]>([]);
   // Phase 5 fix: token events used to be pushed into the same `events`
   // array as progress events. TripProgressTracker only understands
@@ -158,12 +157,6 @@ export default function PlanTripPage() {
             pdfUrl={pdfUrl}
             onSubmit={handleSubmit}
           />
-
-          {false && (
-            <div className="animate-fadeIn">
-              <TripResult result={result} />
-            </div>
-          )}
         </div>
       </div>
     </div>

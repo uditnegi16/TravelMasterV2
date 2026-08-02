@@ -29,22 +29,20 @@ export default function AdminContactPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function load(status: ContactSubmission["status"] | "all") {
-    try {
-      const token = await getToken();
-      if (!token) throw new Error("Not signed in.");
-      const result = await listContactSubmissions(
-        token,
-        status === "all" ? undefined : status
-      );
-      setSubmissions(result.submissions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load submissions.");
-    }
-  }
-
   useEffect(() => {
-    load(filter);
+    void (async () => {
+      try {
+        const token = await getToken();
+        if (!token) throw new Error("Not signed in.");
+        const result = await listContactSubmissions(
+          token,
+          filter === "all" ? undefined : filter
+        );
+        setSubmissions(result.submissions);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load submissions.");
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 

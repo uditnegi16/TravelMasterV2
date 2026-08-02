@@ -20,19 +20,17 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function load() {
-    try {
-      const token = await getToken();
-      if (!token) throw new Error("Not signed in.");
-      const result = await listAdminUsers(token, { limit: 50 });
-      setUsers(result.users);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load users.");
-    }
-  }
-
   useEffect(() => {
-    load();
+    void (async () => {
+      try {
+        const token = await getToken();
+        if (!token) throw new Error("Not signed in.");
+        const result = await listAdminUsers(token, { limit: 50 });
+        setUsers(result.users);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load users.");
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

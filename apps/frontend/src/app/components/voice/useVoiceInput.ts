@@ -1,6 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VoiceInputState } from "./voice.types";
 
+// Web Speech API isn't part of TypeScript's standard DOM lib (still
+// non-standard/experimental across browsers) -- minimal types for
+// exactly the subset used here, replacing what were previously `any`.
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  [index: number]: { transcript: string };
+}
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: { length: number; [index: number]: SpeechRecognitionResultLike };
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
 interface UseVoiceInputOptions {
   /** Called with the final transcript once recording stops and text is ready */
   onResult: (transcript: string) => void;
@@ -21,7 +51,7 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
   const [voice, setVoice] = useState<VoiceInputState>({ state: "idle" });
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
@@ -43,14 +73,20 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
   }, []);
 
   const beginNativeListening = useCallback(() => {
-    const SpeechRecognitionImpl =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionImpl();
+    const SpeechRecognitionImpl = (
+      window as unknown as {
+        SpeechRecognition?: SpeechRecognitionConstructor;
+        webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      }
+    ).SpeechRecognition ?? (
+      window as unknown as { webkitSpeechRecognition?: SpeechRecognitionConstructor }
+    ).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionImpl!();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
       let interim = "";
       let final = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -61,7 +97,7 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
       setVoice((v) => ({ ...v, interimTranscript: final || interim }));
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
       stopTimer();
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         setVoice({ state: "permission-denied" });
