@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth, useUser, SignInButton } from "@clerk/clerk-react";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
 import { cn } from "../../../lib/cn";
 import { createOrder, verifyPayment } from "../../services/api";
 
@@ -29,13 +28,15 @@ export function PricingPlans() {
   const { getToken } = useAuth();
   const { isSignedIn } = useUser();
   const [upgrading, setUpgrading] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   async function handleUpgrade() {
     setUpgrading(true);
+    setStatus(null);
     try {
       const token = await getToken();
       if (!token) {
-        alert("Please sign in first.");
+        setStatus({ type: "error", message: "Please sign in first." });
         return;
       }
 
@@ -56,9 +57,12 @@ export function PricingPlans() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            alert("Premium activated successfully!");
+            setStatus({ type: "success", message: "Premium activated! You now have 100 trip plans per month." });
           } catch {
-            alert("Payment verification failed. Contact support if you were charged.");
+            setStatus({
+              type: "error",
+              message: "Payment verification failed. Contact support if you were charged.",
+            });
           }
         },
       });
@@ -66,7 +70,7 @@ export function PricingPlans() {
       razorpay.open();
     } catch (error) {
       console.error(error);
-      alert("Unable to start payment. Please try again.");
+      setStatus({ type: "error", message: "Unable to start payment. Please try again." });
     } finally {
       setUpgrading(false);
     }
@@ -115,13 +119,6 @@ export function PricingPlans() {
           <p className="text-sm font-semibold uppercase tracking-[0.06em] text-brand">
             Premium
           </p>
-          {/* TODO(product decision): "Coming soon" badge left as-is on
-              purpose — checkout is now wired and functional, but whether
-              to actually announce launch is a product call, not a code
-              one. Remove/replace this badge when you're ready to sell. */}
-          <Badge tone="blue" dot>
-            Coming soon
-          </Badge>
         </div>
 
         <div className="mt-3 flex items-baseline gap-1.5">
@@ -159,6 +156,26 @@ export function PricingPlans() {
               Sign in to upgrade
             </Button>
           </SignInButton>
+        )}
+
+        {status && (
+          <div
+            className={cn(
+              "mt-4 flex items-start justify-between gap-3 rounded-lg px-4 py-3 text-sm",
+              status.type === "success"
+                ? "bg-accent-greenSoft text-accent-green"
+                : "bg-red-50 text-red-700",
+            )}
+          >
+            <p>{status.message}</p>
+            <button
+              type="button"
+              onClick={() => setStatus(null)}
+              className="shrink-0 text-xs font-semibold underline"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
       </div>
     </div>

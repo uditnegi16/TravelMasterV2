@@ -5,7 +5,7 @@ const faqs = [
     id: "billing-cycle",
     question: "When does Premium launch?",
     answer:
-      "Premium is in the works. Everyone gets full access to trip planning on the Free plan in the meantime — no waitlist required to start.",
+      "Premium is live now — upgrade anytime from this page. You'll get 100 AI trip plans per month instead of the Free plan's 7, plus priority response speed.",
   },
   {
     id: "free-limits",

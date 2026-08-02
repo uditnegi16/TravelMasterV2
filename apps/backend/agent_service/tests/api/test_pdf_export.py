@@ -97,6 +97,17 @@ def test_download_route_returns_presigned_url_as_json(s3_bucket):
     bytes through API Gateway -- the original bug: base64 response body
     never decoded back to binary.)
     """
+    # Import main FIRST, unconditionally -- this is what actually makes
+    # api.chat_routes importable/attached to sys.modules. patch() below
+    # resolves "api.chat_routes...." as a string path and needs that to
+    # already be true; doing this import inside the patch context (as
+    # an earlier version of this test did) made success depend on
+    # whatever other test happened to run first and pull chat_routes in
+    # already -- fixed properly here rather than left as a known flake.
+    from main import app
+    from fastapi.testclient import TestClient
+    from core.auth import get_current_user
+
     with patch("api.chat_routes.chat_service.get_owned_message") as mock_get_message, \
          patch("api.chat_routes.build_trip_pdf") as mock_build_pdf:
         mock_get_message.return_value = {
@@ -104,12 +115,6 @@ def test_download_route_returns_presigned_url_as_json(s3_bucket):
             "trip_data": {"summary": "test trip"},
         }
         mock_build_pdf.return_value = "/tmp/generated_pdfs/msg1.pdf"
-
-        # Import app only after patches are set up so route module picks up
-        # the test S3 bucket env var set by the s3_bucket fixture.
-        from main import app
-        from fastapi.testclient import TestClient
-        from core.auth import get_current_user
 
         # The route requires authentication (Issue 2) -- override the
         # real Clerk dependency rather than hitting Clerk's API in a test.
