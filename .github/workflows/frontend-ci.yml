@@ -23,6 +23,17 @@ jobs:
       run:
         working-directory: apps/frontend
 
+    env:
+      # These are all publishable/public-by-design values (Clerk's own
+      # convention lists the publishable key as a repo "variable," not
+      # a secret) -- needed because Clerk's SDK makes a real network
+      # call to validate and configure itself; a fabricated key
+      # doesn't work and left the whole app failing to render in CI
+      # (every Playwright test timed out finding *any* element).
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+      VITE_RAZORPAY_KEY_ID: ${{ vars.VITE_RAZORPAY_KEY_ID }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
