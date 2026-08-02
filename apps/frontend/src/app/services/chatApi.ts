@@ -22,16 +22,24 @@ async function handle<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const raw = await response.text().catch(() => "");
     let message = raw || `Request failed with ${response.status}`;
+    let detail: unknown = undefined;
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.detail === "string") {
-        message = parsed.detail;
+      detail = parsed?.detail;
+      if (typeof detail === "string") {
+        message = detail;
+      } else if (detail && typeof detail === "object" && typeof (detail as { message?: unknown }).message === "string") {
+        // Structured error bodies, e.g. quota_guard's 429:
+        // {message, limit, remaining, resets_at} -- show the message,
+        // keep the rest attached to the error for callers that want it.
+        message = (detail as { message: string }).message;
       }
     } catch {
       // raw wasn't JSON -- fall back to the raw text as-is.
     }
-    const error = new Error(message) as Error & { status?: number };
+    const error = new Error(message) as Error & { status?: number; detail?: unknown };
     error.status = response.status;
+    error.detail = detail;
     throw error;
   }
   return response.json();
@@ -174,6 +182,19 @@ export interface SendMessageResponse {
   message_text?: string;
 }
 
+export type QuotaStatus = {
+  limit: number;
+  used: number;
+  remaining: number;
+  resets_at: string;
+};
+
+export async function getQuotaStatus(token: string): Promise<QuotaStatus> {
+  const res = await fetch(`${API_URL}/chat/quota`, {
+    headers: authHeaders(token),
+  });
+  return handle<QuotaStatus>(res);
+}
 export async function sendMessage(
   sessionId: string,
   deviceId: string,

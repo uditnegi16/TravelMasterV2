@@ -1,7 +1,7 @@
 import { Check, Minus } from "lucide-react";
 
 const rows: { feature: string; free: boolean | string; premium: boolean | string }[] = [
-  { feature: "AI trip planning conversations", free: "Unlimited", premium: "Unlimited" },
+  { feature: "AI trip planning conversations", free: "7 / month", premium: "100 / month" },
   { feature: "Real flight & hotel search", free: true, premium: true },
   { feature: "Voice input", free: true, premium: true },
   { feature: "PDF export & sharing", free: true, premium: true },

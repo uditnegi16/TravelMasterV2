@@ -514,7 +514,7 @@ Sign in on the live app → auto-redirected to `/admin/dashboard`.
 
 | Feature | Free | Premium |
 |---------|------|---------|
-| AI trip searches / month | **5** | **100** |
+| AI trip searches / month | **7** | **100** |
 | Flights + Hotels + Places | ✅ | ✅ |
 | Weather + Budget breakdown | ✅ | ✅ |
 | Voice input | ✅ | ✅ |

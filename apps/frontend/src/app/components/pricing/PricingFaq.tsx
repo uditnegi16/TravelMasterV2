@@ -9,9 +9,9 @@ const faqs = [
   },
   {
     id: "free-limits",
-    question: "Is the Free plan really unlimited?",
+    question: "How many trips can I plan on the Free plan?",
     answer:
-      "Yes. There's no cap on the number of trips or conversations you can plan on the Free plan today.",
+      "7 AI trip plans per month, resetting on the 1st. Need more? Premium raises that to 100/month.",
   },
   {
     id: "cancel",

@@ -36,7 +36,8 @@ from graph.nodes.qa_node import itinerary_qa_node, general_chat_node
 from fastapi import Request
 from services.pdf_builder import build_trip_pdf, upload_pdf_and_get_presigned_url
 from fastapi import Depends
-from core.auth import get_current_user, get_current_user_optional, get_account_id
+from core.auth import get_current_user, get_current_user_optional, get_account_id, get_clerk_user_id
+from shared import quota_guard
 from shared import metrics
 import time
 logger = logging.getLogger(__name__)
@@ -47,6 +48,19 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 # -------------------------
 # Sessions
 # -------------------------
+@router.get("/quota")
+def get_quota(
+    user=Depends(get_current_user),
+):
+    """
+    Read-only -- does not consume a slot. Guests have no account-based
+    quota to report (Issue 1's one-session allowance is a separate,
+    device-keyed mechanism); this endpoint requires real auth.
+    """
+    account_id = get_account_id(user)
+    return quota_guard.get_quota_status(account_id, get_clerk_user_id(user))
+
+
 @router.get("/sessions")
 def get_sessions(
     user=Depends(get_current_user),
@@ -178,8 +192,10 @@ def post_message(
     turn_started = time.perf_counter()
 
     if user is not None:
-        session = chat_service.assert_session_owner(session_id, get_account_id(user))
+        account_id = get_account_id(user)
+        session = chat_service.assert_session_owner(session_id, account_id)
     else:
+        account_id = None
         session = chat_service.assert_guest_session_owner(session_id, body.device_id)
 
     chat_service.add_message(session_id, "user", body.query)
@@ -197,6 +213,20 @@ def post_message(
         "Conversation Type | %s",
         conversation_type,
     )
+
+    # Issue 5: only NEW_TRIP/MODIFY_TRIP consume quota -- these are the
+    # actual "trip plans" the 7/100 monthly numbers describe.
+    # FOLLOW_UP/GENERAL_CHAT are lightweight conversation about an
+    # existing trip, free either way, consistent with Issue 1's guest
+    # design (a full conversation about one trip, not just one message).
+    # Only applies to authenticated accounts -- guests (Issue 1) have
+    # their own, entirely separate one-session allowance keyed by
+    # device_id, not account_id; this simply never runs for the guest
+    # path above, so nothing here can affect it.
+    is_billable_turn = conversation_type in ("NEW_TRIP", "MODIFY_TRIP")
+    if user is not None and is_billable_turn:
+        quota_guard.check_and_increment_quota(account_id, get_clerk_user_id(user))
+
     conversation_history = chat_service.get_recent_history(
         session_id,
     )
@@ -269,6 +299,13 @@ def post_message(
             "Agent graph failed for session_id=%s",
             session_id,
         )
+
+        if user is not None and is_billable_turn:
+            # This turn was counted against quota before the graph ran
+            # (had to be, to prevent the race the backlog's concurrency
+            # test checks for) -- it produced no output, so give the
+            # slot back rather than charging for a failure.
+            quota_guard.refund_quota(account_id)
 
         chat_service.add_message(
             session_id,

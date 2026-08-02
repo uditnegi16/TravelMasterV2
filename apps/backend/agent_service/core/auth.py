@@ -78,6 +78,20 @@ def get_account_id(user) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, clerk_user_id))
 
 
+def get_clerk_user_id(user) -> str:
+    """
+    Raw Clerk `sub` claim, undeconstructed -- distinct from
+    get_account_id()'s derived uuid5. Needed wherever a caller matches
+    payment_routes.py's existing convention of keying subscriptions by
+    the raw Clerk id (subscription_guard.is_premium(), quota_guard).
+    """
+    payload = getattr(user, "payload", None) or {}
+    clerk_user_id = payload.get("sub")
+    if not clerk_user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return clerk_user_id
+
+
 async def get_current_user_optional(request: Request):
     """
     Like get_current_user, but returns None instead of raising 401 when

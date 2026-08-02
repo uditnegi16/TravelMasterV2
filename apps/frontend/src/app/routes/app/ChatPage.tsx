@@ -10,6 +10,7 @@ import {
   claimSessions,
   createSession,
   deleteSession,
+  getQuotaStatus,
   listMessages,
   listSessions,
   renameSession,
@@ -17,6 +18,7 @@ import {
   setSessionPinned,
   type ChatMessage,
   type ChatSessionSummary,
+  type QuotaStatus,
 } from "../../services/chatApi";
 
 import ChatSidebar from "../../components/chat/ChatSidebar";
@@ -34,6 +36,8 @@ export default function ChatPage() {
   const [streamingText, setStreamingText] = useState("");
   const [currentStage, setCurrentStage] = useState("");
   const [guestTrialUsed, setGuestTrialUsed] = useState(false);
+  const [quota, setQuota] = useState<QuotaStatus | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
@@ -65,6 +69,17 @@ export default function ChatPage() {
     [getToken],
   );
 
+  const refreshQuota = useCallback(async () => {
+    const token = await getToken();
+    if (!token) return; // no account-based quota for guests (Issue 1)
+    try {
+      setQuota(await getQuotaStatus(token));
+    } catch {
+      // Non-critical -- the quota display is informational, a failed
+      // fetch here shouldn't disrupt anything else on the page.
+    }
+  }, [getToken]);
+
   // Signed-in flow: load session history and open the most recent one,
   // same as before. Guests skip this entirely -- no history to load
   // until they sign in (see claim-on-login, Issue 2).
@@ -78,6 +93,7 @@ export default function ChatPage() {
         void openSession(list[0].id);
       }
     })();
+    void refreshQuota();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId, isLoaded, isSignedIn, refreshSessions]);
 
@@ -176,6 +192,7 @@ export default function ChatPage() {
 
   async function handleSubmit(query: string) {
     if (!deviceId) return;
+    setQuotaExceeded(false);
 
     // Signed-in visitors always send a real token; guests send null
     // and the backend treats the request as anonymous (Issue 1).
@@ -229,9 +246,17 @@ export default function ChatPage() {
       const response = await sendMessage(sessionId, deviceId, token, query);
 
       setMessages(await listMessages(sessionId, deviceId, token));
-      if (token) await refreshSessions(deviceId);
+      if (token) {
+        await refreshSessions(deviceId);
+        void refreshQuota();
+      }
       void response;
     } catch (err) {
+      const status = (err as { status?: number } | undefined)?.status;
+      if (status === 429) {
+        setQuotaExceeded(true);
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -296,6 +321,12 @@ export default function ChatPage() {
 
         <div className="border-t border-border bg-white px-4 py-4 sm:px-6">
           <div className="mx-auto w-full max-w-4xl">
+            {quota && !guestTrialUsed && !quotaExceeded && (
+              <p className="mb-2 text-center text-xs text-ink-faint">
+                {quota.remaining} of {quota.limit} trip plans left this month
+              </p>
+            )}
+
             {guestTrialUsed ? (
               <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface-subtle px-4 py-5 text-center">
                 <p className="text-sm text-ink-muted">
@@ -308,6 +339,21 @@ export default function ChatPage() {
                     Sign in
                   </button>
                 </SignInButton>
+              </div>
+            ) : quotaExceeded ? (
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-surface-subtle px-4 py-5 text-center">
+                <p className="text-sm text-ink-muted">
+                  {quota
+                    ? `You've used all ${quota.limit} trip plans for this month.`
+                    : "You've reached this month's trip-planning limit."}{" "}
+                  Upgrade for more, or wait until next month.
+                </p>
+                <a
+                  href="/pricing"
+                  className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
+                >
+                  See plans
+                </a>
               </div>
             ) : (
               <AiPromptBox

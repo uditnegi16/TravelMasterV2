@@ -8,7 +8,7 @@ import { cn } from "../../../lib/cn";
 import { createOrder, verifyPayment } from "../../services/api";
 
 const freeFeatures = [
-  "Unlimited AI trip planning conversations",
+  "7 AI trip plans per month",
   "Real flight & hotel search",
   "Voice input",
   "PDF export & trip sharing",
@@ -16,7 +16,8 @@ const freeFeatures = [
 ];
 
 const premiumFeatures = [
-  "Everything in Free",
+  "100 AI trip plans per month",
+  "Everything else in Free",
   "Priority AI response speed",
   "Multi-city & longer itineraries",
   "Early access to new features",
