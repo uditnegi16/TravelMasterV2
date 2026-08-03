@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mic, MicOff, ShieldCheck, X } from "lucide-react";
 import { Button } from "../ui/Button";
@@ -11,6 +12,9 @@ interface VoicePermissionModalProps {
   onCancel: () => void;
 }
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function VoicePermissionModal({
   open,
   denied = false,
@@ -18,6 +22,51 @@ export function VoicePermissionModal({
   onRetry,
   onCancel,
 }: VoicePermissionModalProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel();
+        return;
+      }
+
+      if (e.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      // Return focus to whatever opened this modal (e.g. the mic
+      // button) -- without this, a keyboard user's focus is left on
+      // an element that no longer exists in the same context, or
+      // silently reset to <body>.
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [open, onCancel]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -31,6 +80,8 @@ export function VoicePermissionModal({
           />
 
           <motion.div
+            ref={dialogRef}
+            tabIndex={-1}
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -38,7 +89,7 @@ export function VoicePermissionModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="voice-permission-title"
-            className="card-surface relative w-full max-w-[420px] p-7 shadow-raised"
+            className="card-surface relative w-full max-w-[420px] p-7 shadow-raised outline-none"
           >
             <button
               type="button"

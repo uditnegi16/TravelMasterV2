@@ -38,7 +38,10 @@ export default function ChatPage() {
   const [guestTrialUsed, setGuestTrialUsed] = useState(false);
   const [quota, setQuota] = useState<QuotaStatus | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const latestRequestedSessionId = useRef<string | null>(null);
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -88,9 +91,13 @@ export default function ChatPage() {
     if (!isSignedIn) return;
 
     void (async () => {
-      const list = await refreshSessions(deviceId);
-      if (list.length > 0 && !carriedPrompt) {
-        void openSession(list[0].id);
+      try {
+        const list = await refreshSessions(deviceId);
+        if (list.length > 0 && !carriedPrompt) {
+          void openSession(list[0].id);
+        }
+      } catch {
+        setLoadError("Couldn't load your conversations. Please refresh the page.");
       }
     })();
     void refreshQuota();
@@ -131,12 +138,47 @@ export default function ChatPage() {
     wasSignedIn.current = !!isSignedIn;
   }, [deviceId, isLoaded, isSignedIn, getToken, refreshSessions]);
 
+  const openSocketsRef = useRef<Set<WebSocket>>(new Set());
+
+  useEffect(() => {
+    // Frontend-side cleanup only -- closing the socket stops this
+    // browser tab from listening for further progress/token events,
+    // but does NOT stop the backend's agent graph invocation itself
+    // (that would need the Lambda to check a cancellation signal
+    // mid-execution, real backend work beyond this pass). This at
+    // least prevents a lingering open connection and stray setState
+    // calls after the user has actually left the page.
+    const sockets = openSocketsRef.current;
+    return () => {
+      sockets.forEach((s) => s.close());
+      sockets.clear();
+    };
+  }, []);
+
   async function openSession(sessionId: string) {
     if (!deviceId) return;
 
-    const token = await getToken();
+    latestRequestedSessionId.current = sessionId;
     setActiveSessionId(sessionId);
-    setMessages(await listMessages(sessionId, deviceId, token));
+    setLoadError(null);
+
+    const token = await getToken();
+    try {
+      const fetched = await listMessages(sessionId, deviceId, token);
+      // A newer openSession() call may have started (and possibly
+      // already resolved) while this one was in flight -- only apply
+      // this result if it's still the one the user is actually
+      // looking at. Without this check, whichever request happened to
+      // resolve LAST would win regardless of which session is
+      // currently selected.
+      if (latestRequestedSessionId.current === sessionId) {
+        setMessages(fetched);
+      }
+    } catch {
+      if (latestRequestedSessionId.current === sessionId) {
+        setLoadError("Couldn't load that conversation. Please try again.");
+      }
+    }
   }
 
   async function handleNewChat() {
@@ -193,6 +235,7 @@ export default function ChatPage() {
   async function handleSubmit(query: string) {
     if (!deviceId) return;
     setQuotaExceeded(false);
+    setLastFailedQuery(null);
 
     // Signed-in visitors always send a real token; guests send null
     // and the backend treats the request as anonymous (Issue 1).
@@ -205,6 +248,7 @@ export default function ChatPage() {
         const session = await createSession(deviceId, token, query);
         sessionId = session.id;
         setActiveSessionId(sessionId);
+        latestRequestedSessionId.current = sessionId;
         if (token) await refreshSessions(deviceId);
       } catch (err) {
         const status = (err as { status?: number } | undefined)?.status;
@@ -217,6 +261,9 @@ export default function ChatPage() {
         throw err;
       }
     }
+
+    latestRequestedSessionId.current = sessionId;
+    const submissionSessionId = sessionId;
 
     setMessages((prev) => [
       ...prev,
@@ -240,21 +287,32 @@ export default function ChatPage() {
         setStreamingText((prev) => prev + event.token);
       }
     });
+    openSocketsRef.current.add(socket);
 
     try {
       await waitForSocketOpen(socket);
       const response = await sendMessage(sessionId, deviceId, token, query);
 
-      setMessages(await listMessages(sessionId, deviceId, token));
-      if (token) {
-        await refreshSessions(deviceId);
-        void refreshQuota();
+      const fetched = await listMessages(sessionId, deviceId, token);
+      if (latestRequestedSessionId.current === submissionSessionId) {
+        setMessages(fetched);
+        if (token) {
+          await refreshSessions(deviceId);
+          void refreshQuota();
+        }
       }
       void response;
     } catch (err) {
       const status = (err as { status?: number } | undefined)?.status;
       if (status === 429) {
         setQuotaExceeded(true);
+        return;
+      }
+      if (latestRequestedSessionId.current !== submissionSessionId) {
+        // User has since switched to a different session -- the
+        // failure is real, but it's stale from their current
+        // perspective, and injecting an error bubble into whatever
+        // conversation they're looking at now would be misleading.
         return;
       }
       setMessages((prev) => [
@@ -270,10 +328,15 @@ export default function ChatPage() {
           created_at: new Date().toISOString(),
         },
       ]);
+      setLastFailedQuery(query);
     } finally {
+      // Always safe to run regardless of which session is now active
+      // -- this specific socket/loading-flag only ever belonged to
+      // this one submission.
       setLoading(false);
       setStreamingText("");
       socket.close();
+      openSocketsRef.current.delete(socket);
     }
   }
 
@@ -294,6 +357,15 @@ export default function ChatPage() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex w-full flex-1 justify-center overflow-y-auto px-6 py-8">
           <div className="w-full max-w-5xl">
+          {loadError && (
+            <div
+              role="alert"
+              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {loadError}
+            </div>
+          )}
+
           {messages.length === 0 && !loading ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <h2 className="font-display text-2xl font-semibold text-ink">
@@ -325,6 +397,23 @@ export default function ChatPage() {
               <p className="mb-2 text-center text-xs text-ink-faint">
                 {quota.remaining} of {quota.limit} trip plans left this month
               </p>
+            )}
+
+            {lastFailedQuery && !guestTrialUsed && !quotaExceeded && (
+              <div
+                role="alert"
+                className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+              >
+                <span>That last message didn't go through.</span>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit(lastFailedQuery)}
+                  disabled={loading}
+                  className="shrink-0 font-semibold underline disabled:opacity-50"
+                >
+                  Retry
+                </button>
+              </div>
             )}
 
             {guestTrialUsed ? (
