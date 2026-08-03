@@ -43,7 +43,7 @@ print("6: payment")
 
 
 print("7: before routes")
-from api.routes import router
+from api.routes import graph  # noqa: F401 -- imported for its side effect (building the shared graph); chat_routes.py is the real consumer
 print("7: after routes")
 
 from services.pdf_builder import ensure_output_dir, get_pdf_path
@@ -77,7 +77,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
 app.include_router(payment_router)
 app.include_router(chat_router)
 app.include_router(voice_router)

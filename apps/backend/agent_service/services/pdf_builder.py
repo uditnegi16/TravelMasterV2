@@ -125,9 +125,9 @@ def build_trip_pdf(session_id: str, trip: dict[str, Any]) -> str:
 
     Returns the absolute file path as a string.
 
-    Raises whatever Jinja2/WeasyPrint raises on bad input — caller
-    (routes._generate_pdf_task) is responsible for catching this and
-    emitting a "failed" progress event.
+    Raises whatever Jinja2/WeasyPrint raises on bad input — the real
+    caller (chat_routes.py's post_message, via download_trip_pdf) is
+    responsible for catching this and returning a proper error response.
     """
     ensure_output_dir()
 
