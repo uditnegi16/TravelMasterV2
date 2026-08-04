@@ -1,5 +1,5 @@
 from graph.state import TripPlanState
-from llm.llm_client import get_llm
+from llm.llm_client import get_planner_llm
 from llm.prompts import PLANNER_SYSTEM_PROMPT
 from shared.schemas import TripRequest
 from graph.progress_utils import emit_progress
@@ -23,7 +23,7 @@ def planner_node(state: TripPlanState) -> TripPlanState:
     )
 
     try:
-        llm = get_llm().with_structured_output(
+        llm = get_planner_llm().with_structured_output(
             TripRequest,
         )
 

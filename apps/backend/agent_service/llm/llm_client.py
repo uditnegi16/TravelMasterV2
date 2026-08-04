@@ -17,6 +17,29 @@ def get_primary_llm(streaming: bool = False, timeout: float | None = None):
     )
 
 
+def get_planner_llm(streaming: bool = False, timeout: float | None = None):
+    """
+    A single NEW_TRIP/MODIFY_TRIP request calls both this (structured
+    field extraction) and get_primary_llm() (narrative generation) --
+    on a shared key, both draw from the same 12000 TPM Groq budget
+    within the same request, which is the confirmed root cause of the
+    rate-limit collisions found in real load testing (2026-08-04):
+    single sequential requests, not just concurrent ones, could push
+    close to the ceiling because planner + composer stack on the same
+    key every time. Same convention as get_classifier_llm(): uses
+    GROQ_PLANNER_API_KEY if set (a separate Groq account/key with its
+    own daily allowance), otherwise falls back to GROQ_API_KEY, so
+    this is a no-op for anyone who hasn't set up a second key yet.
+    """
+    return ChatGroq(
+        model="llama-3.3-70b-versatile",
+        api_key=os.getenv("GROQ_PLANNER_API_KEY") or os.getenv("GROQ_API_KEY"),
+        temperature=0.2,
+        streaming=streaming,
+        timeout=timeout,
+    )
+
+
 def get_classifier_llm(streaming: bool = False, timeout: float | None = None):
     """
     classify_message() runs on every single chat turn (not just
@@ -49,7 +72,3 @@ def get_fallback_llm(streaming: bool = False, timeout: float | None = None):
         streaming=streaming,
         timeout=timeout,
     )
-
-
-def get_llm(streaming: bool = False, timeout: float | None = None):
-    return get_primary_llm(streaming=streaming, timeout=timeout)
