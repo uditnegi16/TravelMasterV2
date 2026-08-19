@@ -83,6 +83,20 @@ app.include_router(voice_router)
 app.include_router(contact_router)
 app.include_router(admin_router)
 
+# --- ElevenLabs voice sidecar (feat/voice-agent) ---------------------
+# Gated behind VOICE_ENABLED (default false): when off, the router is
+# never even imported, let alone registered -- not just disabled at
+# the route level. This import + the one include_router() call below
+# are the ONLY changes this feature makes to any file outside voice/.
+# Removal: delete voice/, delete these three lines, done.
+from voice.config import voice_enabled as _voice_enabled  # noqa: E402
+
+if _voice_enabled():
+    from voice.router import router as voice_agent_router
+
+    app.include_router(voice_agent_router)
+# ----------------------------------------------------------------------
+
 @app.on_event("startup")
 async def on_startup() -> None:
     # Phase 5 fix: capture the running event loop so the sync
