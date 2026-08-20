@@ -174,12 +174,33 @@ export async function listMessages(
   return data.messages;
 }
 
-export interface SendMessageResponse {
+// Two genuinely different shapes. FOLLOW_UP/INFO_REQUEST/GENERAL_CHAT
+// are unchanged -- a single quick call, answered synchronously, same
+// shape as always. NEW_TRIP/MODIFY_TRIP now return immediately once
+// queued (status: "processing") rather than waiting on the full
+// multi-agent pipeline, which was getting some real requests cut off
+// by API Gateway's ~29s timeout. The actual result for those arrives
+// over the WebSocket instead (see websocket.ts's ResultEvent/ErrorEvent).
+export interface SendMessageResponseSync {
   session: ChatSessionSummary;
   message: ChatMessage;
   trip?: Trip;
   error?: boolean;
   message_text?: string;
+}
+
+export interface SendMessageResponseQueued {
+  session: ChatSessionSummary;
+  status: "processing";
+  conversation_type: string;
+}
+
+export type SendMessageResponse = SendMessageResponseSync | SendMessageResponseQueued;
+
+export function isQueuedResponse(
+  response: SendMessageResponse,
+): response is SendMessageResponseQueued {
+  return "status" in response && response.status === "processing";
 }
 
 export type QuotaStatus = {

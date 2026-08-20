@@ -10,7 +10,24 @@ export interface TokenEvent {
   token: string;
 }
 
-export type SocketEvent = ProgressEvent | TokenEvent;
+// Delivered by the async message worker once a NEW_TRIP/MODIFY_TRIP
+// turn actually finishes -- the HTTP response for these no longer
+// carries the result directly (see chatApi.ts::sendMessage), since
+// waiting on it synchronously was what caused real requests to be
+// cut off by API Gateway's ~29s timeout on the slower end of real
+// trip-planning latency (confirmed live: 20-80+ seconds for real
+// requests, worse for international destinations).
+export interface ResultEvent {
+  type: "result";
+  message: { id: string; role: string; content: string; trip_data?: unknown };
+}
+
+export interface ErrorEvent {
+  type: "error";
+  message: { id: string; role: string; content: string };
+}
+
+export type SocketEvent = ProgressEvent | TokenEvent | ResultEvent | ErrorEvent;
 
 const WS_URL=import.meta.env.VITE_WS_URL;
 

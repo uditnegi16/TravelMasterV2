@@ -20,7 +20,7 @@ def _recent_history(history, max_turns=3):
 def _itinerary_cost_summary(recommended_itinerary):
     if not recommended_itinerary:
         return {}
-    return {
+    summary = {
         key: recommended_itinerary.get(key)
         for key in (
             "total_flight_cost", "total_hotel_cost", "layover_cost",
@@ -28,6 +28,27 @@ def _itinerary_cost_summary(recommended_itinerary):
         )
         if key in recommended_itinerary
     }
+
+    # 2026-08-19: a real user test caught a narrative/trip-card
+    # mismatch -- the composer's text named one hotel, but the price
+    # it quoted belonged to a DIFFERENT hotel actually shown on the
+    # trip card. Root cause: the prompt was showing the LLM two
+    # separate, independently-sourced hotel references -- the raw,
+    # unranked state["hotels"][:1] (just whichever came back first
+    # from search) under "Hotels", and this cost summary (correct,
+    # but previously name-less) under "Recommended Itinerary Cost
+    # Summary". The LLM had no way to know they could disagree.
+    # Fixed by surfacing the ACTUAL hotel this itinerary's cost was
+    # computed from (recommended_itinerary["hotels"][0], set in
+    # trip_optimizer.py::build_itinerary from the exact same hotels
+    # list used for total_hotel_cost) as part of this single, correct
+    # source, rather than leaving the composer to reconcile two
+    # sources that were never guaranteed to agree.
+    itinerary_hotels = recommended_itinerary.get("hotels") or []
+    if itinerary_hotels:
+        summary["hotel_name"] = itinerary_hotels[0].get("name")
+
+    return summary
     
 def composer_node(state):
     emit_progress(
@@ -48,11 +69,13 @@ def composer_node(state):
     )
 
     prompt = f"""
-    Conversation Type
-
 Conversation Type
 
 {conversation_type}
+
+User's Actual Question/Request (this turn)
+
+{state.get("user_query", "")}
 
 Previous Trip Highlights (only what's relevant to this turn, not the full trip)
 
@@ -66,6 +89,11 @@ You are an expert AI Travel Planner.
 Write ONLY a short natural language summary.
 
 Rules:
+- Read the User's Actual Question/Request above FIRST. If it's
+  primarily about one specific thing (places to visit, hotels,
+  weather, flights), LEAD with that, not with a generic budget/hotel
+  summary. A question about places to visit should get an answer
+  about places to visit, not a recap of the hotel and flight.
 - If Conversation Type is MODIFY_TRIP:
   Respond as an updated version of the previous itinerary.
   Mention only what changed.
@@ -86,30 +114,15 @@ Rules:
 - Mention if it is Budget Saver, Best Value or Luxury.
 - Mention the remaining budget naturally if available.
 - Mention one tradeoff if appropriate.
-- Mention destination highlights using the Travel Knowledge.
-- Use Flights, Hotels, Places and Weather whenever available.
-- Ignore any missing section gracefully.
+- Use the Travel Knowledge section to explain why the destination suits the traveler, and mention destination highlights naturally -- but only attractions/food that match the traveler's preferences.
+- Use live Flights, Hotels, Places, and Weather information whenever available; if live information conflicts with Travel Knowledge, trust the live information.
+- If you mention a specific price or cost figure, it must be paired with the hotel named in "Recommended Itinerary Cost Summary"'s hotel_name field -- that's the hotel the price was actually computed from. The "Hotels" section below may list a different hotel; use it only for descriptive detail (amenities, rating), never pair its name with a price from the cost summary.
+- If flight, hotel, or any other section's data is unavailable, continue naturally without mentioning the gap.
 - If Errors contains messages, explain the limitation naturally instead of pretending information exists.
 - Never invent facts.
-- Keep the response under 250 words.
-- Do NOT output JSON.
-- Do NOT use Markdown.
-- Do NOT use headings.
-- Do NOT repeat the user's request.
-- Use the Travel Knowledge section to explain why the destination suits the traveler.
-- Use the live Flights, Hotels, Places, and Weather information whenever available.
-- If live information conflicts with Travel Knowledge, always trust the live information.
-- Mention the destination's highlights naturally.
-- Mention notable attractions only if they match the traveler's preferences.
-- Mention local food only if relevant to the preferences.
-- Mention weather naturally if available.
-- If flight or hotel data is unavailable, continue without mentioning missing data.
-- Keep the response conversational.
-- Maximum 200 words.
-- Do NOT use Markdown.
-- Do NOT use headings.
-- Do NOT output JSON.
-- Do NOT invent facts.
+- Keep the response conversational and under 200 words.
+- Do NOT output JSON, use Markdown, or use headings.
+- Do NOT repeat the user's request verbatim.
 
 Trip
 

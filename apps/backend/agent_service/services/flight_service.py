@@ -3,6 +3,7 @@ import requests
 
 from shared.circuit_breaker import CircuitBreaker
 from shared.logging_config import logger
+from services.currency_service import convert_to_inr
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +19,22 @@ HEADERS = {
     "Content-Type": "application/json",
     "Accept": "application/json",
 }
+
+
+def _to_inr_amount(raw_amount, currency: str) -> float:
+    # Duffel returns total_amount as a string ("688.52"), not a
+    # number -- confirmed by the raw offer shape.
+    amount = float(raw_amount)
+    converted, was_converted = convert_to_inr(amount, currency)
+
+    if not was_converted:
+        logger.warning(
+            f"Currency conversion failed for {amount} {currency} -- "
+            f"displaying the raw, unconverted number. This will be "
+            f"wrong if currency != INR."
+        )
+
+    return converted
 def create_offer_request(
     origin: str,
     destination: str,
@@ -117,8 +134,17 @@ def search_flights(
         flights.append(
             {
                 "id": offer["id"],
-                "total_amount": offer["total_amount"],
-                "currency": offer["total_currency"],
+                "total_amount": _to_inr_amount(offer["total_amount"], offer["total_currency"]),
+                "currency": "INR",
+                # 2026-08-19: kept for transparency/debugging -- the
+                # real bug this fixes (a EUR-quoted international
+                # flight silently displayed as if the number were
+                # already INR, understating cost ~10x) was only
+                # noticed by comparing the narrative text against the
+                # structured trip-cost card, which is much harder to
+                # do without knowing what the original currency was.
+                "original_amount": offer["total_amount"],
+                "original_currency": offer["total_currency"],
                 "owner": offer["owner"]["name"],
                 "expires_at": offer["expires_at"],
 
@@ -140,7 +166,6 @@ def search_flights(
 
                 "segments": segments,
 
-                "slices": offer["slices"],
             }
         )
 

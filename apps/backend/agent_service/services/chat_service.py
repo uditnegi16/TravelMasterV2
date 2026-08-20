@@ -427,6 +427,7 @@ Return exactly one label.
         "NEW_TRIP",
         "MODIFY_TRIP",
         "FOLLOW_UP",
+        "INFO_REQUEST",
         "GENERAL_CHAT",
     }
 
@@ -488,6 +489,17 @@ _NEW_TRIP_KEYWORDS = (
     "want to visit", "book a trip",
 )
 
+# Mirrors info_request_node.py's category keywords -- kept as two
+# separate lists rather than importing from there, since this is a
+# last-resort fallback and shouldn't have a runtime dependency on a
+# graph node module.
+_INFO_REQUEST_KEYWORDS = (
+    "where can i visit", "where else can i visit", "what else is there",
+    "any other hotels", "other hotels", "more hotels", "hotels near",
+    "places to visit", "points of interest", "things to do",
+    "somewhere to stay near", "place to stay near",
+)
+
 
 def _heuristic_classify(query: str) -> str:
     """
@@ -505,6 +517,9 @@ def _heuristic_classify(query: str) -> str:
 
     if any(kw in q for kw in _MODIFY_KEYWORDS):
         return "MODIFY_TRIP"
+
+    if any(kw in q for kw in _INFO_REQUEST_KEYWORDS):
+        return "INFO_REQUEST"
 
     if q.endswith("?") or q.startswith(("can i", "can we", "how", "what", "why", "is it", "will")):
         return "FOLLOW_UP"

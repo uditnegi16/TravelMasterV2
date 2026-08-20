@@ -3,6 +3,54 @@ from datetime import datetime
 from graph.state import TripPlanState
 
 from graph.progress_utils import emit_progress
+
+# 2026-08-19: a real user test hit this exactly -- "plan a trip to
+# Japan" left destination_city as the raw country name ("Japan"),
+# which then broke flights (no IATA code for "japan" in
+# CITY_TO_AIRPORT below, so no flight search could run at all --
+# this is what "No flight available" actually meant), hotels
+# (Nominatim's structured city= search doesn't handle a country name
+# well, returning unrelated fuzzy matches), and places (compounded by
+# a separate hardcoded India restriction in places_service.py, fixed
+# separately). One root cause producing three different-looking
+# symptoms. This maps a country name to a sensible, well-connected
+# default city BEFORE the existing city/airport lookup runs, so
+# "Japan" resolves to Tokyo the same way a user meaning Tokyo would
+# have been resolved if they'd said so directly.
+COUNTRY_TO_DEFAULT_CITY = {
+    "japan": "tokyo",
+    "india": "delhi",
+    "uae": "dubai",
+    "united arab emirates": "dubai",
+    "thailand": "bangkok",
+    "singapore": "singapore",
+    "malaysia": "kuala lumpur",
+    "indonesia": "bali",
+    "south korea": "seoul",
+    "hong kong": "hong kong",
+    "maldives": "male",
+    "uk": "london",
+    "united kingdom": "london",
+    "england": "london",
+    "france": "paris",
+    "netherlands": "amsterdam",
+    "italy": "rome",
+    "spain": "barcelona",
+    "germany": "berlin",
+    "switzerland": "zurich",
+    "austria": "vienna",
+    "turkey": "istanbul",
+    "usa": "new york",
+    "united states": "new york",
+    "america": "new york",
+    "canada": "toronto",
+    "australia": "sydney",
+    "new zealand": "auckland",
+    "south africa": "cape town",
+    "kenya": "nairobi",
+    "egypt": "cairo",
+}
+
 CITY_TO_AIRPORT = {
     # India
     "delhi": "DEL",
@@ -147,6 +195,13 @@ def location_resolver_node(state: TripPlanState) -> TripPlanState:
 
         origin = trip.get("origin", "").lower().strip()
         destination = trip.get("destination", "").lower().strip()
+
+        # If the extracted value is a country name, not an actual
+        # city, substitute a sensible default city before anything
+        # else runs -- see COUNTRY_TO_DEFAULT_CITY's comment above for
+        # the real bug this fixes.
+        origin = COUNTRY_TO_DEFAULT_CITY.get(origin, origin)
+        destination = COUNTRY_TO_DEFAULT_CITY.get(destination, destination)
 
         origin_city = origin.title()
         trip["origin_city"] = origin_city

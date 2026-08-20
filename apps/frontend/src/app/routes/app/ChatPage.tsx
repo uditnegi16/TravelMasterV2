@@ -11,6 +11,7 @@ import {
   createSession,
   deleteSession,
   getQuotaStatus,
+  isQueuedResponse,
   listMessages,
   listSessions,
   renameSession,
@@ -280,11 +281,22 @@ export default function ChatPage() {
     setStreamingText("");
     setCurrentStage("TravelMaster is thinking...");
 
+    // Resolves when the async worker's real result (or a failure)
+    // arrives over the socket -- only meaningful for a queued
+    // (NEW_TRIP/MODIFY_TRIP) response; the old synchronous response
+    // shape (FOLLOW_UP/INFO_REQUEST/GENERAL_CHAT) never needs this.
+    let resolveOutcome: (() => void) | null = null;
+    const outcomeArrived = new Promise<void>((resolve) => {
+      resolveOutcome = resolve;
+    });
+
     const socket = connectProgressSocket(sessionId, (event: SocketEvent) => {
       if (event.type === "progress") {
         setCurrentStage(event.message ?? "TravelMaster is working...");
       } else if (event.type === "token") {
         setStreamingText((prev) => prev + event.token);
+      } else if (event.type === "result" || event.type === "error") {
+        resolveOutcome?.();
       }
     });
     openSocketsRef.current.add(socket);
@@ -293,12 +305,68 @@ export default function ChatPage() {
       await waitForSocketOpen(socket);
       const response = await sendMessage(sessionId, deviceId, token, query);
 
-      const fetched = await listMessages(sessionId, deviceId, token);
-      if (latestRequestedSessionId.current === submissionSessionId) {
-        setMessages(fetched);
-        if (token) {
-          await refreshSessions(deviceId);
-          void refreshQuota();
+      // Real trip-planning requests genuinely take 20-80+ seconds
+      // (confirmed live, worse for international destinations). The
+      // `token` captured at the top of this function, before that
+      // wait, can genuinely be expired by now -- refetch a fresh one
+      // rather than reuse the stale one (a real user hit exactly
+      // this: the answer was already generated and saved, but the
+      // follow-up fetch failed with a stale token and 404'd).
+      const freshToken = isSignedIn ? await getToken() : null;
+
+      if (isQueuedResponse(response)) {
+        // The real result arrives over the socket, not this HTTP
+        // response -- wait for it, but not forever. A dropped
+        // connection shouldn't leave the user staring at a spinner
+        // indefinitely; the worker writes to the database regardless
+        // of whether the socket delivery itself succeeds, so a
+        // fallback re-fetch after the timeout still recovers the
+        // real result in that case.
+        const timeoutHit = await Promise.race([
+          outcomeArrived.then(() => false),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 45_000)),
+        ]);
+
+        const fetched = await listMessages(sessionId, deviceId, freshToken);
+        const lastMessage = fetched[fetched.length - 1];
+        const stillWaiting = !lastMessage || lastMessage.role !== "assistant";
+
+        if (latestRequestedSessionId.current === submissionSessionId) {
+          if (stillWaiting && timeoutHit) {
+            // Genuinely still processing (or failed without ever
+            // writing a reply) after a real, generous wait -- not the
+            // same as a normal failure (retrying would spend another
+            // quota slot on a request that might still complete), so
+            // it gets its own distinct message.
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `pending-notice-${Date.now()}`,
+                role: "assistant",
+                content:
+                  "This is taking longer than expected. Your trip may still be processing — check back in a moment, or refresh the page.",
+                trip_data: null,
+                created_at: new Date().toISOString(),
+              },
+            ]);
+          } else {
+            setMessages(fetched);
+          }
+          if (freshToken) {
+            await refreshSessions(deviceId);
+            void refreshQuota();
+          }
+        }
+      } else {
+        // Old synchronous shape (FOLLOW_UP/INFO_REQUEST/GENERAL_CHAT)
+        // -- unchanged, the full answer is already in this response.
+        const fetched = await listMessages(sessionId, deviceId, freshToken);
+        if (latestRequestedSessionId.current === submissionSessionId) {
+          setMessages(fetched);
+          if (freshToken) {
+            await refreshSessions(deviceId);
+            void refreshQuota();
+          }
         }
       }
       void response;

@@ -28,15 +28,15 @@ from api.chat_schemas import (
     RenameSessionRequest,
     SendMessageRequest,
 )
-from api.routes import graph
 from api.websocket_manager import manager
 from services import chat_service
-from services.response_builder import build_response
 from graph.nodes.qa_node import itinerary_qa_node, general_chat_node
+from graph.nodes.info_request_node import info_request_node
 from fastapi import Request
 from services.pdf_builder import build_trip_pdf, upload_pdf_and_get_presigned_url
 from fastapi import Depends
 from core.auth import get_current_user, get_current_user_optional, get_account_id, get_clerk_user_id
+from core.async_invoke import invoke_message_worker
 from shared import quota_guard
 from shared import metrics
 import time
@@ -170,7 +170,7 @@ def _emit(session_id: str, event: dict) -> None:
         pass
 
 
-@router.post("/sessions/{session_id}/messages")
+@router.post("/sessions/{session_id}/messages") #after FRONTEND control flow comes here
 def post_message(
     session_id: str,
     body: SendMessageRequest,
@@ -227,6 +227,29 @@ def post_message(
     if user is not None and is_billable_turn:
         quota_guard.check_and_increment_quota(account_id, get_clerk_user_id(user))
 
+    if is_billable_turn:
+        # Quota is already spent/checked above -- from here it's
+        # queued, not run inline. If the worker itself fails, it
+        # refunds the quota and delivers an error message over the
+        # socket, same as the old inline except path used to.
+        invoke_message_worker(
+            {
+                "session_id": session_id,
+                "query": body.query,
+                "conversation_type": conversation_type,
+                "previous_trip": previous_trip,
+                "conversation_history": chat_service.get_recent_history(session_id),
+                "account_id": account_id,
+                "is_billable_turn": is_billable_turn,
+            }
+        )
+
+        return {
+            "session": session,
+            "status": "processing",
+            "conversation_type": conversation_type,
+        }
+
     conversation_history = chat_service.get_recent_history(
         session_id,
     )
@@ -252,28 +275,30 @@ def post_message(
 
     try:
 
-        if conversation_type == "NEW_TRIP":
-
-            result = graph.invoke(state)
-            response = build_response(result)
-
-        elif conversation_type == "MODIFY_TRIP":
-
-            # trip_modifier_node (wired into the graph's entry routing)
-            # takes it from here - it merges the user's request with
-            # previous_trip["parsed_trip"] before the planner/tool
-            # pipeline runs, instead of the planner re-extracting from
-            # just the latest message.
-            result = graph.invoke(state)
-            response = build_response(result)
-
-        elif conversation_type == "FOLLOW_UP":
+        if conversation_type == "FOLLOW_UP":
 
             # Answers using the current itinerary + RAG + general LLM
             # knowledge, like a normal chat assistant - no tools, no
             # re-running the planner, and no re-sending trip cards
             # since nothing about the trip changed.
             answer = itinerary_qa_node(state)
+
+            response = {
+                "success": True,
+                "trip": None,
+                "summary": answer,
+            }
+
+        elif conversation_type == "INFO_REQUEST":
+
+            # A follow-up that needs real, fresh data the existing
+            # trip doesn't have (2026-08-19) - calls exactly ONE real
+            # tool (whichever the question is about), not the full
+            # flight+hotel+places+weather pipeline. Deliberately NOT
+            # routed to MODIFY_TRIP: that means "change my plan," a
+            # different thing, and would burn real API calls and LLM
+            # tokens disproportionate to a single follow-up question.
+            answer = info_request_node(state)
 
             response = {
                 "success": True,
@@ -299,13 +324,6 @@ def post_message(
             "Agent graph failed for session_id=%s",
             session_id,
         )
-
-        if user is not None and is_billable_turn:
-            # This turn was counted against quota before the graph ran
-            # (had to be, to prevent the race the backlog's concurrency
-            # test checks for) -- it produced no output, so give the
-            # slot back rather than charging for a failure.
-            quota_guard.refund_quota(account_id)
 
         chat_service.add_message(
             session_id,

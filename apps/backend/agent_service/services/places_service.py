@@ -74,7 +74,14 @@ def _search_places_opentripmap(city: str, radius_m: int = 10000, limit: int = 12
         GEONAME_URL,
         params={
             "name": city,
-            "country": "IN",
+            # No hardcoded country restriction (2026-08-19) -- this used
+            # to force every geoname lookup to search within India only
+            # ("country": "IN"), which is what caused a search for
+            # "Japan" to find no real match and fall back to an
+            # unrelated fuzzy result inside India (Odisha) instead.
+            # OpenTripMap's geoname search is a real, global lookup;
+            # restricting it to one country was never correct for a
+            # destination outside it.
             "apikey": OPENTRIPMAP_API_KEY,
         },
         timeout=OPENTRIPMAP_TIMEOUT,

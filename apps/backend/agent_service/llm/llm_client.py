@@ -9,7 +9,7 @@ load_dotenv()
 
 def get_primary_llm(streaming: bool = False, timeout: float | None = None):
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         api_key=os.getenv("GROQ_API_KEY"),
         temperature=0.2,
         streaming=streaming,
@@ -30,9 +30,15 @@ def get_planner_llm(streaming: bool = False, timeout: float | None = None):
     GROQ_PLANNER_API_KEY if set (a separate Groq account/key with its
     own daily allowance), otherwise falls back to GROQ_API_KEY, so
     this is a no-op for anyone who hasn't set up a second key yet.
+    2026-08-19: model updated from llama-3.3-70b-versatile to
+    openai/gpt-oss-120b -- Groq deprecated the former on 2026-06-17
+    with a hard shutdown of 2026-08-16, confirmed by hitting a real
+    404 model_not_found error in live local testing after the
+    shutdown date passed. openai/gpt-oss-120b is Groq's own official
+    recommended replacement.
     """
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         api_key=os.getenv("GROQ_PLANNER_API_KEY") or os.getenv("GROQ_API_KEY"),
         temperature=0.2,
         streaming=streaming,
@@ -52,7 +58,7 @@ def get_classifier_llm(streaming: bool = False, timeout: float | None = None):
     second key yet.
     """
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         api_key=os.getenv("GROQ_CLASSIFIER_API_KEY") or os.getenv("GROQ_API_KEY"),
         temperature=0.2,
         streaming=streaming,

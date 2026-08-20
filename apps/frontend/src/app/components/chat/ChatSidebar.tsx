@@ -63,35 +63,68 @@ export default function ChatSidebar({
   const rest = sessions.filter((s) => !s.pinned);
 
   return (
-    <div className="flex w-72 shrink-0 flex-col border-r border-border bg-white">
-      <div className="flex items-center justify-between gap-2 border-b border-border p-3">
-        <button
-          onClick={onNewChat}
-          className="flex flex-1 items-center gap-2 rounded-xl bg-ink px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
-        >
-          <Plus className="h-4 w-4" />
-          New chat
-        </button>
-        <button
-          aria-label="Collapse sidebar"
-          onClick={() => setCollapsed(true)}
-          className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
-        >
-          <PanelLeftClose className="h-[18px] w-[18px]" />
-        </button>
-      </div>
+    <>
+      {/* Mobile-only backdrop -- tapping it closes the drawer. Real bug
+          report (2026-08-19): on mobile, "opening" the sidebar left a
+          visible sliver of the chat pane on the right, because this
+          component had zero mobile-specific handling at all -- it was
+          a permanent desktop flex-row sibling (w-72), never a full
+          overlay. On a narrow viewport, the chat pane's flex-1 sibling
+          never fully disappears, it just shrinks to whatever width is
+          left over -- exactly the reported "slit." Fixed with a real
+          fixed-position overlay + backdrop on mobile only
+          (`md:hidden`/`md:static` pairs below); desktop's existing
+          side-by-side layout is untouched. */}
+      <div
+        onClick={() => setCollapsed(true)}
+        className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        aria-hidden="true"
+      />
 
-      <div className="flex-1 overflow-y-auto p-2">
-        {sessions.length === 0 && (
-          <p className="p-4 text-center text-sm text-ink-faint">
-            No conversations yet. Start planning a trip to see it here.
-          </p>
-        )}
+      <div className="fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col border-r border-border bg-white md:relative md:z-auto">
+        <div className="flex items-center justify-between gap-2 border-b border-border p-3">
+          <button
+            onClick={onNewChat}
+            className="flex flex-1 items-center gap-2 rounded-xl bg-ink px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+          >
+            <Plus className="h-4 w-4" />
+            New chat
+          </button>
+          <button
+            aria-label="Collapse sidebar"
+            onClick={() => setCollapsed(true)}
+            className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
+          >
+            <PanelLeftClose className="h-[18px] w-[18px]" />
+          </button>
+        </div>
 
-        {pinned.length > 0 && (
+        <div className="flex-1 overflow-y-auto p-2">
+          {sessions.length === 0 && (
+            <p className="p-4 text-center text-sm text-ink-faint">
+              No conversations yet. Start planning a trip to see it here.
+            </p>
+          )}
+
+          {pinned.length > 0 && (
+            <SessionGroup
+              label="Pinned"
+              sessions={pinned}
+              activeSessionId={activeSessionId}
+              editingId={editingId}
+              editValue={editValue}
+              onEditValueChange={setEditValue}
+              onSelect={onSelect}
+              onStartRename={startRename}
+              onCommitRename={commitRename}
+              onTogglePin={onTogglePin}
+              onDelete={onDelete}
+            />
+          )}
+
           <SessionGroup
-            label="Pinned"
-            sessions={pinned}
+            label={pinned.length > 0 ? "All chats" : undefined}
+            sessions={rest}
             activeSessionId={activeSessionId}
             editingId={editingId}
             editValue={editValue}
@@ -102,23 +135,9 @@ export default function ChatSidebar({
             onTogglePin={onTogglePin}
             onDelete={onDelete}
           />
-        )}
-
-        <SessionGroup
-          label={pinned.length > 0 ? "All chats" : undefined}
-          sessions={rest}
-          activeSessionId={activeSessionId}
-          editingId={editingId}
-          editValue={editValue}
-          onEditValueChange={setEditValue}
-          onSelect={onSelect}
-          onStartRename={startRename}
-          onCommitRename={commitRename}
-          onTogglePin={onTogglePin}
-          onDelete={onDelete}
-        />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

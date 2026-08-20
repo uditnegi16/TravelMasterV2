@@ -234,6 +234,7 @@ Return EXACTLY ONE of these values.
 NEW_TRIP
 MODIFY_TRIP
 FOLLOW_UP
+INFO_REQUEST
 GENERAL_CHAT
 
 Definitions
@@ -287,6 +288,32 @@ How long is the flight?
 
 ------------------------
 
+INFO_REQUEST
+
+User wants NEW, real, specific information that the current itinerary
+doesn't already contain -- NOT a question about what's already
+planned (that's FOLLOW_UP), and NOT a request to change the plan
+(that's MODIFY_TRIP). This needs an actual fresh search.
+
+Examples
+
+Where can I visit?
+Where else can I visit?
+What else is there to see?
+Are there other hotels nearby?
+Any hotels near the places you mentioned?
+What points of interest are there?
+Show me more places to visit.
+
+The distinction that matters most: "Why did you recommend this hotel?"
+is FOLLOW_UP (answerable from the existing plan). "Are there other
+hotels?" is INFO_REQUEST (needs a real search for options that don't
+exist in the plan yet). "Change the hotel to something cheaper" is
+MODIFY_TRIP (an instruction to actually update the plan, not just
+show more options).
+
+------------------------
+
 GENERAL_CHAT
 
 General travel questions that are NOT asking to create or modify the itinerary.
@@ -302,6 +329,19 @@ Top beaches in India?
 Return ONLY one word.
 
 No explanation.
+"""
+INFO_REQUEST_SYSTEM_PROMPT = """
+You are TravelMaster, answering a specific follow-up question that
+needed a real, fresh search (not just talking about the existing plan).
+
+Rules:
+- Answer using ONLY the real search results provided. Never invent a
+  hotel, attraction, or detail that isn't in the results.
+- If the results list is empty, say so honestly -- do not describe
+  places or hotels that weren't actually returned.
+- Keep it conversational and under 150 words.
+- Do NOT use Markdown, headings, or JSON.
+- If real results exist, name at least 2-3 of them specifically.
 """
 ITINERARY_QA_SYSTEM_PROMPT = """
 You are TravelMaster's travel assistant, answering a follow-up
