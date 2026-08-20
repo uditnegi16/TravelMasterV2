@@ -43,6 +43,14 @@ export default function ChatPage() {
   const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const latestRequestedSessionId = useRef<string | null>(null);
+  // 2026-08-20: a real production "Failed to fetch" was reported --
+  // the browser-level fetch itself never completed a round trip, but
+  // the backend had, in fact, already saved a real result (visible on
+  // a manual page refresh). Blindly resubmitting the same query on
+  // Retry risks a second real request (and, for a billable turn, a
+  // second quota charge) for something that may have already
+  // succeeded. This timestamp lets Retry check first.
+  const lastAttemptStartedAt = useRef<string | null>(null);
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -124,6 +132,13 @@ export default function ChatPage() {
   // yet). Without this, a guest's just-planned trial trip would
   // vanish the moment they create an account.
   const wasSignedIn = useRef(false);
+  const isLoadedRef = useRef(false);
+  const isSignedInRef = useRef(false);
+
+  useEffect(() => {
+    isLoadedRef.current = isLoaded;
+    isSignedInRef.current = !!isSignedIn;
+  }, [isLoaded, isSignedIn]);
   useEffect(() => {
     if (!deviceId || !isLoaded) return;
 
@@ -237,10 +252,53 @@ export default function ChatPage() {
     if (!deviceId) return;
     setQuotaExceeded(false);
     setLastFailedQuery(null);
+    lastAttemptStartedAt.current = new Date().toISOString();
+
+    // Real production bug (2026-08-20): isSignedIn can still report a
+    // stale/initial value while Clerk is still resolving the session
+    // (isLoaded === false) -- confirmed directly via a real
+    // production log line showing a genuinely signed-in user's
+    // session correctly rejected as "not found" because this request
+    // was sent with no token at all, treated as a guest. Waiting
+    // briefly for isLoaded here (usually resolves in well under a
+    // second) ensures isSignedIn is actually accurate before deciding
+    // whether to fetch a real token, rather than silently dropping
+    // into the guest path for a real account.
+    if (!isLoadedRef.current) {
+      const loadedInTime = await new Promise<boolean>((resolve) => {
+        const start = Date.now();
+        const check = () => {
+          if (isLoadedRef.current) {
+            resolve(true);
+          } else if (Date.now() - start > 5000) {
+            resolve(false);
+          } else {
+            setTimeout(check, 100);
+          }
+        };
+        check();
+      });
+      if (!loadedInTime) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: "assistant",
+            content: "Still getting things ready — please try sending that again in a moment.",
+            trip_data: null,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+    }
 
     // Signed-in visitors always send a real token; guests send null
-    // and the backend treats the request as anonymous (Issue 1).
-    const token = isSignedIn ? await getToken() : null;
+    // and the backend treats the request as anonymous (Issue 1). Uses
+    // the live ref, not the closure-captured isSignedIn -- that value
+    // is fixed at the moment handleSubmit was first called, and would
+    // still be stale here even after the wait above.
+    const token = isSignedInRef.current ? await getToken() : null;
 
     let sessionId = activeSessionId;
 
@@ -312,7 +370,7 @@ export default function ChatPage() {
       // rather than reuse the stale one (a real user hit exactly
       // this: the answer was already generated and saved, but the
       // follow-up fetch failed with a stale token and 404'd).
-      const freshToken = isSignedIn ? await getToken() : null;
+      const freshToken = isSignedInRef.current ? await getToken() : null;
 
       if (isQueuedResponse(response)) {
         // The real result arrives over the socket, not this HTTP
@@ -408,6 +466,41 @@ export default function ChatPage() {
     }
   }
 
+  async function handleRetry(query: string) {
+    // Check first, rather than blindly resubmitting -- a real
+    // production case: the browser's fetch() itself failed
+    // ("Failed to fetch"), but the backend had already saved a real
+    // result (only visible after a manual page refresh). Resubmitting
+    // unconditionally would risk a second real request for something
+    // that may have already succeeded, and for a billable turn, a
+    // second quota charge for one real trip plan.
+    if (!deviceId || !activeSessionId) {
+      void handleSubmit(query);
+      return;
+    }
+
+    const startedAt = lastAttemptStartedAt.current;
+    const freshToken = isSignedInRef.current ? await getToken() : null;
+
+    try {
+      const fetched = await listMessages(activeSessionId, deviceId, freshToken);
+      const alreadySucceeded = fetched.some(
+        (m) => m.role === "assistant" && (!startedAt || m.created_at > startedAt),
+      );
+
+      if (alreadySucceeded) {
+        setMessages(fetched);
+        setLastFailedQuery(null);
+        return;
+      }
+    } catch {
+      // Couldn't even check -- fall through to a genuine resubmit
+      // rather than leaving the user stuck with no path forward.
+    }
+
+    void handleSubmit(query);
+  }
+
   return (
     <div className="flex h-[calc(100dvh-72px)] overflow-hidden bg-surface-subtle">
       {isSignedIn && (
@@ -475,7 +568,7 @@ export default function ChatPage() {
                 <span>That last message didn't go through.</span>
                 <button
                   type="button"
-                  onClick={() => void handleSubmit(lastFailedQuery)}
+                  onClick={() => void handleRetry(lastFailedQuery)}
                   disabled={loading}
                   className="shrink-0 font-semibold underline disabled:opacity-50"
                 >
