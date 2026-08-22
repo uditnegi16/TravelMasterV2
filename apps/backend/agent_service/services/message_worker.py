@@ -60,11 +60,24 @@ async def process_message_turn(payload: dict[str, Any]) -> None:
     account_id = payload.get("account_id")  # None for a guest turn
     is_billable_turn = payload["is_billable_turn"]
 
+    # Fetched here, not passed through the invoke payload (2026-08-20):
+    # a real production 500 traced back to this. AWS Lambda's async
+    # invocation payload limit is 1 MB (raised from 256 KB in Oct
+    # 2025) -- but a rich trip's full data (flights + hotels + places
+    # + weather) can genuinely exceed that on its own; confirmed
+    # directly in earlier logs the SAME night: flight_categories alone
+    # measured 446,838 bytes for one real trip. Never caught in local
+    # testing because local dev uses a completely different code path
+    # (_invoke_local, a plain in-process call with no serialization or
+    # size limit at all) -- this only exists for the real Lambda path.
+    previous_trip = chat_service.get_last_trip(session_id)
+    conversation_history = chat_service.get_recent_history(session_id)
+
     state = {
         "user_query": payload["query"],
         "conversation_type": payload["conversation_type"],
-        "previous_trip": payload.get("previous_trip"),
-        "conversation_history": payload.get("conversation_history") or [],
+        "previous_trip": previous_trip,
+        "conversation_history": conversation_history,
         "parsed_trip": {},
         "tools_to_call": [],
         "flights": [],

@@ -19,6 +19,13 @@ type Config struct {
 	HTTPPort    string
 	MetricsPort string
 	PprofPort   string
+
+	// EnableTestSeed gates a test-only /test/seed endpoint used by the
+	// k6 load test to populate realistic, unique session data without
+	// needing to run the full Kafka pipeline just to seed reads.
+	// Defaults to false -- must be explicitly opted into, never on by
+	// default in a real deployment.
+	EnableTestSeed bool
 }
 
 func getEnv(key, fallback string) string {
@@ -62,6 +69,8 @@ func Load() *Config {
 		HTTPPort:    getEnv("HTTP_PORT", "8081"),
 		MetricsPort: getEnv("METRICS_PORT", "2112"),
 		PprofPort:   getEnv("PPROF_PORT", "6060"),
+
+		EnableTestSeed: getEnv("ENABLE_TEST_SEED", "false") == "true",
 	}
 
 	validateBroker(cfg.KafkaBrokers)
@@ -79,6 +88,7 @@ func Load() *Config {
 	log.Println("HTTP Port    :", cfg.HTTPPort)
 	log.Println("Metrics Port :", cfg.MetricsPort)
 	log.Println("pprof Port   :", cfg.PprofPort)
+	log.Println("Test Seed EP :", cfg.EnableTestSeed)
 	log.Println("===================================")
 
 	return cfg

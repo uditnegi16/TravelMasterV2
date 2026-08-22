@@ -69,7 +69,7 @@ A running log of the platform's evolution beyond the original MVP — the parts 
 - **Error handling pass** — a stale-response race that could show one session's messages while looking at a different one, fixed. Failed prompts are now retryable instead of silently lost. An invalid/expired share link now shows a real message instead of either hanging forever or (the actual prior bug) rendering a broken page with the error body treated as valid trip data.
 - **Kafka-based agent bus** — agents can publish results to per-topic Kafka streams instead of returning them in-process, toggled with a single env var (`AGENT_BUS=direct|kafka`), with zero change to the trip-planning API surface. Deliberately not deployed 24/7 — see [Kafka Path](#kafka-path-local-demo-only--not-deployed-to-production) for the cost reasoning. See [`docs/kafka-architecture.md`](docs/kafka-architecture.md).
 - **Go aggregation microservice** — a standalone, production-hardened Go service that consumes those Kafka topics, merges results by session, and serves them over HTTP. Ships with graceful shutdown, config validation, Prometheus metrics, pprof profiling, and a GitHub Actions CI pipeline (format → vet → test → build → Docker). See [`apps/backend/go-kafka-consumer`](apps/backend/go-kafka-consumer).
-- **Load-tested with k6** — benchmarked at 10 / 50 / 100 concurrent virtual users with 0 failed requests across all runs. See [Performance & Load Testing](#performance--load-testing) below.
+- **Load testing rebuilt** — the previous k6 script hit one hardcoded session ID repeatedly, checking only `status === 200`. Replaced with two separate, honest tests: a Go aggregator benchmark with real burst/soak/recovery scenarios against hundreds of unique seeded sessions, and a genuinely new end-to-end test that plans real trips through the real guest flow with varied queries and unique simulated users. See [Performance & Load Testing](#performance--load-testing) below — re-run both for current numbers before relying on them.
 - **Dual deployment targets for the agent service** — the same LangGraph service ships both as an AWS Lambda (per-invocation scaling, the default) and as a Kubernetes Deployment with an HPA (CPU/memory-based autoscaling for steady-state load). See [`k8s/agent-service`](k8s/agent-service).
 - **Resilience patterns** — a circuit breaker around the flights provider, feature flags, and a subscription guard protecting rate-limited endpoints.
 - **RAG evaluation harness** — a scored retrieval evaluation suite (`evaluations/evaluate_retrieval.py`) against a fixed test dataset, instead of eyeballing RAG quality.
@@ -186,6 +186,8 @@ flowchart TD
 
 ## Performance & Load Testing
 
+> ⚠️ **The numbers below are historical**, from the Go aggregator's original benchmark script, which hit a single hardcoded session ID repeatedly — testing whether one always-cache-hot map key could be read fast, not realistic concurrent traffic. That script was rewritten 2026-08-03 (Issue 12) to seed hundreds of unique sessions and run burst/soak/recovery scenarios instead of one flat 30-second run. A second, genuinely new script (`end-to-end-product-test.js`) now also tests the real product end-to-end — real guests, real varied queries, through the real API — which the numbers below say nothing about at all. **Re-run both** (see [`apps/backend/go-kafka-consumer/benchmarks/README.md`](apps/backend/go-kafka-consumer/benchmarks/README.md)) and replace this table with real current results before relying on it in an interview.
+
 The Go aggregation service was load-tested with **k6** at 10, 50, and 100 concurrent virtual users (30s per run) against `GET /result/{session_id}`, returning a full aggregated trip payload (~625 KB/response).
 
 | Virtual Users | Requests/sec | Avg Latency | p95 Latency | Errors |
@@ -194,7 +196,7 @@ The Go aggregation service was load-tested with **k6** at 10, 50, and 100 concur
 | 50  | **981 req/s** | 49.60 ms  | 105.16 ms | 0 |
 | 100 | 734 req/s | 133.09 ms | 253.38 ms | 0 |
 
-- **66,317 requests served across all benchmark runs — 0 failures, 100% success rate.**
+- **66,317 requests served across all benchmark runs — 0 failures, 100% success rate.** (Against a single, always-cached key — see caveat above.)
 - Throughput scaled nearly linearly from 10→50 VUs; 50→100 VUs showed graceful degradation (throughput dipped ~25%, latency rose ~2.7×) consistent with the service becoming CPU/serialization-bound rather than failing outright.
 - Full methodology, per-run breakdowns, and optimization backlog (gzip compression, `sync.Pool`, HTTP/2, response caching) are recorded in [`docs/phase-logs/phase-10.md`](docs/phase-logs/phase-10.md).
 

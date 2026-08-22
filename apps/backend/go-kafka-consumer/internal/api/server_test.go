@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"travelmaster/go-kafka-consumer/internal/models"
 )
 
 func TestNewRegistersRoutes(t *testing.T) {
-	s := New()
+	s := New(false)
 
 	if s.Router == nil {
 		t.Fatal("expected New() to initialize a Router")
@@ -21,7 +22,7 @@ func TestNewRegistersRoutes(t *testing.T) {
 }
 
 func TestLiveEndpoint(t *testing.T) {
-	s := New()
+	s := New(false)
 
 	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 	rec := httptest.NewRecorder()
@@ -45,7 +46,7 @@ func TestLiveEndpoint(t *testing.T) {
 }
 
 func TestReadyEndpoint(t *testing.T) {
-	s := New()
+	s := New(false)
 
 	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 	rec := httptest.NewRecorder()
@@ -66,7 +67,7 @@ func TestReadyEndpoint(t *testing.T) {
 }
 
 func TestGetTrip_NotFound(t *testing.T) {
-	s := New()
+	s := New(false)
 
 	req := httptest.NewRequest(http.MethodGet, "/result/does-not-exist", nil)
 	rec := httptest.NewRecorder()
@@ -79,7 +80,7 @@ func TestGetTrip_NotFound(t *testing.T) {
 }
 
 func TestGetTrip_Found(t *testing.T) {
-	s := New()
+	s := New(false)
 
 	trip := models.AggregatedTrip{
 		SessionID: "session-1",
@@ -109,7 +110,7 @@ func TestGetTrip_Found(t *testing.T) {
 }
 
 func TestSaveTrip_OverwritesExisting(t *testing.T) {
-	s := New()
+	s := New(false)
 
 	s.SaveTrip(models.AggregatedTrip{SessionID: "session-1", Flight: json.RawMessage(`{"v":1}`)})
 	s.SaveTrip(models.AggregatedTrip{SessionID: "session-1", Flight: json.RawMessage(`{"v":2}`)})
@@ -124,5 +125,65 @@ func TestSaveTrip_OverwritesExisting(t *testing.T) {
 	}
 	if string(got.Flight) != `{"v":2}` {
 		t.Fatalf("expected the second SaveTrip call to overwrite the first, got %s", string(got.Flight))
+	}
+}
+
+func TestSeedEndpoint_AbsentByDefault(t *testing.T) {
+	// Genuinely not registered when disabled -- not just unauthenticated.
+	// A 404 here means the route table itself has no handler for it,
+	// matching http.NewServeMux's behavior for an unregistered path.
+	s := New(false)
+
+	req := httptest.NewRequest(http.MethodPost, "/test/seed", nil)
+	rec := httptest.NewRecorder()
+	s.Router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected /test/seed to be entirely absent (404) when disabled, got %d", rec.Code)
+	}
+}
+
+func TestSeedEndpoint_PopulatesTripWhenEnabled(t *testing.T) {
+	s := New(true)
+
+	body := `{"session_id":"seeded-1","flight":{"airline":"IndiGo"}}`
+	req := httptest.NewRequest(http.MethodPost, "/test/seed", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	s.Router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", rec.Code)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/result/seeded-1", nil)
+	getRec := httptest.NewRecorder()
+	s.Router.ServeHTTP(getRec, getReq)
+
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("expected the seeded session to be readable, got status %d", getRec.Code)
+	}
+}
+
+func TestSeedEndpoint_RejectsMissingSessionID(t *testing.T) {
+	s := New(true)
+
+	req := httptest.NewRequest(http.MethodPost, "/test/seed", strings.NewReader(`{"flight":{}}`))
+	rec := httptest.NewRecorder()
+	s.Router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for a missing session_id, got %d", rec.Code)
+	}
+}
+
+func TestSeedEndpoint_RejectsNonPost(t *testing.T) {
+	s := New(true)
+
+	req := httptest.NewRequest(http.MethodGet, "/test/seed", nil)
+	rec := httptest.NewRecorder()
+	s.Router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected status 405 for a GET, got %d", rec.Code)
 	}
 }

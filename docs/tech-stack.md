@@ -42,6 +42,7 @@
 - AWS Amplify
 - Amazon S3
 - CloudWatch
+- Kafka (async agent message bus, see docs/kafka-architecture.md)
 
 ---
 

@@ -43,3 +43,8 @@ class TripPlanState(TypedDict):
     conversation_type: NotRequired[str]
     previous_trip: NotRequired[dict]
     conversation_history: NotRequired[list]
+
+    # Correlation id used to key Kafka messages when AGENT_BUS=kafka, so
+    # the aggregator can match each agent's published result back to this
+    # request. Also doubles as the websocket progress-channel id.
+    session_id: NotRequired[str]

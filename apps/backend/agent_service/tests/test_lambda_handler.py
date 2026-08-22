@@ -36,3 +36,35 @@ def test_worker_payload_routes_to_async_worker_not_mangum():
     assert lh.WORKER_TASK_MARKER not in passed_payload
     assert passed_payload["session_id"] == "s1"
     assert result == {"status": "ok"}
+
+
+def test_event_loop_survives_worker_dispatch_for_later_mangum_use():
+    """
+    The real production bug (2026-08-20): asyncio.run() always closes
+    the loop it creates -- fine in isolation, but Lambda reuses the
+    same warm container across invocations. Once closed, the SAME
+    container later handling a normal HTTP request through Mangum
+    crashed with a real, confirmed production traceback:
+    "RuntimeError: There is no current event loop in thread
+    'MainThread'" inside Mangum's own lifespan setup. This test
+    confirms the actual fix: the loop used for the worker dispatch is
+    NOT closed afterward, so a subsequent asyncio.get_event_loop()
+    call (exactly what Mangum's lifespan code does) still succeeds.
+    """
+    import asyncio
+
+    import lambda_handler as lh
+
+    worker_event = {
+        lh.WORKER_TASK_MARKER: lh.PROCESS_MESSAGE_TASK,
+        "session_id": "s1",
+        "query": "Plan a trip",
+    }
+
+    with patch("services.message_worker.process_message_turn"):
+        lh.handler(worker_event, context=MagicMock())
+
+    # The real regression check -- asyncio.run() would have closed
+    # this and made the next line raise.
+    loop = asyncio.get_event_loop()
+    assert not loop.is_closed()

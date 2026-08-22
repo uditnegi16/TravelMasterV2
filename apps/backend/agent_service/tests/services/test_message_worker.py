@@ -18,6 +18,8 @@ async def test_successful_turn_sends_result_over_websocket():
 
     with patch.object(message_worker, "graph") as mock_graph, \
          patch.object(message_worker, "build_response", return_value=fake_response), \
+         patch.object(message_worker.chat_service, "get_last_trip", return_value=None), \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
          patch.object(message_worker.chat_service, "add_message", return_value=fake_stored_message) as mock_add, \
          patch.object(message_worker.chat_service, "touch_session"), \
          patch.object(message_worker.manager, "send", new_callable=AsyncMock) as mock_send:
@@ -28,8 +30,6 @@ async def test_successful_turn_sends_result_over_websocket():
                 "session_id": "sess-1",
                 "query": "Plan a trip to Goa",
                 "conversation_type": "NEW_TRIP",
-                "previous_trip": None,
-                "conversation_history": [],
                 "account_id": "acct-1",
                 "is_billable_turn": True,
             }
@@ -41,12 +41,51 @@ async def test_successful_turn_sends_result_over_websocket():
 
 
 @pytest.mark.asyncio
+async def test_worker_fetches_previous_trip_itself_not_from_payload():
+    """The real fix (2026-08-20): a rich trip's full data, passed
+    through the Lambda invoke payload, can exceed AWS's 1MB async
+    invocation limit -- a real production 500 traced to exactly this.
+    The worker must fetch it itself, by session_id, never rely on the
+    caller having passed it through."""
+    from services import message_worker
+
+    real_previous_trip = {"parsed_trip": {"destination_city": "Rome"}}
+
+    with patch.object(message_worker, "graph") as mock_graph, \
+         patch.object(message_worker, "build_response", return_value={"summary": "ok", "trip": None}), \
+         patch.object(message_worker.chat_service, "get_last_trip", return_value=real_previous_trip) as mock_get_trip, \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
+         patch.object(message_worker.chat_service, "add_message", return_value={"id": "m1"}), \
+         patch.object(message_worker.chat_service, "touch_session"), \
+         patch.object(message_worker.manager, "send", new_callable=AsyncMock):
+        mock_graph.invoke.return_value = {}
+
+        # Payload deliberately contains NO previous_trip/conversation_history --
+        # confirms the worker doesn't depend on the caller providing them.
+        await message_worker.process_message_turn(
+            {
+                "session_id": "sess-1",
+                "query": "Make it cheaper",
+                "conversation_type": "MODIFY_TRIP",
+                "account_id": "acct-1",
+                "is_billable_turn": True,
+            }
+        )
+
+    mock_get_trip.assert_called_once_with("sess-1")
+    passed_state = mock_graph.invoke.call_args[0][0]
+    assert passed_state["previous_trip"] == real_previous_trip
+
+
+@pytest.mark.asyncio
 async def test_failed_turn_refunds_quota_and_sends_error():
     from services import message_worker
 
     error_message = {"id": "msg-err", "role": "assistant", "content": "Sorry..."}
 
     with patch.object(message_worker, "graph") as mock_graph, \
+         patch.object(message_worker.chat_service, "get_last_trip", return_value=None), \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
          patch.object(message_worker.chat_service, "add_message", return_value=error_message) as mock_add, \
          patch.object(message_worker.manager, "send", new_callable=AsyncMock) as mock_send, \
          patch.object(message_worker.quota_guard, "refund_quota") as mock_refund:
@@ -57,8 +96,6 @@ async def test_failed_turn_refunds_quota_and_sends_error():
                 "session_id": "sess-1",
                 "query": "Plan a trip to Goa",
                 "conversation_type": "NEW_TRIP",
-                "previous_trip": None,
-                "conversation_history": [],
                 "account_id": "acct-1",
                 "is_billable_turn": True,
             }
@@ -74,6 +111,8 @@ async def test_failed_turn_for_a_guest_does_not_try_to_refund_quota():
     from services import message_worker
 
     with patch.object(message_worker, "graph") as mock_graph, \
+         patch.object(message_worker.chat_service, "get_last_trip", return_value=None), \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
          patch.object(message_worker.chat_service, "add_message", return_value={"id": "m1"}), \
          patch.object(message_worker.manager, "send", new_callable=AsyncMock), \
          patch.object(message_worker.quota_guard, "refund_quota") as mock_refund:
@@ -84,8 +123,6 @@ async def test_failed_turn_for_a_guest_does_not_try_to_refund_quota():
                 "session_id": "sess-1",
                 "query": "Plan a trip",
                 "conversation_type": "NEW_TRIP",
-                "previous_trip": None,
-                "conversation_history": [],
                 "account_id": None,
                 "is_billable_turn": True,
             }
@@ -100,6 +137,8 @@ async def test_websocket_send_failure_does_not_raise():
 
     with patch.object(message_worker, "graph") as mock_graph, \
          patch.object(message_worker, "build_response", return_value={"summary": "ok", "trip": None}), \
+         patch.object(message_worker.chat_service, "get_last_trip", return_value=None), \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
          patch.object(message_worker.chat_service, "add_message", return_value={"id": "m1"}), \
          patch.object(message_worker.chat_service, "touch_session"), \
          patch.object(message_worker.manager, "send", new_callable=AsyncMock) as mock_send:
@@ -111,8 +150,6 @@ async def test_websocket_send_failure_does_not_raise():
                 "session_id": "sess-1",
                 "query": "Plan a trip",
                 "conversation_type": "NEW_TRIP",
-                "previous_trip": None,
-                "conversation_history": [],
                 "account_id": "acct-1",
                 "is_billable_turn": True,
             }

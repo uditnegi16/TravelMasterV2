@@ -59,6 +59,28 @@ def assert_session_owner(session_id: str, account_id: str) -> Dict[str, Any]:
     )
     rows = getattr(res, "data", None) or []
     if not rows:
+        # 2026-08-20: a real production "Session not found" happened
+        # on the very first message to a brand-new session, and was
+        # genuinely undiagnosable from CloudWatch -- FastAPI converts
+        # a raised HTTPException straight into a response with zero
+        # logging by default, so this exact failure never produced
+        # any log line at all. Logging explicitly now, including
+        # whether the session exists at ALL under a different
+        # account_id (distinguishes "never created"/"race condition"
+        # from "genuinely wrong account").
+        any_match = (
+            _sessions_table()
+            .select("id,account_id")
+            .eq("id", session_id)
+            .limit(1)
+            .execute()
+        )
+        existing = getattr(any_match, "data", None) or []
+        logger.warning(
+            f"assert_session_owner: no match for session_id={session_id} "
+            f"account_id={account_id} -- "
+            f"{'session exists under account_id=' + str(existing[0].get('account_id')) if existing else 'session does not exist at all'}"
+        )
         raise HTTPException(status_code=404, detail="Session not found")
     return cast(Dict[str, Any], rows[0])
 
@@ -162,6 +184,19 @@ def assert_guest_session_owner(session_id: str, device_id: str) -> Dict[str, Any
     )
     rows = getattr(res, "data", None) or []
     if not rows:
+        any_match = (
+            _sessions_table()
+            .select("id,device_id,account_id")
+            .eq("id", session_id)
+            .limit(1)
+            .execute()
+        )
+        existing = getattr(any_match, "data", None) or []
+        logger.warning(
+            f"assert_guest_session_owner: no match for session_id={session_id} "
+            f"device_id={device_id} -- "
+            f"{'session exists: device_id=' + str(existing[0].get('device_id')) + ' account_id=' + str(existing[0].get('account_id')) if existing else 'session does not exist at all'}"
+        )
         raise HTTPException(status_code=404, detail="Session not found")
     return cast(Dict[str, Any], rows[0])
 

@@ -27,7 +27,7 @@ func main() {
 	metrics.Init()
 
 	agg := aggregator.New()
-	server := api.New()
+	server := api.New(cfg.EnableTestSeed)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

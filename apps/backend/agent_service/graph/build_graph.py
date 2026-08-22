@@ -31,6 +31,12 @@ from tools.hotel_tool import hotel_tool
 print("bg: composer")
 from graph.nodes.composer_node import composer_node
 
+print("bg: kafka_bus config")
+from kafka_bus.config import KAFKA_ENABLED
+
+print("bg: kafka_aggregator")
+from graph.nodes.kafka_aggregator_node import kafka_aggregator_node
+
 print("bg: imports done")
 
 
@@ -71,6 +77,8 @@ def build_graph():
     # tools were still running one after another. Switching to it now.
     graph_builder.add_node("parallel_tools", parallel_tools_node)
 
+    graph_builder.add_node("kafka_aggregator", kafka_aggregator_node)
+
     graph_builder.add_node("composer", composer_node)
 
     # --------------------
@@ -89,13 +97,21 @@ def build_graph():
 
     graph_builder.add_edge("rag_retriever", "tool_router")
 
-    graph_builder.add_edge("tool_router", "flight_tool")
+    print(f"!!! build_graph: KAFKA_ENABLED = {KAFKA_ENABLED} !!!")
+    if KAFKA_ENABLED:
+        # Async message-bus path: each agent publishes its own result to
+        # its own Kafka topic and the aggregator reads them back merged.
+        # See graph/nodes/kafka_aggregator_node.py.
+        graph_builder.add_edge("tool_router", "kafka_aggregator")
+        graph_builder.add_edge("kafka_aggregator", "composer")
+    else:
+        graph_builder.add_edge("tool_router", "flight_tool")
 
-    graph_builder.add_edge("flight_tool", "hotel_tool")
+        graph_builder.add_edge("flight_tool", "hotel_tool")
 
-    graph_builder.add_edge("hotel_tool", "parallel_tools")
+        graph_builder.add_edge("hotel_tool", "parallel_tools")
 
-    graph_builder.add_edge("parallel_tools", "composer")
+        graph_builder.add_edge("parallel_tools", "composer")
 
     graph_builder.add_edge("composer", END)
 

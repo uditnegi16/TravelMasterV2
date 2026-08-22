@@ -237,8 +237,6 @@ def post_message(
                 "session_id": session_id,
                 "query": body.query,
                 "conversation_type": conversation_type,
-                "previous_trip": previous_trip,
-                "conversation_history": chat_service.get_recent_history(session_id),
                 "account_id": account_id,
                 "is_billable_turn": is_billable_turn,
             }
