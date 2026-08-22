@@ -15,9 +15,12 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
-      <Header />
+      {/* Chat is a full-height app surface (Gemini/ChatGPT style):
+          no site header, no footer. Every nav link and the account
+          menu live inside the chat's left drawer instead. */}
+      {!isChatPage && <Header />}
 
-      <main className="flex-1 overflow-hidden">
+      <main className={isChatPage ? "flex-1 overflow-hidden" : "flex-1 overflow-hidden"}>
         {children}
       </main>
 

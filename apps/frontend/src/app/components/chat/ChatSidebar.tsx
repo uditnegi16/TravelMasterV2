@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import { Plus, Pin, PinOff, Pencil, Trash2, PanelLeftClose, PanelLeft } from "lucide-react";
 
 import { cn } from "../../../lib/cn";
@@ -12,6 +14,8 @@ type ChatSidebarProps = {
   onRename: (sessionId: string, title: string) => void;
   onTogglePin: (sessionId: string, pinned: boolean) => void;
   onDelete: (sessionId: string) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 export default function ChatSidebar({
@@ -22,8 +26,14 @@ export default function ChatSidebar({
   onRename,
   onTogglePin,
   onDelete,
+  open,
+  onOpenChange,
 }: ChatSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  // Open/closed is owned by ChatPage so the chat pane's menu button can
+  // drive it. On mobile this is a real overlay drawer; on desktop it is
+  // a side-by-side column that can still be collapsed to a rail.
+  const collapsed = !open;
+  const setCollapsed = (value: boolean) => onOpenChange(!value);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -136,6 +146,8 @@ export default function ChatSidebar({
             onDelete={onDelete}
           />
         </div>
+
+        <SidebarFooter onNavigate={() => setCollapsed(true)} />
       </div>
     </>
   );
@@ -235,6 +247,48 @@ function SessionGroup({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const NAV_ITEMS = [
+  { label: "Home", to: "/" },
+  { label: "Pricing", to: "/pricing" },
+  { label: "Help", to: "/help" },
+  { label: "About", to: "/about" },
+];
+
+/** Pages and account controls, moved here from the site header -- the
+ *  chat route no longer renders one. */
+function SidebarFooter({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <div className="mt-auto border-t border-border p-2">
+      <nav className="flex flex-col">
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            className="rounded-lg px-3 py-2 text-sm text-ink-muted transition hover:bg-surface-subtle hover:text-ink"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-2 flex items-center gap-2 border-t border-border px-3 pt-3">
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+          <span className="text-sm text-ink-muted">Account</span>
+        </SignedIn>
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="w-full rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white hover:bg-black">
+              Sign in
+            </button>
+          </SignInButton>
+        </SignedOut>
+      </div>
     </div>
   );
 }

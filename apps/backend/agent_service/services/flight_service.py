@@ -75,8 +75,15 @@ def create_offer_request(
             timeout=60,
         )
 
-        if response.status_code != 200:
-            logger.error(response.text)
+        # Duffel answers 201 Created for offer_requests, so the old
+        # "!= 200" check logged every SUCCESSFUL search as an error,
+        # burying the real 422s in noise.
+        if not response.ok:
+            logger.error(
+                f"Duffel {response.status_code} for "
+                f"{origin}->{destination} on {departure_date!r}: "
+                f"{response.text[:600]}"
+            )
 
         response.raise_for_status()
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { getDeviceId } from "../../../lib/deviceId";
 import {
   connectProgressSocket,
@@ -30,6 +31,11 @@ import { useAuth, SignInButton } from "@clerk/clerk-react";
 
 export default function ChatPage() {
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  // Gemini/ChatGPT-style shell: the drawer starts open on a wide screen
+  // and closed on a phone, where it overlays the chat.
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 768,
+  );
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -528,7 +534,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-72px)] overflow-hidden bg-surface-subtle">
+    <div className="flex h-[100dvh] overflow-hidden bg-surface-subtle">
       {isSignedIn && (
         <ChatSidebar
           sessions={sessions}
@@ -538,10 +544,28 @@ export default function ChatPage() {
           onRename={handleRename}
           onTogglePin={handleTogglePin}
           onDelete={handleDelete}
+          open={sidebarOpen}
+          onOpenChange={setSidebarOpen}
         />
       )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Replaces the removed site header: menu button + title. */}
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-white px-3">
+          {isSignedIn && !sidebarOpen && (
+            <button
+              aria-label="Open menu"
+              onClick={() => setSidebarOpen(true)}
+              className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
+            >
+              <Menu className="h-[18px] w-[18px]" />
+            </button>
+          )}
+          <span className="font-display text-base font-semibold text-ink">
+            TravelMaster
+          </span>
+        </div>
+
         <div className="flex w-full flex-1 justify-center overflow-y-auto px-6 py-8">
           <div className="w-full max-w-5xl">
           {loadError && (

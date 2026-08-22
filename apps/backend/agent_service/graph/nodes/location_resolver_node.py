@@ -1,5 +1,7 @@
+import re
 from datetime import datetime
 
+from shared.logging_config import logger
 from graph.state import TripPlanState
 
 from graph.progress_utils import emit_progress
@@ -166,37 +168,67 @@ for _city, _code in CITY_TO_AIRPORT.items():
 
 def normalize_date(date_str: str) -> str:
     """
-    Converts common natural language dates into YYYY-MM-DD.
+    Converts natural-language dates into YYYY-MM-DD.
 
-    Examples:
-    July 25
-    Oct 10
-    December 5
+    2026-08-22 (real production bug): "plan a trip in April" left this
+    as the bare string "April" -- every format below needs a day
+    number -- and that string went straight into Duffel's
+    departure_date, which answered 422 Unprocessable Entity. The
+    flight tool caught it, logged "Flight Tool Failed", and the UI
+    showed "No flight available" with no indication the date was the
+    problem.
+
+    Two fixes here:
+      1. A month with no day resolves to the 1st of that month.
+      2. Any resolved date already in the past rolls to next year.
+         The old code always stamped the CURRENT year, so in August
+         "April 10" became a date four months gone -- also rejected.
     """
 
     if not date_str:
         return ""
 
-    current_year = datetime.now().year
+    cleaned = date_str.strip()
 
-    formats = [
-        "%B %d",
-        "%b %d",
-        "%d %B",
-        "%d %b",
-    ]
+    # Already ISO. A past date is returned empty so the caller asks
+    # the user, rather than us silently inventing a year.
+    try:
+        iso = datetime.strptime(cleaned, "%Y-%m-%d")
+        return "" if iso.date() < datetime.now().date() else cleaned
+    except ValueError:
+        pass
 
-    for fmt in formats:
+    # Strip filler words the planner sometimes leaves in ("in April").
+    cleaned = re.sub(
+        r"^(in|on|around|during|by|from)\s+", "", cleaned, flags=re.I
+    ).strip()
+
+    day_formats = ["%B %d", "%b %d", "%d %B", "%d %b"]
+    month_only_formats = ["%B", "%b"]
+
+    for fmt in day_formats + month_only_formats:
         try:
-            dt = datetime.strptime(date_str.strip(), fmt)
-            dt = dt.replace(year=current_year)
-
-            return dt.strftime("%Y-%m-%d")
-
+            dt = datetime.strptime(cleaned, fmt)
         except ValueError:
-            pass
+            continue
 
-    return date_str
+        # strptime defaults a missing day to 1, which is what we want
+        # for a month-only value.
+        dt = dt.replace(year=datetime.now().year)
+        # Deliberately NOT rolled forward to next year: guessing the
+        # year is exactly the ambiguity we want the user to resolve.
+        if dt.date() < datetime.now().date():
+            return ""
+        return dt.strftime("%Y-%m-%d")
+
+    # Genuinely unparseable. Return "" rather than a string that looks
+    # like a date to us but is a 422 to Duffel -- callers already
+    # handle an empty date, and an empty value is at least honest.
+    logger.warning(
+        f"normalize_date could not parse {date_str!r} -- "
+        f"returning empty rather than passing it to the flight API"
+    )
+    return ""
 
 
 def location_resolver_node(state: TripPlanState) -> TripPlanState:
@@ -243,9 +275,21 @@ def location_resolver_node(state: TripPlanState) -> TripPlanState:
             trip.get("destination", ""),
         )
 
-        trip["start_date"] = normalize_date(
-            trip.get("start_date", "")
-        )
+        raw_start = trip.get("start_date", "")
+        trip["start_date"] = normalize_date(raw_start)
+
+        # A date we could not pin to a real future day must be
+        # asked about, not guessed. Guessing is what sent the
+        # literal string "April" to Duffel (422) and, before
+        # that, produced dates already in the past. Flag it here
+        # so the graph can stop and ask instead of planning a
+        # trip around a date the user never actually gave.
+        if raw_start and not trip["start_date"]:
+            trip["needs_date_clarification"] = True
+        elif not raw_start:
+            trip["needs_date_clarification"] = True
+        else:
+            trip["needs_date_clarification"] = False
 
         trip["end_date"] = normalize_date(
             trip.get("end_date", "")

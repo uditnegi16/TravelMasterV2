@@ -52,6 +52,28 @@ def _route_entry(state: TripPlanState) -> str:
     return "planner"
 
 
+
+DATE_CLARIFICATION_MESSAGE = (
+    "I need a clearer travel date before I can search flights. "
+    "Please give a specific date or date range with the year - "
+    "for example \"12 April 2027\" or \"2027-04-12 to 2027-04-17\". "
+    "A month on its own (or a date that has already passed) is "
+    "ambiguous, and the airline search rejects it."
+)
+
+
+def _needs_date_clarification(state):
+    """Stop before the tool pipeline if we could not resolve a real
+    future travel date. Guessing a year silently produced wrong trips
+    and a 422 from the flight API."""
+    trip = state.get("parsed_trip") or {}
+    if trip.get("needs_date_clarification"):
+        state["final_response"] = DATE_CLARIFICATION_MESSAGE
+        state["needs_date_clarification"] = True
+        return "ask_for_date"
+    return "continue"
+
+
 def build_graph():
     """
     Builds and compiles the LangGraph workflow.
@@ -93,7 +115,13 @@ def build_graph():
     graph_builder.add_edge("planner", "location_resolver")
     graph_builder.add_edge("trip_modifier", "location_resolver")
 
-    graph_builder.add_edge("location_resolver", "rag_retriever")
+    # Ambiguous date -> stop and ask, instead of planning a trip
+    # around a date the user never gave.
+    graph_builder.add_conditional_edges(
+        "location_resolver",
+        _needs_date_clarification,
+        {"continue": "rag_retriever", "ask_for_date": END},
+    )
 
     graph_builder.add_edge("rag_retriever", "tool_router")
 

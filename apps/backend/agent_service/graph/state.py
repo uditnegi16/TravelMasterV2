@@ -32,6 +32,7 @@ class TripPlanState(TypedDict):
     progress_callback: NotRequired[Callable]
     flight_strategy: str
     flight_categories: NotRequired[dict]
+    needs_date_clarification: NotRequired[bool]
     recommended_flight: NotRequired[dict]
     
     itinerary: NotRequired[dict]
