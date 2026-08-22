@@ -3,55 +3,55 @@ Transform: AWS::Serverless-2016-10-31
 Description: TravelGuru v2 Agent Service - Lambda deployment
 
 Parameters:
-  GROQ_API_KEY:
+  GroqApiKey:
     Type: String
     NoEcho: true
-  GROQ_CLASSIFIER_API_KEY:
+  GroqClassifierApiKey:
     Type: String
     NoEcho: true
-  GROQ_PLANNER_API_KEY:
+  GroqPlannerApiKey:
     Type: String
     NoEcho: true
-  OPENTRIPMAP_API_KEY:
+  OpenTripMapApiKey:
     Type: String
     NoEcho: true
-  DUFFEL_API_TOKEN:
+  DuffelApiToken:
     Type: String
     NoEcho: true
-  UPSTASH_REDIS_REST_URL:
+  UpstashRedisRestUrl:
     Type: String
     NoEcho: true
-  UPSTASH_REDIS_REST_TOKEN:
+  UpstashRedisRestToken:
     Type: String
     NoEcho: true
-  NVIDIA_API_KEY:
+  NvidiaApiKey:
     Type: String
     NoEcho: true
-  RAZORPAY_KEY_ID:
+  RazorpayKeyId:
     Type: String
     NoEcho: true
-  RAZORPAY_KEY_SECRET:
+  RazorpayKeySecret:
     Type: String
     NoEcho: true
-  RAZORPAY_WEBHOOK_SECRET:
+  RazorpayWebhookSecret:
     Type: String
     NoEcho: true
-  SUPABASE_URL:
+  SupabaseUrl:
     Type: String
     NoEcho: true
-  SUPABASE_SECRET_KEY:
+  SupabaseSecretKey:
     Type: String
     NoEcho: true
-  CLERK_SECRET_KEY:
+  ClerkSecretKey:
     Type: String
     NoEcho: true
-  CLERK_PUBLISHABLE_KEY:
+  ClerkPublishableKey:
     Type: String
     NoEcho: true
-  CLERK_AUTHORIZED_PARTIES:
+  ClerkAuthorizedParties:
     Type: String
     NoEcho: true
-  HF_TOKEN:
+  HfToken:
     Type: String
     NoEcho: true
 
@@ -100,27 +100,27 @@ Resources:
             Method: ANY
       Environment:
         Variables:
-          GROQ_API_KEY: !Ref GROQ_API_KEY
-          GROQ_CLASSIFIER_API_KEY: !Ref GROQ_CLASSIFIER_API_KEY
-          GROQ_PLANNER_API_KEY: !Ref GROQ_PLANNER_API_KEY
+          GROQ_API_KEY: !Ref GroqApiKey
+          GROQ_CLASSIFIER_API_KEY: !Ref GroqClassifierApiKey
+          GROQ_PLANNER_API_KEY: !Ref GroqPlannerApiKey
           WS_API_ID: !Ref TravelGuruWebSocketApi
           WS_API_STAGE: prod
-          OPENTRIPMAP_API_KEY: !Ref OPENTRIPMAP_API_KEY
-          DUFFEL_API_TOKEN: !Ref DUFFEL_API_TOKEN
-          UPSTASH_REDIS_REST_URL: !Ref UPSTASH_REDIS_REST_URL
-          UPSTASH_REDIS_REST_TOKEN: !Ref UPSTASH_REDIS_REST_TOKEN
-          NVIDIA_API_KEY: !Ref NVIDIA_API_KEY
-          RAZORPAY_KEY_ID: !Ref RAZORPAY_KEY_ID
-          RAZORPAY_KEY_SECRET: !Ref RAZORPAY_KEY_SECRET
-          RAZORPAY_WEBHOOK_SECRET: !Ref RAZORPAY_WEBHOOK_SECRET
+          OPENTRIPMAP_API_KEY: !Ref OpenTripMapApiKey
+          DUFFEL_API_TOKEN: !Ref DuffelApiToken
+          UPSTASH_REDIS_REST_URL: !Ref UpstashRedisRestUrl
+          UPSTASH_REDIS_REST_TOKEN: !Ref UpstashRedisRestToken
+          NVIDIA_API_KEY: !Ref NvidiaApiKey
+          RAZORPAY_KEY_ID: !Ref RazorpayKeyId
+          RAZORPAY_KEY_SECRET: !Ref RazorpayKeySecret
+          RAZORPAY_WEBHOOK_SECRET: !Ref RazorpayWebhookSecret
           PREMIUM_PLAN_AMOUNT: "39900"
           PREMIUM_PLAN_CURRENCY: "INR"
-          SUPABASE_URL: !Ref SUPABASE_URL
-          SUPABASE_SECRET_KEY: !Ref SUPABASE_SECRET_KEY
-          CLERK_SECRET_KEY: !Ref CLERK_SECRET_KEY
-          CLERK_PUBLISHABLE_KEY: !Ref CLERK_PUBLISHABLE_KEY
-          CLERK_AUTHORIZED_PARTIES: !Ref CLERK_AUTHORIZED_PARTIES
-          HF_TOKEN: !Ref HF_TOKEN
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SECRET_KEY: !Ref SupabaseSecretKey
+          CLERK_SECRET_KEY: !Ref ClerkSecretKey
+          CLERK_PUBLISHABLE_KEY: !Ref ClerkPublishableKey
+          CLERK_AUTHORIZED_PARTIES: !Ref ClerkAuthorizedParties
+          HF_TOKEN: !Ref HfToken
           ENVIRONMENT: "production"
           PDF_S3_BUCKET: "travelmaster-pdfs"
       Policies:
@@ -150,8 +150,8 @@ Resources:
         Command: ["ws_lambda_handler.handler"]
       Environment:
         Variables:
-          UPSTASH_REDIS_REST_URL: !Ref UPSTASH_REDIS_REST_URL
-          UPSTASH_REDIS_REST_TOKEN: !Ref UPSTASH_REDIS_REST_TOKEN
+          UPSTASH_REDIS_REST_URL: !Ref UpstashRedisRestUrl
+          UPSTASH_REDIS_REST_TOKEN: !Ref UpstashRedisRestToken
 
   TravelGuruWebSocketApi:
     Type: AWS::ApiGatewayV2::Api
