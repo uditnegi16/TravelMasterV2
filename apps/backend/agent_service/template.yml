@@ -1,0 +1,223 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: TravelGuru v2 Agent Service - Lambda deployment
+
+Parameters:
+  GROQ_API_KEY:
+    Type: String
+    NoEcho: true
+  GROQ_CLASSIFIER_API_KEY:
+    Type: String
+    NoEcho: true
+  GROQ_PLANNER_API_KEY:
+    Type: String
+    NoEcho: true
+  OPENTRIPMAP_API_KEY:
+    Type: String
+    NoEcho: true
+  DUFFEL_API_TOKEN:
+    Type: String
+    NoEcho: true
+  UPSTASH_REDIS_REST_URL:
+    Type: String
+    NoEcho: true
+  UPSTASH_REDIS_REST_TOKEN:
+    Type: String
+    NoEcho: true
+  NVIDIA_API_KEY:
+    Type: String
+    NoEcho: true
+  RAZORPAY_KEY_ID:
+    Type: String
+    NoEcho: true
+  RAZORPAY_KEY_SECRET:
+    Type: String
+    NoEcho: true
+  RAZORPAY_WEBHOOK_SECRET:
+    Type: String
+    NoEcho: true
+  SUPABASE_URL:
+    Type: String
+    NoEcho: true
+  SUPABASE_SECRET_KEY:
+    Type: String
+    NoEcho: true
+  CLERK_SECRET_KEY:
+    Type: String
+    NoEcho: true
+  CLERK_PUBLISHABLE_KEY:
+    Type: String
+    NoEcho: true
+  CLERK_AUTHORIZED_PARTIES:
+    Type: String
+    NoEcho: true
+  HF_TOKEN:
+    Type: String
+    NoEcho: true
+
+Globals:
+  Function:
+    Timeout: 120
+    MemorySize: 2048
+    Architectures:
+      - x86_64
+
+Resources:
+  TravelGuruAgentApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      BinaryMediaTypes:
+         - "application/pdf"
+      Cors:
+        AllowMethods: "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  TravelGuruAgentFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: latest
+
+    Properties:
+      PackageType: Image
+
+      Events:
+        ProxyApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TravelGuruAgentApi
+            Path: /
+            Method: ANY
+
+        ProxyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref TravelGuruAgentApi
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          GROQ_API_KEY: !Ref GROQ_API_KEY
+          GROQ_CLASSIFIER_API_KEY: !Ref GROQ_CLASSIFIER_API_KEY
+          GROQ_PLANNER_API_KEY: !Ref GROQ_PLANNER_API_KEY
+          WS_API_ID: !Ref TravelGuruWebSocketApi
+          WS_API_STAGE: prod
+          OPENTRIPMAP_API_KEY: !Ref OPENTRIPMAP_API_KEY
+          DUFFEL_API_TOKEN: !Ref DUFFEL_API_TOKEN
+          UPSTASH_REDIS_REST_URL: !Ref UPSTASH_REDIS_REST_URL
+          UPSTASH_REDIS_REST_TOKEN: !Ref UPSTASH_REDIS_REST_TOKEN
+          NVIDIA_API_KEY: !Ref NVIDIA_API_KEY
+          RAZORPAY_KEY_ID: !Ref RAZORPAY_KEY_ID
+          RAZORPAY_KEY_SECRET: !Ref RAZORPAY_KEY_SECRET
+          RAZORPAY_WEBHOOK_SECRET: !Ref RAZORPAY_WEBHOOK_SECRET
+          PREMIUM_PLAN_AMOUNT: "39900"
+          PREMIUM_PLAN_CURRENCY: "INR"
+          SUPABASE_URL: !Ref SUPABASE_URL
+          SUPABASE_SECRET_KEY: !Ref SUPABASE_SECRET_KEY
+          CLERK_SECRET_KEY: !Ref CLERK_SECRET_KEY
+          CLERK_PUBLISHABLE_KEY: !Ref CLERK_PUBLISHABLE_KEY
+          CLERK_AUTHORIZED_PARTIES: !Ref CLERK_AUTHORIZED_PARTIES
+          HF_TOKEN: !Ref HF_TOKEN
+          ENVIRONMENT: "production"
+          PDF_S3_BUCKET: "travelmaster-pdfs"
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TravelGuruWebSocketApi}/*/POST/@connections/*"
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: "arn:aws:s3:::travelmaster-pdfs/pdfs/*"
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: "*"
+  TravelGuruWebSocketFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: latest
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command: ["ws_lambda_handler.handler"]
+      Environment:
+        Variables:
+          UPSTASH_REDIS_REST_URL: !Ref UPSTASH_REDIS_REST_URL
+          UPSTASH_REDIS_REST_TOKEN: !Ref UPSTASH_REDIS_REST_TOKEN
+
+  TravelGuruWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: travelguru-ws-api
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  WebSocketIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TravelGuruWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TravelGuruWebSocketFunction.Arn}/invocations"
+
+  WebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TravelGuruWebSocketApi
+      RouteKey: $connect
+      Target: !Sub "integrations/${WebSocketIntegration}"
+
+  WebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TravelGuruWebSocketApi
+      RouteKey: $disconnect
+      Target: !Sub "integrations/${WebSocketIntegration}"
+
+  WebSocketDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TravelGuruWebSocketApi
+      RouteKey: $default
+      Target: !Sub "integrations/${WebSocketIntegration}"
+
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - WebSocketConnectRoute
+      - WebSocketDisconnectRoute
+      - WebSocketDefaultRoute
+    Properties:
+      ApiId: !Ref TravelGuruWebSocketApi
+
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref TravelGuruWebSocketApi
+      DeploymentId: !Ref WebSocketDeployment
+      StageName: prod
+
+  WebSocketLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref TravelGuruWebSocketFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TravelGuruWebSocketApi}/*/*"
+Outputs:
+  AgentApiUrl:
+    Description: Agent Service API endpoint
+    Value: !Sub 'https://${TravelGuruAgentApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  AgentFunctionArn:
+    Description: Agent Lambda Function ARN
+    Value: !GetAtt TravelGuruAgentFunction.Arn
+  WebSocketUrl:
+    Description: WebSocket API endpoint
+    Value: !Sub "wss://${TravelGuruWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
