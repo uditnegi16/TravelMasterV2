@@ -101,9 +101,7 @@ export default function ChatTurn({
   return (
     <div className="w-full space-y-6">
       <div className="rounded-2xl border border-border bg-surface-subtle px-5 py-4 text-ink">
-        <p className="whitespace-pre-wrap leading-7">
-          {message}
-        </p>
+        <FormattedMessage text={message} />
       </div>
 
       {tripData && (
@@ -135,6 +133,34 @@ export default function ChatTurn({
       </div>
     </>
   )}
+    </div>
+  );
+}
+
+
+/** The composer emits light markdown (**bold** headings, blank-line
+ *  paragraphs) but nothing rendered it, so users saw literal asterisks:
+ *  "**Day 1 - Arrival & Ueno**". This renders the small subset actually
+ *  produced, building React nodes rather than injecting HTML, so there
+ *  is no XSS surface and no new dependency. */
+function FormattedMessage({ text }: { text: string }) {
+  const paragraphs = text.split(/\n{2,}/);
+
+  return (
+    <div className="space-y-3">
+      {paragraphs.map((para, pi) => (
+        <p key={pi} className="whitespace-pre-wrap leading-7">
+          {para.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+            part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
+              <strong key={i} className="font-semibold text-ink">
+                {part.slice(2, -2)}
+              </strong>
+            ) : (
+              part
+            ),
+          )}
+        </p>
+      ))}
     </div>
   );
 }

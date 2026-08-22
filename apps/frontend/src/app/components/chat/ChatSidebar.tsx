@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { SignedIn, SignedOut, SignInButton, UserButton, useClerk } from "@clerk/clerk-react";
-import { Plus, Pin, PinOff, Pencil, Trash2, PanelLeftClose, PanelLeft, LogOut, LogIn } from "lucide-react";
+import { Plus, Pin, PinOff, Pencil, Trash2, LogOut, LogIn, X } from "lucide-react";
 
 import { cn } from "../../../lib/cn";
 import type { ChatSessionSummary } from "../../services/chatApi";
@@ -48,25 +48,11 @@ export default function ChatSidebar({
     setEditingId(null);
   }
 
+  // Closed means closed: no rail. Gemini shows nothing when the drawer
+  // is shut and reopens from the chat header's menu button. The old
+  // w-14 rail was a second, competing control for the same thing.
   if (collapsed) {
-    return (
-      <div className="flex w-14 shrink-0 flex-col items-center gap-3 border-r border-border bg-white py-4">
-        <button
-          aria-label="Expand sidebar"
-          onClick={() => setCollapsed(false)}
-          className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
-        >
-          <PanelLeft className="h-[18px] w-[18px]" />
-        </button>
-        <button
-          aria-label="New chat"
-          onClick={onNewChat}
-          className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white hover:bg-black"
-        >
-          <Plus className="h-[18px] w-[18px]" />
-        </button>
-      </div>
-    );
+    return null;
   }
 
   const pinned = sessions.filter((s) => s.pinned);
@@ -92,20 +78,26 @@ export default function ChatSidebar({
       />
 
       <div className="fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col border-r border-border bg-white md:relative md:z-auto">
-        <div className="flex items-center justify-between gap-2 border-b border-border p-3">
+        <div className="p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display text-base font-semibold text-brand">
+              TravelMaster
+            </span>
+            <button
+              aria-label="Close menu"
+              onClick={() => setCollapsed(true)}
+              className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
+            >
+              <X className="h-[18px] w-[18px]" />
+            </button>
+          </div>
+
           <button
             onClick={onNewChat}
-            className="flex flex-1 items-center gap-2 rounded-xl bg-ink px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+            className="mt-3 flex w-full items-center gap-2 rounded-xl bg-ink px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
           >
             <Plus className="h-4 w-4" />
             New chat
-          </button>
-          <button
-            aria-label="Collapse sidebar"
-            onClick={() => setCollapsed(true)}
-            className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
-          >
-            <PanelLeftClose className="h-[18px] w-[18px]" />
           </button>
         </div>
 
