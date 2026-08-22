@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
-import { Plus, Pin, PinOff, Pencil, Trash2, PanelLeftClose, PanelLeft } from "lucide-react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useClerk } from "@clerk/clerk-react";
+import { Plus, Pin, PinOff, Pencil, Trash2, PanelLeftClose, PanelLeft, LogOut, LogIn } from "lucide-react";
 
 import { cn } from "../../../lib/cn";
 import type { ChatSessionSummary } from "../../services/chatApi";
@@ -261,29 +261,47 @@ const NAV_ITEMS = [
 /** Pages and account controls, moved here from the site header -- the
  *  chat route no longer renders one. */
 function SidebarFooter({ onNavigate }: { onNavigate: () => void }) {
+  const { signOut } = useClerk();
+
   return (
-    <div className="mt-auto border-t border-border p-2">
-      <nav className="flex flex-col">
+    <div className="mt-auto border-t border-border bg-white p-2">
+      <nav className="flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => (
           <Link
             key={item.to}
             to={item.to}
             onClick={onNavigate}
-            className="rounded-lg px-3 py-2 text-sm text-ink-muted transition hover:bg-surface-subtle hover:text-ink"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-brand-text transition hover:bg-brand-soft"
           >
             {item.label}
           </Link>
         ))}
       </nav>
 
-      <div className="mt-2 flex items-center gap-2 border-t border-border px-3 pt-3">
+      <div className="mt-2 border-t border-border pt-2">
         <SignedIn>
-          <UserButton afterSignOutUrl="/" />
-          <span className="text-sm text-ink-muted">Account</span>
+          {/* The bare Clerk avatar gave no hint that it was clickable or
+              that sign-out lived behind it. Name the actions instead. */}
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+            <UserButton afterSignOutUrl="/" />
+            <span className="truncate text-sm text-ink-muted">
+              Your account
+            </span>
+          </div>
+
+          <button
+            onClick={() => signOut({ redirectUrl: "/" })}
+            className="focus-ring mt-1 flex w-full items-center gap-2 rounded-lg border border-brand bg-white px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
         </SignedIn>
+
         <SignedOut>
           <SignInButton mode="modal">
-            <button className="w-full rounded-lg bg-ink px-3 py-2 text-sm font-semibold text-white hover:bg-black">
+            <button className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-hover">
+              <LogIn className="h-4 w-4" />
               Sign in
             </button>
           </SignInButton>

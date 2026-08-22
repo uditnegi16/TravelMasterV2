@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Menu } from "lucide-react";
 import { getDeviceId } from "../../../lib/deviceId";
 import {
   connectProgressSocket,
@@ -552,15 +551,6 @@ export default function ChatPage() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Replaces the removed site header: menu button + title. */}
         <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-white px-3">
-          {isSignedIn && !sidebarOpen && (
-            <button
-              aria-label="Open menu"
-              onClick={() => setSidebarOpen(true)}
-              className="focus-ring flex h-9 w-9 items-center justify-center rounded-xl text-ink-muted hover:bg-surface-subtle hover:text-ink"
-            >
-              <Menu className="h-[18px] w-[18px]" />
-            </button>
-          )}
           <span className="font-display text-base font-semibold text-ink">
             TravelMaster
           </span>
