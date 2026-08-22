@@ -171,12 +171,38 @@ export default function ChatPage() {
     };
   }, []);
 
+  // Extracted from handleSubmit (fix #15). openSession had the same
+  // latent bug: it called getToken() without waiting for Clerk, so on
+  // a fresh page load the token came back null, listMessages went out
+  // anonymous, and the backend correctly rejected a genuinely-owned
+  // session with 404 "Session not found". Clicking Retry worked only
+  // because Clerk had finished loading by then.
+  async function waitForClerk(timeoutMs = 5000): Promise<boolean> {
+    if (isLoadedRef.current) return true;
+    return new Promise<boolean>((resolve) => {
+      const start = Date.now();
+      const check = () => {
+        if (isLoadedRef.current) resolve(true);
+        else if (Date.now() - start > timeoutMs) resolve(false);
+        else setTimeout(check, 100);
+      };
+      check();
+    });
+  }
+
   async function openSession(sessionId: string) {
     if (!deviceId) return;
 
     latestRequestedSessionId.current = sessionId;
     setActiveSessionId(sessionId);
     setLoadError(null);
+
+    if (!(await waitForClerk())) {
+      if (latestRequestedSessionId.current === sessionId) {
+        setLoadError("Still getting things ready \u2014 please try again in a moment.");
+      }
+      return;
+    }
 
     const token = await getToken();
     try {

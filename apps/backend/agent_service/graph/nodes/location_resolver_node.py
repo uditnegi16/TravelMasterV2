@@ -147,6 +147,23 @@ CITY_TO_AIRPORT = {
 }
 
 
+# 2026-08-22 (real production bug): this node OVERWRITES
+# trip["destination"] with an IATA code ("tokyo" -> "NRT"). Correct
+# on the first pass, but MODIFY_TRIP feeds the previous parsed_trip
+# straight back in, so the node re-runs over its own output. "NRT"
+# matches nothing in either map above, so destination_city became
+# "Nrt" -- which then fuzzy-matched to Nakhon Si Thammarat, THAILAND
+# in the hotel search, and got expanded by the LLM to "Narita (NRT)"
+# for weather and places. One non-idempotent node, four broken
+# features. Mapping a code back to its city first makes this node
+# safe to run any number of times.
+#
+# setdefault keeps the FIRST city listed for each code, so DEL ->
+# "delhi" not "new delhi", and BOM -> "mumbai" not "bombay".
+AIRPORT_TO_CITY: dict[str, str] = {}
+for _city, _code in CITY_TO_AIRPORT.items():
+    AIRPORT_TO_CITY.setdefault(_code, _city)
+
 def normalize_date(date_str: str) -> str:
     """
     Converts common natural language dates into YYYY-MM-DD.
@@ -200,6 +217,13 @@ def location_resolver_node(state: TripPlanState) -> TripPlanState:
         # city, substitute a sensible default city before anything
         # else runs -- see COUNTRY_TO_DEFAULT_CITY's comment above for
         # the real bug this fixes.
+        # Undo a previous run of this node before doing anything else,
+        # so MODIFY_TRIP does not degrade the destination each turn.
+        # A genuinely new destination from the modifier ("Osaka") is
+        # not a code, so it passes through untouched.
+        origin = AIRPORT_TO_CITY.get(origin.upper(), origin)
+        destination = AIRPORT_TO_CITY.get(destination.upper(), destination)
+
         origin = COUNTRY_TO_DEFAULT_CITY.get(origin, origin)
         destination = COUNTRY_TO_DEFAULT_CITY.get(destination, destination)
 
