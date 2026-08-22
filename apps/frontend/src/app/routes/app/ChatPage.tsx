@@ -561,9 +561,6 @@ export default function ChatPage() {
               <Menu className="h-[20px] w-[20px]" />
             </button>
           )}
-          <span className="font-display text-base font-semibold text-ink">
-            TravelMaster
-          </span>
           {isSignedIn && (
             <button
               aria-label="New chat"
