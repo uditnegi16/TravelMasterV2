@@ -97,20 +97,27 @@ Examples:
 "DEL"
 → origin = "DEL"
 
-"October"
-→ start_date = "October"
+"October"  (no year)
+→ start_date = ""
 
-"next summer"
-→ start_date = "next summer"
+"next summer"  (vague)
+→ start_date = ""
 
-"Christmas"
-→ start_date = "Christmas"
+"Christmas"  (no year)
+→ start_date = ""
+
+"15 August to 20 August"  (no year)
+→ start_date = ""
 
 "10 Oct 2026"
 → start_date = "2026-10-10"
 
-3. If only a month is provided,
-store the month exactly.
+"next monday"  (resolvable from today)
+→ start_date = the resolved YYYY-MM-DD
+
+3. If only a month is provided with no year,
+return start_date = "" and end_date = "".
+Do NOT guess the year.
 
 4. If a field is missing,
 leave it empty.
@@ -183,38 +190,46 @@ return
 duration_days = 0
 
 13. Never estimate prices unless explicitly provided by the planner or optimization engine.
-Never return an empty string.
+Do not invent values for fields the user did not supply; leave them
+empty. This applies especially to dates -- see rule 14.
 14. Date Handling
 
 Today's date is {current_date}.
 
-If the user provides a date without a year:
+A trip cannot be planned without a real, unambiguous travel date, and
+guessing one is worse than asking: it silently plans for the wrong
+year. So:
 
-- If that date is today or in the future during the current year, use the current year.
-- If that date has already passed during the current year, use the next year.
-- Never infer a past year.
+- If the user gives a full date (day, month AND year), use it.
+- If the user gives a relative date that today resolves exactly
+  ("tomorrow", "next monday", "next week", "in 3 weeks"), resolve it
+  to YYYY-MM-DD.
+- Otherwise -- a month with no year, a day and month with no year, a
+  season, a holiday name, or anything vague -- return start_date = ""
+  and end_date = "".
+  NEVER infer, assume or default the year.
 
 Examples:
 
 Today: 2026-07-10
+User: 15 August to 20 August
+Output: start_date = "", end_date = ""
+(no year given -- the user will be asked to clarify)
 
-User:
-15 August to 20 August
+Today: 2026-07-10
+User: 15 August 2026 to 20 August 2026
+Output: start_date = "2026-08-15", end_date = "2026-08-20"
 
-Output:
-start_date = 2026-08-15
-end_date = 2026-08-20
+Today: 2026-07-10
+User: next monday for 4 days
+Output: start_date = "2026-07-13", end_date = "2026-07-17"
 
-Today: 2026-11-10
-
-User:
-15 August to 20 August
-
-Output:
-start_date = 2027-08-15
-end_date = 2027-08-20
+Today: 2026-07-10
+User: sometime in April
+Output: start_date = "", end_date = ""
 
 If the user explicitly specifies a year, always use the user's year.
+
 IMPORTANT:
 
 Return the response as valid JSON only.

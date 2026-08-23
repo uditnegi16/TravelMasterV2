@@ -139,3 +139,43 @@ def test_a_good_date_leaves_the_response_empty_for_the_composer():
     }
     location_resolver_node(state)
     assert state["final_response"] == ""
+
+
+def test_planner_prompt_does_not_instruct_the_model_to_guess_a_year():
+    """
+    The backend clarification could never fire because the planner prompt
+    told the model to resolve a bare month into a concrete year itself,
+    so start_date always arrived already valid. Guard against that
+    instruction coming back.
+    """
+    from datetime import date
+
+    from llm.prompts import PLANNER_SYSTEM_PROMPT
+
+    prompt = PLANNER_SYSTEM_PROMPT.format(current_date=date.today().isoformat())
+
+    assert "NEVER infer, assume or default the year" in prompt
+
+    # The old rule told the model to pick a year, and a blanket "never
+    # return an empty string" that contradicted leaving dates blank.
+    assert "If that date has already passed during the current year" not in prompt
+    assert "Never return an empty string" not in prompt
+
+
+def test_empty_start_date_from_the_planner_reaches_the_clarification():
+    """End to end: planner returns "" -> node flags -> router ends."""
+    from graph.build_graph import _needs_date_clarification
+
+    state = {
+        "parsed_trip": {
+            "origin": "Delhi",
+            "destination": "Japan",
+            "start_date": "",
+        },
+        "final_response": "",
+        "progress_callback": None,
+    }
+    out = location_resolver_node(state)
+
+    assert _needs_date_clarification(out) == "ask_for_date"
+    assert state["final_response"] == DATE_CLARIFICATION_MESSAGE
