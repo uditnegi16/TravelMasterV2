@@ -119,8 +119,8 @@ export function AiPromptBox({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "group relative flex w-full flex-col gap-3 rounded-2xl border border-border-strong bg-white p-3 shadow-card transition-all duration-200 focus-within:border-brand/50 focus-within:shadow-raised sm:flex-row sm:items-end sm:gap-2 sm:p-2.5",
-        isHero ? "pl-5" : "pl-4",
+        "group relative flex w-full flex-row items-end gap-2 rounded-2xl border border-border-strong bg-white p-2 shadow-card transition-all duration-200 focus-within:border-brand/50 focus-within:shadow-raised sm:p-2.5",
+        isHero ? "pl-4" : "pl-3",
         className
       )}
     >
@@ -148,7 +148,7 @@ export function AiPromptBox({
         )}
       />
 
-      <div className="flex w-full shrink-0 justify-end gap-2 sm:w-auto sm:items-center">
+      <div className="flex w-auto shrink-0 items-center justify-end gap-1.5">
         <button
           type="button"
           onClick={handleVoiceClick}
