@@ -34,7 +34,7 @@ export default function ResponseTabs({
           className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
               active === index
                 ? "bg-ink text-white"
-                : "border border-border bg-white text-ink-muted hover:bg-surface-subtle hover:text-ink"
+                : "border border-border bg-surface-raised text-ink-muted hover:bg-surface-subtle hover:text-ink"
             }`}
           >
             {tab}

@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
@@ -22,39 +23,43 @@ export default {
         "5xl": ["4.375rem", { lineHeight: "4.35rem", letterSpacing: "-0.025em" }],
       },
       colors: {
+        // Semantic tokens resolve through CSS variables so a single
+        // `dark` class on <html> re-themes every existing utility
+        // (bg-surface, text-ink, border-border) with no component edits.
+        // Values live in styles/globals.css as "R G B" triplets.
         ink: {
-          DEFAULT: "#12141C",
-          muted: "#5B5F6E",
-          faint: "#9599A6",
-          inverse: "#FFFFFF",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
+          faint: "rgb(var(--ink-faint) / <alpha-value>)",
+          inverse: "rgb(var(--ink-inverse) / <alpha-value>)",
         },
         surface: {
-          DEFAULT: "#FFFFFF",
-          subtle: "#F6F7FB",
-          sunken: "#EEF0F6",
-          raised: "#FFFFFF",
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          subtle: "rgb(var(--surface-subtle) / <alpha-value>)",
+          sunken: "rgb(var(--surface-sunken) / <alpha-value>)",
+          raised: "rgb(var(--surface-raised) / <alpha-value>)",
         },
         border: {
-          DEFAULT: "#E4E7EF",
-          strong: "#D2D6E2",
+          DEFAULT: "rgb(var(--border) / <alpha-value>)",
+          strong: "rgb(var(--border-strong) / <alpha-value>)",
         },
         brand: {
-          DEFAULT: "#2454E0",
-          hover: "#1D46C4",
-          active: "#17399E",
-          soft: "#EEF2FF",
-          softer: "#F7F9FF",
-          text: "#2A4FCB",
+          DEFAULT: "rgb(var(--brand) / <alpha-value>)",
+          hover: "rgb(var(--brand-hover) / <alpha-value>)",
+          active: "rgb(var(--brand-active) / <alpha-value>)",
+          soft: "rgb(var(--brand-soft) / <alpha-value>)",
+          softer: "rgb(var(--brand-softer) / <alpha-value>)",
+          text: "rgb(var(--brand-text) / <alpha-value>)",
         },
         accent: {
           teal: "#0E9F8E",
-          tealSoft: "#E7F7F4",
+          tealSoft: "rgb(var(--accent-teal-soft) / <alpha-value>)",
           amber: "#C9820A",
-          amberSoft: "#FBF2E1",
+          amberSoft: "rgb(var(--accent-amber-soft) / <alpha-value>)",
           green: "#178A4C",
-          greenSoft: "#E9F6EE",
+          greenSoft: "rgb(var(--accent-green-soft) / <alpha-value>)",
           red: "#D6432F",
-          redSoft: "#FCEBE8",
+          redSoft: "rgb(var(--accent-red-soft) / <alpha-value>)",
         },
       },
       borderRadius: {

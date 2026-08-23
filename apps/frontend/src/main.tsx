@@ -10,6 +10,10 @@ import "./styles/globals.css";
 // Removal: delete src/voice-agent/, delete this import + the one
 // <VoiceAgentMount /> line below.
 import { VoiceAgentMount } from "./voice-agent";
+import { initTheme } from "./lib/useTheme";
+
+// Before first paint, so a dark-theme user never sees a white flash.
+initTheme();
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 

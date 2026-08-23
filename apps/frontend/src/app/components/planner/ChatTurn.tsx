@@ -116,7 +116,7 @@ export default function ChatTurn({
         <button
           type="button"
           onClick={handleDownloadPdf}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-100"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-surface-raised px-4 py-2 text-sm font-medium hover:bg-slate-100"
         >
           <Download className="h-4 w-4" />
           Download PDF
@@ -125,7 +125,7 @@ export default function ChatTurn({
         <button
           type="button"
           onClick={handleShare}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-100"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-surface-raised px-4 py-2 text-sm font-medium hover:bg-slate-100"
         >
           <Share2 className="h-4 w-4" />
           Share

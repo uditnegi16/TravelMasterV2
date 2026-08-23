@@ -586,7 +586,7 @@ export default function ChatPage() {
         {/* Replaces the removed site header: menu button + title. */}
         <div
           className={cn(
-            "flex shrink-0 items-center gap-2 overflow-hidden border-b border-border bg-white px-3 transition-all duration-200",
+            "flex shrink-0 items-center gap-2 overflow-hidden border-b border-border bg-surface px-3 transition-all duration-200",
             headerVisible ? "h-14 opacity-100" : "h-0 border-b-0 opacity-0",
           )}
         >
@@ -650,7 +650,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div className="border-t border-border bg-white px-4 py-4 sm:px-6">
+        <div className="border-t border-border bg-surface px-4 py-4 sm:px-6">
           <div className="mx-auto w-full max-w-4xl">
             {quota && !guestTrialUsed && !quotaExceeded && (
               <p className="mb-2 text-center text-xs text-ink-faint">

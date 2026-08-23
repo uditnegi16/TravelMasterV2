@@ -45,7 +45,7 @@ export default function PackageCard({
   const hotelName = hotel?.name ?? hotel?.city ?? "No hotel available";
 
   return (
-    <div className="rounded-3xl border border-border bg-white p-6 shadow-soft transition-all hover:-translate-y-1 hover:shadow-raised">
+    <div className="rounded-3xl border border-border bg-surface-raised p-6 shadow-soft transition-all hover:-translate-y-1 hover:shadow-raised">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-xl font-semibold text-ink">

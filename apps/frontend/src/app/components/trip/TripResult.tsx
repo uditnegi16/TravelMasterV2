@@ -7,7 +7,7 @@ type Props = {
 export default function TripResult({ result }: Props) {
   if (!result) {
     return (
-      <div className="mt-10 rounded-3xl border border-dashed border-border bg-white p-14 text-center shadow-soft animate-fadeIn">
+      <div className="mt-10 rounded-3xl border border-dashed border-border bg-surface-raised p-14 text-center shadow-soft animate-fadeIn">
         <h2 className="text-2xl font-semibold text-ink">
           Ready to plan your next adventure?
         </h2>
@@ -50,7 +50,7 @@ export default function TripResult({ result }: Props) {
   );
 }
   return (
-    <div className="animate-fadeIn overflow-hidden rounded-3xl border border-border bg-white p-6 sm:p-7 lg:p-8 shadow-raised">
+    <div className="animate-fadeIn overflow-hidden rounded-3xl border border-border bg-surface-raised p-6 sm:p-7 lg:p-8 shadow-raised">
       <div className="mb-6 lg:mb-8">
         <h2 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
           Your Trip Plan

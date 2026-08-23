@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, SignInButton, UserButton, useClerk } from "@clerk/clerk-react";
-import { Plus, Pin, PinOff, Pencil, Trash2, LogOut, LogIn, X } from "lucide-react";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { Plus, Pin, PinOff, Pencil, Trash2, LogIn, X, Settings, Sun, Moon, Monitor, Check } from "lucide-react";
 
 import { cn } from "../../../lib/cn";
+import { useTheme } from "../../../lib/useTheme";
 import type { ChatSessionSummary } from "../../services/chatApi";
 
 type ChatSidebarProps = {
@@ -77,7 +78,7 @@ export default function ChatSidebar({
         aria-hidden="true"
       />
 
-      <div className="fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col border-r border-border bg-white md:relative md:z-auto">
+      <div className="fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col border-r border-border bg-surface md:relative md:z-auto">
         <div className="p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="font-display text-base font-semibold text-brand">
@@ -243,6 +244,12 @@ function SessionGroup({
   );
 }
 
+const THEME_OPTIONS = [
+  { value: "system" as const, label: "System", Icon: Monitor },
+  { value: "light" as const, label: "Light", Icon: Sun },
+  { value: "dark" as const, label: "Dark", Icon: Moon },
+];
+
 const NAV_ITEMS = [
   { label: "Home", to: "/" },
   { label: "Pricing", to: "/pricing" },
@@ -253,51 +260,77 @@ const NAV_ITEMS = [
 /** Pages and account controls, moved here from the site header -- the
  *  chat route no longer renders one. */
 function SidebarFooter({ onNavigate }: { onNavigate: () => void }) {
-  const { signOut } = useClerk();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="mt-auto border-t border-border bg-white p-2">
-      <nav className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-brand-text transition hover:bg-brand-soft"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+    <div className="mt-auto border-t border-border bg-surface p-2">
+      {settingsOpen && (
+        <div className="mb-2 rounded-xl border border-border bg-surface-raised p-1 shadow-card">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={() => {
+                setSettingsOpen(false);
+                onNavigate();
+              }}
+              className="block rounded-lg px-3 py-2 text-sm text-ink transition hover:bg-surface-subtle"
+            >
+              {item.label}
+            </Link>
+          ))}
 
-      <div className="mt-2 border-t border-border pt-2">
+          <div className="my-1 border-t border-border" />
+
+          <p className="px-3 pb-1 pt-2 text-xs font-medium text-ink-faint">
+            Theme
+          </p>
+          {THEME_OPTIONS.map(({ value, label, Icon }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition hover:bg-surface-subtle"
+            >
+              <Icon className="h-4 w-4 text-ink-muted" />
+              <span className="flex-1 text-left">{label}</span>
+              {theme === value && <Check className="h-4 w-4 text-brand" />}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 px-1">
         <SignedIn>
-          {/* The bare Clerk avatar gave no hint that it was clickable or
-              that sign-out lived behind it. Name the actions instead. */}
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2">
-            <UserButton afterSignOutUrl="/" />
-            <span className="truncate text-sm text-ink-muted">
-              Your account
-            </span>
-          </div>
-
-          <button
-            onClick={() => signOut({ redirectUrl: "/" })}
-            className="focus-ring mt-1 flex w-full items-center gap-2 rounded-lg border border-brand bg-white px-3 py-2 text-sm font-semibold text-brand transition hover:bg-brand hover:text-white"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
+          {/* The avatar itself opens Clerk's menu, which holds Manage
+              account and Sign out -- so a separate sign-out button was
+              a second control for something already there. */}
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{ elements: { userButtonAvatarBox: "h-8 w-8" } }}
+          />
+          <span className="min-w-0 flex-1 truncate text-sm text-ink">
+            Your account
+          </span>
         </SignedIn>
 
         <SignedOut>
           <SignInButton mode="modal">
-            <button className="focus-ring flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-hover">
+            <button className="focus-ring flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover">
               <LogIn className="h-4 w-4" />
               Sign in
             </button>
           </SignInButton>
         </SignedOut>
+
+        <button
+          aria-label="Settings"
+          aria-expanded={settingsOpen}
+          onClick={() => setSettingsOpen((v) => !v)}
+          className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-muted transition hover:bg-surface-subtle hover:text-ink"
+        >
+          <Settings className="h-[18px] w-[18px]" />
+        </button>
       </div>
     </div>
   );

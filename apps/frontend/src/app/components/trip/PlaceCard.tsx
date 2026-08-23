@@ -10,7 +10,7 @@ export default function PlaceCard({ place }: Props) {
   if (!place) return null;
 
  return (
-    <div className="flex h-full min-w-0 flex-col rounded-2xl border border-border bg-white p-5 shadow-soft">
+    <div className="flex h-full min-w-0 flex-col rounded-2xl border border-border bg-surface-raised p-5 shadow-soft">
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <MapPin className="h-5 w-5" />
