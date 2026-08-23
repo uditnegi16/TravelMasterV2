@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Menu, SquarePen } from "lucide-react";
+import { cn } from "../../../lib/cn";
 import { getDeviceId } from "../../../lib/deviceId";
 import {
   connectProgressSocket,
@@ -36,6 +37,38 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 768,
   );
+
+  // The header slides away while scrolling and comes back once the
+  // scrolling stops, so it never covers the conversation mid-read.
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollY = useRef(0);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const y = el.scrollTop;
+    // Near the top there is nothing to gain by hiding it.
+    if (y <= 8) {
+      setHeaderVisible(true);
+    } else if (y > lastScrollY.current + 4) {
+      setHeaderVisible(false);
+    } else if (y < lastScrollY.current - 4) {
+      setHeaderVisible(true);
+    }
+    lastScrollY.current = y;
+
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => setHeaderVisible(true), 180);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  }, []);
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -551,7 +584,12 @@ export default function ChatPage() {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Replaces the removed site header: menu button + title. */}
-        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-white px-3">
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-2 overflow-hidden border-b border-border bg-white px-3 transition-all duration-200",
+            headerVisible ? "h-14 opacity-100" : "h-0 border-b-0 opacity-0",
+          )}
+        >
           {isSignedIn && !sidebarOpen && (
             <button
               aria-label="Open menu"
@@ -572,7 +610,11 @@ export default function ChatPage() {
           )}
         </div>
 
-        <div className="flex w-full flex-1 justify-center overflow-y-auto px-6 py-8">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex w-full flex-1 justify-center overflow-y-auto px-6 py-8"
+        >
           <div className="w-full max-w-5xl">
           {loadError && (
             <div

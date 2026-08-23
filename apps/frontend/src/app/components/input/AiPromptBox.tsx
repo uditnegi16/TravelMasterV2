@@ -1,5 +1,6 @@
 import {
   useRef,
+  useEffect,
   useState,
   type FormEvent,
   type KeyboardEvent,
@@ -97,6 +98,18 @@ export function AiPromptBox({
   }
 
   // Voice button is UI-only for now — toggles a visual "listening" state,
+  // The box was a fixed min-h-[48px] that only ever scrolled inside
+  // itself, so a short message got a tall box and a long one got a
+  // cramped scroller. Grow it to fit the text instead, up to a cap.
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, [value]);
+
   // no Web Speech API wiring yet (that lands with backend hookup).
   function handleVoiceClick() {
     toggle();
@@ -118,6 +131,7 @@ export function AiPromptBox({
       )}
 
       <textarea
+      ref={textareaRef}
       aria-label="Describe the trip you want to plan"
       style={{
           maxHeight: "180px",
@@ -125,12 +139,12 @@ export function AiPromptBox({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        rows={isHero ? 2 : 1}
+        rows={1}
         placeholder={placeholder}
         disabled={isBusy}
         className={cn(
-          "min-h-[48px] w-full flex-1 resize-none overflow-y-auto bg-transparent text-ink placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed disabled:opacity-60",
-          isHero ? "py-2.5 text-md md:text-lg" : "py-2 text-base"
+          "w-full flex-1 resize-none overflow-y-auto bg-transparent text-ink placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed disabled:opacity-60",
+          isHero ? "py-2 text-md md:text-lg" : "py-1.5 text-base"
         )}
       />
 
