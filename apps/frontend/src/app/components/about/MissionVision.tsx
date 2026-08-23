@@ -2,7 +2,7 @@ import { Target, Telescope } from "lucide-react";
 
 export function MissionVision() {
   return (
-    <section className="bg-white py-16 md:py-20">
+    <section className="bg-surface py-16 md:py-20">
       <div className="mx-auto grid max-w-[1080px] grid-cols-1 gap-6 px-4 md:grid-cols-2 md:px-8">
         <div className="card-surface p-8">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand">

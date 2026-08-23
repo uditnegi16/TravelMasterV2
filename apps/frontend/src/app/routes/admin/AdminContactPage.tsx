@@ -84,7 +84,7 @@ export default function AdminContactPage() {
               onClick={() => setFilter(f.value)}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
                 filter === f.value
-                  ? "bg-white text-ink shadow-soft"
+                  ? "bg-surface-raised text-ink shadow-soft"
                   : "text-ink-muted hover:text-ink"
               }`}
             >
@@ -128,7 +128,7 @@ export default function AdminContactPage() {
                       e.target.value as ContactSubmission["status"]
                     )
                   }
-                  className="shrink-0 rounded-lg border border-border bg-white px-2 py-1.5 text-sm font-medium text-ink focus-ring"
+                  className="shrink-0 rounded-lg border border-border bg-surface-raised px-2 py-1.5 text-sm font-medium text-ink focus-ring"
                 >
                   <option value="new">New</option>
                   <option value="in_progress">In progress</option>

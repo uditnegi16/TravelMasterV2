@@ -19,7 +19,7 @@ const faqs = [
 
 export function FaqSection() {
   return (
-    <section className="bg-white py-20 md:py-28">
+    <section className="bg-surface-raised py-20 md:py-28">
       <div className="mx-auto max-w-[900px] px-4 md:px-8">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">

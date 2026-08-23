@@ -48,7 +48,7 @@ export function FeaturesGrid() {
 
         <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
-            <div key={f.title} className="card-surface bg-white p-6">
+            <div key={f.title} className="card-surface bg-surface p-6">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
                 <f.icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
               </span>

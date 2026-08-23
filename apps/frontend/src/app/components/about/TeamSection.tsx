@@ -23,7 +23,7 @@ export function TeamSection() {
           {team.map((member) => (
             <div
               key={member.name}
-              className="card-surface flex w-[220px] flex-col items-center bg-white p-6 text-center"
+              className="card-surface flex w-[220px] flex-col items-center bg-surface p-6 text-center"
             >
               <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft font-display text-lg font-bold text-brand">
                 {member.initials}

@@ -650,14 +650,8 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div className="border-t border-border bg-surface px-4 py-4 sm:px-6">
+        <div className="px-4 pb-4 pt-2 sm:px-6">
           <div className="mx-auto w-full max-w-4xl">
-            {quota && !guestTrialUsed && !quotaExceeded && (
-              <p className="mb-2 text-center text-xs text-ink-faint">
-                {quota.remaining} of {quota.limit} trip plans left this month
-              </p>
-            )}
-
             {lastFailedQuery && !guestTrialUsed && !quotaExceeded && (
               <div
                 role="alert"

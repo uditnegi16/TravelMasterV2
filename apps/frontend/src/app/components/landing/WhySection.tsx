@@ -42,7 +42,7 @@ const features = [
 
 export function WhySection() {
   return (
-    <section className="bg-white py-20 md:py-28">
+    <section className="bg-surface-raised py-20 md:py-28">
       <div className="mx-auto max-w-[1200px] px-4 md:px-8">
         <div className="max-w-[760px]">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">

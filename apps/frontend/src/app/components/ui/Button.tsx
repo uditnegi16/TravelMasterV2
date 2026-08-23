@@ -19,7 +19,7 @@ const variantStyles: Record<Variant, string> = {
     "bg-ink text-white hover:bg-black shadow-soft active:scale-[0.98]",
 
   outline:
-    "bg-white text-ink border border-border hover:border-brand hover:text-brand hover:shadow-soft active:scale-[0.98]",
+    "bg-surface-raised text-ink border border-border hover:border-brand hover:text-brand hover:shadow-soft active:scale-[0.98]",
 
   ghost:
     "bg-transparent text-ink-muted hover:bg-surface-subtle hover:text-ink",

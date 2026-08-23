@@ -19,7 +19,7 @@ interface IconButtonProps
 
 const variantStyles: Record<Variant, string> = {
   default:
-    "bg-white border border-border-strong text-ink-muted hover:text-ink hover:border-ink/30",
+    "bg-surface-raised border border-border-strong text-ink-muted hover:text-ink hover:border-ink/30",
 
   filled:
     "bg-brand text-white hover:bg-brand-hover shadow-soft",

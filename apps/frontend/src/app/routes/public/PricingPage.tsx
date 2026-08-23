@@ -6,14 +6,14 @@ import { PricingCta } from "../../components/pricing/PricingCta";
 
 export default function PricingPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-surface">
       <PricingHero />
 
       <section className="px-4 pb-20 md:px-8">
         <PricingPlans />
       </section>
 
-      <section className="bg-white px-4 pb-20 md:px-8">
+      <section className="bg-surface px-4 pb-20 md:px-8">
         <div className="mx-auto max-w-[900px] text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">
             Compare plans

@@ -67,7 +67,7 @@ export function VoiceEnabledPromptBox({
       <form
         onSubmit={handleSubmit}
         className={cn(
-          "group relative flex w-full flex-col gap-3 rounded-2xl border border-border-strong bg-white p-3 pl-5 shadow-card transition-all duration-200 focus-within:border-brand/50 focus-within:shadow-raised sm:flex-row sm:items-end sm:gap-2 sm:p-2.5"
+          "group relative flex w-full flex-col gap-3 rounded-2xl border border-border-strong bg-surface-raised p-3 pl-5 shadow-card transition-all duration-200 focus-within:border-brand/50 focus-within:shadow-raised sm:flex-row sm:items-end sm:gap-2 sm:p-2.5"
         )}
       >
         <span className="mb-2.5 flex h-6 w-6 shrink-0 items-center justify-center text-brand">

@@ -5,7 +5,7 @@ import { FaqShortcut } from "../../components/contact/FaqShortcut";
 
 export default function ContactPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-surface">
       <ContactHero />
 
       <section className="mx-auto max-w-[1080px] px-4 pb-24 md:px-8">

@@ -34,6 +34,8 @@
   --accent-green-soft: 233 246 238;
   --accent-red-soft: 252 235 232;
 
+  --dot-grid: 217 222 233;
+
   color-scheme: light;
 }
 
@@ -67,6 +69,8 @@
   --accent-amber-soft: 58 45 22;
   --accent-green-soft: 22 51 36;
   --accent-red-soft: 60 32 29;
+
+  --dot-grid: 52 57 70;
 
   color-scheme: dark;
 }
@@ -208,7 +212,12 @@ p {
 /* Hero Pattern */
 
 .bg-dot-grid {
-  background-image: radial-gradient(circle, #d9dee9 1px, transparent 1px);
+  /* Was a fixed light grey, which vanished on a dark background. */
+  background-image: radial-gradient(
+    circle,
+    rgb(var(--dot-grid)) 1px,
+    transparent 1px
+  );
   background-size: 22px 22px;
 }
 

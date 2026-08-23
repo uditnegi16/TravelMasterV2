@@ -82,7 +82,7 @@ export function VoiceStatusPanel({ voice, onStop, onRetry }: VoiceStatusPanelPro
                   <button
                     type="button"
                     onClick={onRetry}
-                    className="focus-ring shrink-0 rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-ink hover:bg-white"
+                    className="focus-ring shrink-0 rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised"
                   >
                     Retry
                   </button>

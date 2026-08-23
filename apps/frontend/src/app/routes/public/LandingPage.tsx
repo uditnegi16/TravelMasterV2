@@ -10,11 +10,11 @@ import { CtaBand } from "../../components/landing/CtaBand";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
       <main>
         <HeroSection />
 
-        <section className="relative bg-white pb-16 md:pb-20 -mt-12 md:-mt-16">
+        <section className="relative bg-surface pb-16 md:pb-20 -mt-12 md:-mt-16">
           <div className="mx-auto max-w-[1120px] px-4 md:px-8">
             <PreviewPanel />
           </div>

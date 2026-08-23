@@ -32,7 +32,7 @@ export function EmptyChat({ onSuggestionClick }: EmptyChatProps) {
             key={s.text}
             type="button"
             onClick={() => onSuggestionClick?.(s.text)}
-            className="focus-ring group flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 text-left text-sm text-ink transition-all hover:border-brand/40 hover:bg-brand-softer"
+            className="focus-ring group flex items-center gap-3 rounded-2xl border border-border bg-surface-raised px-4 py-3 text-left text-sm text-ink transition-all hover:border-brand/40 hover:bg-brand-softer"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface-sunken text-ink-muted transition-colors group-hover:bg-brand-soft group-hover:text-brand">
               <s.icon className="h-[15px] w-[15px]" strokeWidth={2.25} />

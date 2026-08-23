@@ -26,7 +26,7 @@ export function TechStack() {
           {stack.map((item) => (
             <div
               key={item.label}
-              className="card-surface bg-white px-5 py-6 text-center"
+              className="card-surface bg-surface px-5 py-6 text-center"
             >
               <p className="font-mono text-sm font-semibold text-ink">
                 {item.label}

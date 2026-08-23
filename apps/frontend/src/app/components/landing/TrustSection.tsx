@@ -26,7 +26,7 @@ export function TrustSection() {
           {points.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
-              className="rounded-2xl border border-border bg-white p-6 shadow-soft"
+              className="rounded-2xl border border-border bg-surface-raised p-6 shadow-soft"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
                 <Icon className="h-5 w-5" strokeWidth={2} />

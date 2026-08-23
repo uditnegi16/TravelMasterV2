@@ -11,7 +11,7 @@ const flights = [
 
 export function PreviewPanel() {
   return (
-    <div className="relative mx-auto max-w-[880px] rounded-3xl border border-border bg-white p-2 shadow-raised">
+    <div className="relative mx-auto max-w-[880px] rounded-3xl border border-border bg-surface-raised p-2 shadow-raised">
       <div className="rounded-[1.25rem] border border-border bg-surface-subtle p-5 md:p-7">
         {/* user turn */}
         <div className="flex items-start gap-3">
@@ -45,7 +45,7 @@ export function PreviewPanel() {
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium ${
                   i === 0
                     ? "bg-ink text-white"
-                    : "bg-white text-ink-muted border border-border"
+                    : "bg-surface-raised text-ink-muted border border-border"
                 }`}
               >
                 {tab}
@@ -58,7 +58,7 @@ export function PreviewPanel() {
             {flights.map((f) => (
               <div
                 key={f.airline}
-                className="flex w-[220px] shrink-0 flex-col gap-3 rounded-2xl border border-border bg-white p-4 shadow-soft"
+                className="flex w-[220px] shrink-0 flex-col gap-3 rounded-2xl border border-border bg-surface-raised p-4 shadow-soft"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-brand">
@@ -79,7 +79,7 @@ export function PreviewPanel() {
             ))}
 
             <div className="flex w-[220px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border-strong bg-surface-subtle p-4 text-center">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-ink-faint">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-raised text-ink-faint">
                 <Building2 className="h-4 w-4" strokeWidth={2} />
               </span>
               <p className="text-xs font-medium text-ink-faint">

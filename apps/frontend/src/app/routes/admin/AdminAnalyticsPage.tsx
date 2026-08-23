@@ -51,7 +51,7 @@ export default function AdminAnalyticsPage() {
               key={w}
               onClick={() => setDays(w)}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
-                days === w ? "bg-white text-ink shadow-soft" : "text-ink-muted hover:text-ink"
+                days === w ? "bg-surface-raised text-ink shadow-soft" : "text-ink-muted hover:text-ink"
               }`}
             >
               {w}d

@@ -8,7 +8,7 @@ export function FooterCta() {
   return (
     <section className="bg-ink py-20 md:py-24">
       <div className="mx-auto flex max-w-[820px] flex-col items-center px-4 text-center md:px-8">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface/10 text-white">
           <MessageCircle className="h-5 w-5" strokeWidth={2.25} />
         </span>
 
@@ -35,7 +35,7 @@ export function FooterCta() {
           <Button
             variant="outline"
             size="lg"
-            className="border-white/20 bg-transparent text-white hover:border-white/40 hover:bg-white/5 hover:text-white"
+            className="border-white/20 bg-transparent text-white hover:border-white/40 hover:bg-surface/5 hover:text-white"
             onClick={() => navigate("/contact")}
           >
             Contact us

@@ -8,7 +8,7 @@ export function ContactSupportCta() {
   return (
     <div className="card-surface flex flex-col items-center gap-5 bg-brand-softer p-10 text-center md:flex-row md:justify-between md:text-left">
       <div className="flex items-center gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-brand shadow-soft">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface text-brand shadow-soft">
           <LifeBuoy className="h-5 w-5" strokeWidth={2.25} />
         </span>
         <div>

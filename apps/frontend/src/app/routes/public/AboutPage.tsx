@@ -9,7 +9,7 @@ import { FooterCta } from "../../components/about/FooterCta";
 
 export default function AboutPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-surface">
       <AboutHero />
       <MissionVision />
       <AiWorkflow />

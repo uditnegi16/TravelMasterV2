@@ -36,7 +36,7 @@ export function LegalLayout({ eyebrow, title, lastUpdated, intro, sections }: Le
   }, [sections]);
 
   return (
-    <div className="bg-white">
+    <div className="bg-surface-raised">
       <section className="border-b border-border bg-surface-subtle py-14 md:py-16">
         <div className="mx-auto max-w-[900px] px-4 md:px-8">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">

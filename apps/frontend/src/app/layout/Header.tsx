@@ -28,7 +28,7 @@ export default function Header() {
   const isAdmin = role === "admin" || role === "superadmin";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-white/92 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-surface/92 backdrop-blur-xl">
       <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-6 lg:px-8">
         <Link
           to="/"
@@ -118,7 +118,7 @@ export default function Header() {
       </div>
 
       {open && (
-        <div className="animate-fadeIn border-t border-border bg-white shadow-card px-4 pb-5 pt-2 md:hidden">
+        <div className="animate-fadeIn border-t border-border bg-surface-raised shadow-card px-4 pb-5 pt-2 md:hidden">
           <nav className="flex flex-col">
             {navItems.map((item) => (
               <NavLink

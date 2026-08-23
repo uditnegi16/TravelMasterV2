@@ -10,9 +10,9 @@ export default function HelpCenterPage() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
   return (
-    <div className="bg-white">
-      <section className="relative overflow-hidden bg-dot-grid bg-white py-16 md:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-gradient-to-b from-brand-softer via-white to-white" />
+    <div className="bg-surface">
+      <section className="relative overflow-hidden bg-dot-grid bg-surface py-16 md:py-20">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-gradient-to-b from-brand-softer via-surface to-surface" />
 
         <div className="relative mx-auto max-w-[720px] px-4 text-center md:px-8">
           <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand shadow-soft">

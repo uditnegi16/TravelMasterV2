@@ -15,7 +15,7 @@ export function VoiceWaveform({
   tone = "brand",
   className,
 }: VoiceWaveformProps) {
-  const color = tone === "brand" ? "bg-brand" : "bg-white";
+  const color = tone === "brand" ? "bg-brand" : "bg-surface-raised";
 
   return (
     <div className={cn("flex items-center gap-[3px]", className)}>

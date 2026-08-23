@@ -11,7 +11,7 @@ export function AdminCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border bg-white p-5 shadow-soft",
+        "rounded-2xl border border-border bg-surface-raised p-5 shadow-soft",
         className
       )}
     >

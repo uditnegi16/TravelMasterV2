@@ -11,7 +11,7 @@ const rows = [
 
 export function WhyTravelMaster() {
   return (
-    <section className="bg-white py-16 md:py-20">
+    <section className="bg-surface py-16 md:py-20">
       <div className="mx-auto max-w-[900px] px-4 md:px-8">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">

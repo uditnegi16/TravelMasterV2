@@ -6,7 +6,7 @@ export default function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="relative flex min-h-[calc(100vh-72px)] items-center justify-center overflow-hidden bg-white px-4 py-20">
+    <div className="relative flex min-h-[calc(100vh-72px)] items-center justify-center overflow-hidden bg-surface px-4 py-20">
       <div className="pointer-events-none absolute inset-0 bg-dot-grid opacity-60" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-soft blur-3xl" />
 

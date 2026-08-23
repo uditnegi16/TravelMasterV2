@@ -2,7 +2,7 @@ export default function PlannerHero() {
   return (
     <section>
       <div className="max-w-4xl">
-        <span className="inline-flex items-center rounded-full border border-border bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-brand">
+        <span className="inline-flex items-center rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-brand">
           AI Trip Planner
         </span>
 
