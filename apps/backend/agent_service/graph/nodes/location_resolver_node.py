@@ -166,6 +166,15 @@ AIRPORT_TO_CITY: dict[str, str] = {}
 for _city, _code in CITY_TO_AIRPORT.items():
     AIRPORT_TO_CITY.setdefault(_code, _city)
 
+DATE_CLARIFICATION_MESSAGE = (
+    "I need a clearer travel date before I can plan this. Please "
+    "give a specific date with the year - for example "
+    "\"12 April 2027\" or \"2027-04-12\". A month on its own, or a "
+    "date that has already passed, is ambiguous and the airline "
+    "search rejects it."
+)
+
+
 def normalize_date(date_str: str) -> str:
     """
     Converts natural-language dates into YYYY-MM-DD.
@@ -290,6 +299,11 @@ def location_resolver_node(state: TripPlanState) -> TripPlanState:
             trip["needs_date_clarification"] = True
         else:
             trip["needs_date_clarification"] = False
+
+        # Written here, in a node, because LangGraph discards state
+        # writes made inside conditional-edge routers.
+        if trip["needs_date_clarification"]:
+            state["final_response"] = DATE_CLARIFICATION_MESSAGE
 
         trip["end_date"] = normalize_date(
             trip.get("end_date", "")

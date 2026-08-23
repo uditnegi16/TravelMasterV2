@@ -63,13 +63,15 @@ DATE_CLARIFICATION_MESSAGE = (
 
 
 def _needs_date_clarification(state):
-    """Stop before the tool pipeline if we could not resolve a real
-    future travel date. Guessing a year silently produced wrong trips
-    and a 422 from the flight API."""
+    """Pure router. LangGraph passes conditional-edge functions a
+    COPY of state and discards anything they write, so the
+    clarification message is set in location_resolver_node -- a
+    real node -- and this only reads the flag. Setting it here
+    left final_response empty and the reply fell back to the
+    generic "Here's what I found."
+    """
     trip = state.get("parsed_trip") or {}
     if trip.get("needs_date_clarification"):
-        state["final_response"] = DATE_CLARIFICATION_MESSAGE
-        state["needs_date_clarification"] = True
         return "ask_for_date"
     return "continue"
 

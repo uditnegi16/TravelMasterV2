@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from graph.nodes.location_resolver_node import (
+    DATE_CLARIFICATION_MESSAGE,
     location_resolver_node,
     normalize_date,
 )
@@ -91,15 +92,50 @@ def test_a_good_date_does_not_flag():
     assert trip["destination"] == "NRT"
 
 
-def test_graph_routes_to_end_when_the_date_is_ambiguous():
-    from graph.build_graph import (
-        DATE_CLARIFICATION_MESSAGE,
-        _needs_date_clarification,
-    )
+def test_router_reads_the_flag_without_writing_state():
+    """
+    LangGraph passes conditional-edge functions a COPY of state and
+    discards their writes. Setting final_response here (as the first
+    version did) silently lost the message and the reply fell back to
+    the generic "Here's what I found." The router must stay pure.
+    """
+    from graph.build_graph import _needs_date_clarification
 
     state = {"parsed_trip": {"needs_date_clarification": True}}
     assert _needs_date_clarification(state) == "ask_for_date"
-    assert state["final_response"] == DATE_CLARIFICATION_MESSAGE
+    assert "final_response" not in state, (
+        "router wrote to state; LangGraph will discard it"
+    )
 
     ok = {"parsed_trip": {"needs_date_clarification": False}}
     assert _needs_date_clarification(ok) == "continue"
+
+
+def test_the_node_sets_the_clarification_message():
+    """This is the assertion the previous test should have made: the
+    message has to survive on the state the graph actually returns."""
+    state = {
+        "parsed_trip": {
+            "origin": "Delhi",
+            "destination": "Japan",
+            "start_date": "April",
+        },
+        "final_response": "",
+        "progress_callback": None,
+    }
+    location_resolver_node(state)
+    assert state["final_response"] == DATE_CLARIFICATION_MESSAGE
+
+
+def test_a_good_date_leaves_the_response_empty_for_the_composer():
+    state = {
+        "parsed_trip": {
+            "origin": "Delhi",
+            "destination": "Japan",
+            "start_date": _future(),
+        },
+        "final_response": "",
+        "progress_callback": None,
+    }
+    location_resolver_node(state)
+    assert state["final_response"] == ""
