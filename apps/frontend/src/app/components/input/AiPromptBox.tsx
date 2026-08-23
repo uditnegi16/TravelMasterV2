@@ -9,6 +9,9 @@ import { Mic, ArrowUp, Sparkles } from "lucide-react";
 import { VoiceStatusPanel } from "../voice/VoiceStatusPanel";
 import { VoicePermissionModal } from "../voice/VoicePermissionModal";
 import { cn } from "../../../lib/cn";
+
+/** Scroll only once the message passes this many lines. */
+const MAX_ROWS = 5;
 import { useVoiceInput } from "../voice/useVoiceInput";
 interface AiPromptBoxProps {
   size?: "hero" | "compact";
@@ -103,11 +106,24 @@ export function AiPromptBox({
   // cramped scroller. Grow it to fit the text instead, up to a cap.
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Height follows the text exactly: one row when empty, growing a line
+  // at a time, and only scrolling past MAX_ROWS. Measuring the real line
+  // height rather than hardcoding a pixel cap is what stops the box
+  // being taller than its content (the blank strip under the text).
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
+
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+
+    const styles = window.getComputedStyle(el);
+    const lineHeight = parseFloat(styles.lineHeight) || 24;
+    const padding =
+      parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+    const maxHeight = lineHeight * MAX_ROWS + padding;
+
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
   }, [value]);
 
   // no Web Speech API wiring yet (that lands with backend hookup).
@@ -133,9 +149,6 @@ export function AiPromptBox({
       <textarea
       ref={textareaRef}
       aria-label="Describe the trip you want to plan"
-      style={{
-          maxHeight: "180px",
-        }}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -143,7 +156,7 @@ export function AiPromptBox({
         placeholder={placeholder}
         disabled={isBusy}
         className={cn(
-          "w-full flex-1 resize-none overflow-y-auto bg-transparent text-ink placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed disabled:opacity-60",
+          "w-full flex-1 resize-none overflow-hidden bg-transparent text-ink placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed disabled:opacity-60",
           isHero ? "py-2 text-md md:text-lg" : "py-1.5 text-base"
         )}
       />

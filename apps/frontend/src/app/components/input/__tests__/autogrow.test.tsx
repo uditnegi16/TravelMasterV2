@@ -19,19 +19,31 @@ describe("AiPromptBox auto-grow", () => {
     fireEvent.change(ta, { target: { value: "short" } });
     const small = ta.style.height;
 
-    fake = 120;
+    fake = 72;
     fireEvent.change(ta, { target: { value: "a".repeat(400) } });
     const big = ta.style.height;
 
     expect(parseInt(small)).toBeLessThan(parseInt(big));
-    expect(parseInt(big)).toBe(120);
+    expect(parseInt(big)).toBe(72);
   });
 
-  it("caps growth at 180px", () => {
+  it("does not scroll while the text fits", () => {
+    render(<AiPromptBox onSubmit={vi.fn()} />);
+    const ta = screen.getByLabelText(/describe the trip/i) as HTMLTextAreaElement;
+    Object.defineProperty(ta, "scrollHeight", { get: () => 48 });
+    fireEvent.change(ta, { target: { value: "two\nlines" } });
+    expect(ta.style.overflowY).toBe("hidden");
+  });
+
+  it("caps height and starts scrolling past five lines", () => {
     render(<AiPromptBox onSubmit={vi.fn()} />);
     const ta = screen.getByLabelText(/describe the trip/i) as HTMLTextAreaElement;
     Object.defineProperty(ta, "scrollHeight", { get: () => 5000 });
     fireEvent.change(ta, { target: { value: "x".repeat(9000) } });
-    expect(parseInt(ta.style.height)).toBe(180);
+
+    // jsdom reports lineHeight "normal" and no padding, so the fallback
+    // of 24px per row applies: 5 rows = 120px.
+    expect(parseInt(ta.style.height)).toBe(120);
+    expect(ta.style.overflowY).toBe("auto");
   });
 });
