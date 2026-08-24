@@ -49,6 +49,17 @@ export default function TripResult({ result }: Props) {
     </div>
   );
 }
+  // A clarification turn ("which dates?") still produces a trip object,
+  // just an empty one -- which rendered the "Your Trip Plan" header with
+  // nothing underneath it. If there is nothing to show, show nothing.
+  const hasAnything =
+    (trip.multi_itineraries?.length ?? 0) > 0 ||
+    (trip.places?.length ?? 0) > 0 ||
+    Boolean(trip.weather) ||
+    Boolean(trip.recommended);
+
+  if (!hasAnything) return null;
+
   return (
     <div className="animate-fadeIn overflow-hidden rounded-3xl border border-border bg-surface-raised p-6 sm:p-7 lg:p-8 shadow-raised">
       <div className="mb-6 lg:mb-8">

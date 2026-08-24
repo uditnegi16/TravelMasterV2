@@ -69,6 +69,15 @@ export default function PackageCard({
           <p className="mt-1 font-medium text-ink">
             {flightName}
           </p>
+
+          {/* Duffel runs in sandbox mode: it returns canned offers that
+              do not correspond to the requested route or dates. Saying so
+              is better than a reader assuming the app got it wrong. */}
+          {flight && (
+            <p className="mt-1 text-[11px] leading-4 text-ink-faint">
+              Demo flight data — not a bookable fare
+            </p>
+          )}
         </div>
 
         <div>
