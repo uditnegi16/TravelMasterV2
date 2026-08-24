@@ -97,17 +97,20 @@ Examples:
 "DEL"
 → origin = "DEL"
 
-"October"  (no year)
+"October"  (month only, no day)
 → start_date = ""
 
 "next summer"  (vague)
 → start_date = ""
 
-"Christmas"  (no year)
+"Christmas"  (no day given)
 → start_date = ""
 
-"15 August to 20 August"  (no year)
-→ start_date = ""
+"15 August to 20 August"  (day + month, no year)
+→ resolve to the next 15 August: start_date = "2027-08-15"
+
+"September 15"  (day + month, still ahead this year)
+→ start_date = "2026-09-15"
 
 "10 Oct 2026"
 → start_date = "2026-10-10"
@@ -115,9 +118,9 @@ Examples:
 "next monday"  (resolvable from today)
 → start_date = the resolved YYYY-MM-DD
 
-3. If only a month is provided with no year,
-return start_date = "" and end_date = "".
-Do NOT guess the year.
+3. If a month is given with no day ("in April"), return
+start_date = "" and end_date = "" -- we do not know which days.
+A day AND month with no year is fine: use the next occurrence.
 
 4. If a field is missing,
 leave it empty.
@@ -196,37 +199,44 @@ empty. This applies especially to dates -- see rule 14.
 
 Today's date is {current_date}.
 
-A trip cannot be planned without a real, unambiguous travel date, and
-guessing one is worse than asking: it silently plans for the wrong
-year. So:
+Resolve a date whenever the user has given enough to pin it down, and
+ask only when they genuinely have not.
 
-- If the user gives a full date (day, month AND year), use it.
-- If the user gives a relative date that today resolves exactly
-  ("tomorrow", "next monday", "next week", "in 3 weeks"), resolve it
-  to YYYY-MM-DD.
-- Otherwise -- a month with no year, a day and month with no year, a
-  season, a holiday name, or anything vague -- return start_date = ""
-  and end_date = "".
-  NEVER infer, assume or default the year.
+RESOLVE (return YYYY-MM-DD):
+- Full date with a year: use it as given.
+- Day + month, no year: use the NEXT occurrence. If that day/month is
+  still ahead this year, use this year; if it has already passed, use
+  next year. "September 15" on 2026-08-22 is 2026-09-15.
+- Relative dates today resolves exactly: "tomorrow", "next monday",
+  "next week", "in 3 weeks".
+
+RETURN EMPTY (start_date = "" and end_date = ""):
+- A month with NO day: "in April", "sometime in October". The year is
+  guessable but the days are not.
+- A season or holiday: "next summer", "around Christmas", "in winter".
+- Anything else vague: "sometime soon", "whenever is cheapest".
+
+Never plan a trip for a date already in the past.
 
 Examples:
 
-Today: 2026-07-10
-User: 15 August to 20 August
-Output: start_date = "", end_date = ""
-(no year given -- the user will be asked to clarify)
+Today: 2026-08-22
+User: from september 15 to september 20
+Output: start_date = "2026-09-15", end_date = "2026-09-20"
 
-Today: 2026-07-10
-User: 15 August 2026 to 20 August 2026
-Output: start_date = "2026-08-15", end_date = "2026-08-20"
+Today: 2026-08-22
+User: 15 April to 20 April
+Output: start_date = "2027-04-15", end_date = "2027-04-20"
+(April has passed this year, so the next occurrence is 2027)
 
-Today: 2026-07-10
-User: next monday for 4 days
-Output: start_date = "2026-07-13", end_date = "2026-07-17"
-
-Today: 2026-07-10
+Today: 2026-08-22
 User: sometime in April
 Output: start_date = "", end_date = ""
+(no days given -- ask which dates)
+
+Today: 2026-08-22
+User: next monday for 4 days
+Output: start_date = "2026-08-24", end_date = "2026-08-28"
 
 If the user explicitly specifies a year, always use the user's year.
 

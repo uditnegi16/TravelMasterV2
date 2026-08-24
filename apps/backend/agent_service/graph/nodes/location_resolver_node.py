@@ -212,6 +212,16 @@ def normalize_date(date_str: str) -> str:
         r"^(in|on|around|during|by|from)\s+", "", cleaned, flags=re.I
     ).strip()
 
+    # "Sept" is how people write it; strptime's %b only accepts
+    # "Sep", so "sept 15" silently failed to parse and the user was
+    # asked for a date they had already given.
+    cleaned = re.sub(r"\bsept\b", "Sep", cleaned, flags=re.I)
+    cleaned = re.sub(r"\btues\b", "Tue", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bthurs\b", "Thu", cleaned, flags=re.I)
+
+    # Ordinal suffixes: "20th September", "September 3rd".
+    cleaned = re.sub(r"(\d+)(st|nd|rd|th)\b", r"\1", cleaned, flags=re.I)
+
     day_formats = ["%B %d", "%b %d", "%d %B", "%d %b"]
     month_only_formats = ["%B", "%b"]
 
@@ -223,11 +233,17 @@ def normalize_date(date_str: str) -> str:
 
         # strptime defaults a missing day to 1, which is what we want
         # for a month-only value.
-        dt = dt.replace(year=datetime.now().year)
-        # Deliberately NOT rolled forward to next year: guessing the
-        # year is exactly the ambiguity we want the user to resolve.
-        if dt.date() < datetime.now().date():
+        # A day AND month with no year is not really ambiguous: the
+        # user means the next one. Roll to next year only if that
+        # date has already gone by. A month with NO day never
+        # reaches here -- the planner returns "" for those, since
+        # we would be guessing which days, not just which year.
+        if fmt in month_only_formats:
             return ""
+
+        dt = dt.replace(year=datetime.now().year)
+        if dt.date() < datetime.now().date():
+            dt = dt.replace(year=dt.year + 1)
         return dt.strftime("%Y-%m-%d")
 
     # Genuinely unparseable. Return "" rather than a string that looks

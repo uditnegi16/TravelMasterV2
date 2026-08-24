@@ -20,6 +20,10 @@ from graph.nodes.location_resolver_node import (
 )
 
 
+def _parse(value):
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
 def _future(days=90):
     return (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
 
@@ -30,13 +34,36 @@ def test_month_without_a_year_is_not_guessed(raw):
     assert normalize_date(raw) == ""
 
 
-def test_day_and_month_without_a_year_is_not_guessed():
+def test_day_and_month_without_a_year_uses_the_next_occurrence():
     """
-    "April 10" is equally ambiguous -- the old code stamped the current
-    year, producing a date already months past when asked in August.
+    A day AND month with no year is not really ambiguous -- "September
+    15" means the next 15 September. Rejecting these was a regression:
+    it asked users for a date they had already given.
     """
     past = datetime.now() - timedelta(days=60)
-    assert normalize_date(past.strftime("%B %d")) == ""
+    out = _parse(normalize_date(past.strftime("%B %d")))
+    assert out >= datetime.now().date()
+    assert (out.month, out.day) == (past.month, past.day)
+
+
+def test_a_day_and_month_still_ahead_stays_in_this_year():
+    future = datetime.now() + timedelta(days=20)
+    assert normalize_date(future.strftime("%B %d")) == future.strftime(
+        "%Y-%m-%d"
+    )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["sept 15", "Sept 15", "15th September", "September 15th", "15 sept"],
+)
+def test_common_human_spellings_parse(raw):
+    """
+    strptime's %b accepts "Sep" but not "Sept", and chokes on ordinal
+    suffixes -- so "sept 15" and "20th September" were being rejected
+    as unparseable and the user was asked for a date they had given.
+    """
+    assert normalize_date(raw) != ""
 
 
 def test_an_unambiguous_future_date_this_year_is_accepted():
@@ -154,7 +181,10 @@ def test_planner_prompt_does_not_instruct_the_model_to_guess_a_year():
 
     prompt = PLANNER_SYSTEM_PROMPT.format(current_date=date.today().isoformat())
 
-    assert "NEVER infer, assume or default the year" in prompt
+    # Day + month with no year resolves to the next occurrence; only a
+    # month with no day (or a vague phrase) is sent back for clarifying.
+    assert "A month with NO day" in prompt
+    assert "use the NEXT occurrence" in prompt
 
     # The old rule told the model to pick a year, and a blanket "never
     # return an empty string" that contradicted leaving dates blank.
