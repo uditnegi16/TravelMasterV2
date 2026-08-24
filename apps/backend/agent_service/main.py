@@ -3,6 +3,9 @@
 # load_dotenv()
 
 # import asyncio
+import os
+
+from shared.logging_config import logger
 
 # from fastapi import FastAPI, HTTPException
 # from fastapi.middleware.cors import CORSMiddleware
@@ -69,9 +72,27 @@ print("14: admin")
 
 app = FastAPI(title="TravelMaster API")
 
+# Was allow_origins=["*"] with allow_credentials=True, which also
+# contradicted the carefully restricted CLERK_AUTHORIZED_PARTIES.
+# Reuse that same list so there is one source of truth for which
+# origins are trusted.
+_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CLERK_AUTHORIZED_PARTIES", "").split(",")
+    if origin.strip()
+]
+
+if not _allowed_origins:
+    # Better to break local dev loudly than to ship "*" silently.
+    _allowed_origins = ["http://localhost:5173"]
+    logger.warning(
+        "CLERK_AUTHORIZED_PARTIES is empty; CORS falling back to "
+        "localhost only"
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

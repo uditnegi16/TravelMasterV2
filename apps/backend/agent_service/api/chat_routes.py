@@ -19,7 +19,7 @@ import asyncio
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from api.chat_schemas import (
     CreateSessionRequest,
@@ -38,6 +38,7 @@ from fastapi import Depends
 from core.auth import get_current_user, get_current_user_optional, get_account_id, get_clerk_user_id
 from core.async_invoke import invoke_message_worker
 from shared import quota_guard
+from shared.guest_ip_guard import enforce_guest_session_limit
 from shared import metrics
 import time
 logger = logging.getLogger(__name__)
@@ -72,6 +73,7 @@ def get_sessions(
 @router.post("/sessions")
 def post_session(
     body: CreateSessionRequest,
+    request: Request,
     user=Depends(get_current_user_optional),
 ):
     if user is not None:
@@ -83,6 +85,11 @@ def post_session(
     # have a full back-and-forth conversation about their one trip
     # without hitting a wall mid-conversation; starting a SECOND
     # session is what actually requires sign-in.
+    # device_id lives in localStorage, so clearing site data hands out
+    # a fresh free trip. The IP cap is the half the user cannot
+    # clear; both checks apply.
+    enforce_guest_session_limit(request)
+
     if chat_service.has_used_guest_trial(body.device_id):
         raise HTTPException(
             status_code=403,
