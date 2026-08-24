@@ -122,3 +122,98 @@ describe("chatApi error handling", () => {
     expect(result.claimed).toBe(2);
   });
 });
+
+/**
+ * The branch-coverage gate on chatApi.ts was failing at 73% against an
+ * 80% threshold. The untested paths were all in handle()'s error
+ * branches -- the structured-error parsing -- plus authHeaders' guest
+ * case. These are the failure modes users actually hit (quota
+ * exhausted, session gone, backend down), so they are worth covering
+ * on their own merits, not just to move a number.
+ */
+describe("chatApi error branches", () => {
+  it("falls back to raw text when the error body is not JSON", async () => {
+    server.use(
+      http.get("http://test-api.local/chat/quota", () =>
+        new HttpResponse("upstream exploded", { status: 502 }),
+      ),
+    );
+
+    await expect(getQuotaStatus("tok")).rejects.toThrow("upstream exploded");
+  });
+
+  it("falls back to the status code when the body is empty", async () => {
+    server.use(
+      http.get("http://test-api.local/chat/quota", () =>
+        new HttpResponse("", { status: 503 }),
+      ),
+    );
+
+    await expect(getQuotaStatus("tok")).rejects.toThrow(
+      "Request failed with 503",
+    );
+  });
+
+  it("uses detail directly when it is a plain string", async () => {
+    server.use(
+      http.get("http://test-api.local/chat/quota", () =>
+        HttpResponse.json({ detail: "Session not found" }, { status: 404 }),
+      ),
+    );
+
+    await expect(getQuotaStatus("tok")).rejects.toThrow("Session not found");
+  });
+
+  it("attaches the status and detail to the thrown error", async () => {
+    server.use(
+      http.get("http://test-api.local/chat/quota", () =>
+        HttpResponse.json({ detail: "Guest trial already used." }, { status: 403 }),
+      ),
+    );
+
+    await getQuotaStatus("tok").then(
+      () => {
+        throw new Error("expected a rejection");
+      },
+      (err: Error & { status?: number; detail?: unknown }) => {
+        expect(err.status).toBe(403);
+        expect(err.detail).toBe("Guest trial already used.");
+      },
+    );
+  });
+
+  it("keeps a detail object that has no message field", async () => {
+    // Pydantic validation errors are a list, not {message}. The raw
+    // body should survive as the message rather than becoming
+    // "[object Object]".
+    server.use(
+      http.get("http://test-api.local/chat/quota", () =>
+        HttpResponse.json({ detail: [{ loc: ["body"], msg: "field required" }] }, {
+          status: 422,
+        }),
+      ),
+    );
+
+    await getQuotaStatus("tok").then(
+      () => {
+        throw new Error("expected a rejection");
+      },
+      (err: Error & { detail?: unknown }) => {
+        expect(Array.isArray(err.detail)).toBe(true);
+      },
+    );
+  });
+
+  it("sends no Authorization header for a guest", async () => {
+    let sawAuthHeader: string | null = "unset";
+    server.use(
+      http.post("http://test-api.local/chat/sessions", ({ request }) => {
+        sawAuthHeader = request.headers.get("authorization");
+        return HttpResponse.json({ id: "s1", title: "New trip" });
+      }),
+    );
+
+    await createSession("device-1", null, "New trip");
+    expect(sawAuthHeader).toBeNull();
+  });
+});
