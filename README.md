@@ -57,6 +57,16 @@ It's deployed serverless on **AWS Lambda** by default, with an alternative **Kub
 
 A running log of the platform's evolution beyond the original MVP — the parts that tend to matter most to anyone reviewing the engineering, not just the product:
 
+- **The repo and production had silently diverged** — two fixes for live 500 and 502 errors had been deployed with `sam deploy` from a working directory but never committed, so `main` still contained both bugs. Both are now in git with regression tests that provably fail against the pre-fix code. The root cause was process, not code: hand-deploying from local disk lets the two drift with nothing to catch it.
+- **Infrastructure brought under version control** — `template.yml` was gitignored because every secret was hardcoded in it, which meant the only copy of the stack definition lived on one laptop. Secrets are now `NoEcho` CloudFormation parameters injected at deploy time, so the template is tracked and the stack is rebuildable from a clean clone.
+- **A production 502 from a closed event loop** — the async-worker dispatch used `asyncio.run()`, which always closes the loop it creates. Lambda reuses warm containers, so the *next* request on that container died inside Mangum. Found from the CloudWatch traceback.
+- **A production 500 from the 1 MB async-invoke limit** — the worker payload carried the full previous trip; `flight_categories` alone reached 446 KB in real logs. The worker now reads that state from the database itself.
+- **A non-idempotent graph node breaking four features at once** — the location resolver overwrote `destination` with an IATA code, and MODIFY_TRIP feeds the previous trip back through the same graph. On the second pass `"NRT"` matched nothing, `destination_city` degraded to `"Nrt"`, and the hotel search fuzzy-matched that to **Nakhon Si Thammarat, Thailand** for a Japan trip. Fixed with a reverse airport→city map so the node is safe to re-run.
+- **The guest-trial bypass closed** — the one-free-trip allowance was keyed on a `device_id` held in localStorage, so clearing site data granted unlimited free trips, each costing real LLM and flight-API calls. A second cap now keys on client IP; both apply.
+- **CORS actually restricted** — API Gateway and FastAPI both allowed any origin while `CLERK_AUTHORIZED_PARTIES` was carefully restricted. Both now derive from that same list. Verified by testing the *negative* case: an untrusted origin receives no `Access-Control-Allow-Origin` at all.
+- **A date bug the LLM was hiding** — the planner prompt told the model to infer a missing year, so "a trip in April" silently planned for a year the user never gave, and a bare month reached the flights API as the literal string `"April"` (a 422 that surfaced as "No flight available"). The prompt now resolves only what today pins down exactly and asks otherwise.
+- **Dark mode across the app** — the palette was hardcoded hex, so nothing could be re-themed. Semantic tokens now resolve through CSS variables with Tailwind's class-based dark mode, so one class on `<html>` re-themes every existing utility with no per-component changes.
+
 - **Session ownership fixed** — sessions and messages used to be scoped by a client-supplied `device_id`, meaning changing that value gave access to a different user's data. Now scoped by `account_id`, derived server-side from the Clerk JWT (`uuid_generate_v5(uuid_ns_dns(), <clerk sub>)`), consistent across the app and enforced independently by Postgres RLS.
 - **PDF delivery fixed** — was streaming a base64 response body through API Gateway without decoding it back to binary, producing a corrupted file on every download. Now uploads to S3 and returns a presigned URL as JSON (not an HTTP redirect, so the frontend never has to depend on the S3 bucket having CORS configured for a cross-origin fetch).
 - **Share links hardened** — tokens used to be stored plaintext with no expiry or revocation. Now hashed at rest (SHA-256), expire after 7 days, and can be explicitly revoked by the owner.
@@ -186,19 +196,31 @@ flowchart TD
 
 ## Performance & Load Testing
 
-> ⚠️ **The numbers below are historical**, from the Go aggregator's original benchmark script, which hit a single hardcoded session ID repeatedly — testing whether one always-cache-hot map key could be read fast, not realistic concurrent traffic. That script was rewritten 2026-08-03 (Issue 12) to seed hundreds of unique sessions and run burst/soak/recovery scenarios instead of one flat 30-second run. A second, genuinely new script (`end-to-end-product-test.js`) now also tests the real product end-to-end — real guests, real varied queries, through the real API — which the numbers below say nothing about at all. **Re-run both** (see [`apps/backend/go-kafka-consumer/benchmarks/README.md`](apps/backend/go-kafka-consumer/benchmarks/README.md)) and replace this table with real current results before relying on it in an interview.
+**There are no current numbers here, deliberately.**
 
-The Go aggregation service was load-tested with **k6** at 10, 50, and 100 concurrent virtual users (30s per run) against `GET /result/{session_id}`, returning a full aggregated trip payload (~625 KB/response).
+An earlier version of this section reported ~981 req/s and 66,317
+requests at 100% success. Those figures came from a k6 script that hit a
+single hardcoded session ID repeatedly — it measured how fast one
+always-cache-hot map key could be read, not how the service behaves
+under realistic concurrent traffic. They were also collected before a
+substantial amount of the system changed.
 
-| Virtual Users | Requests/sec | Avg Latency | p95 Latency | Errors |
-|---|---|---|---|---|
-| 10  | 490 req/s | 19.97 ms  | 39.24 ms  | 0 |
-| 50  | **981 req/s** | 49.60 ms  | 105.16 ms | 0 |
-| 100 | 734 req/s | 133.09 ms | 253.38 ms | 0 |
+Rather than leave impressive-looking numbers that don't mean what they
+appear to mean, they've been removed. Two honest harnesses exist and are
+ready to run:
 
-- **66,317 requests served across all benchmark runs — 0 failures, 100% success rate.** (Against a single, always-cached key — see caveat above.)
-- Throughput scaled nearly linearly from 10→50 VUs; 50→100 VUs showed graceful degradation (throughput dipped ~25%, latency rose ~2.7×) consistent with the service becoming CPU/serialization-bound rather than failing outright.
-- Full methodology, per-run breakdowns, and optimization backlog (gzip compression, `sync.Pool`, HTTP/2, response caching) are recorded in [`docs/phase-logs/phase-10.md`](docs/phase-logs/phase-10.md).
+- **Go aggregator benchmark** — seeds hundreds of unique sessions and
+  runs burst, soak and recovery scenarios instead of one flat 30s pass.
+- **`end-to-end-product-test.js`** — plans real trips through the real
+  guest flow with varied queries and unique simulated users, exercising
+  the actual product rather than one cached endpoint.
+
+Both live in
+[`apps/backend/go-kafka-consumer/benchmarks/`](apps/backend/go-kafka-consumer/benchmarks/).
+Run them and publish what they produce; don't reinstate the old table.
+
+Methodology and the original per-run breakdowns are kept for reference in
+[`docs/phase-logs/phase-10.md`](docs/phase-logs/phase-10.md).
 
 ---
 
@@ -210,7 +232,7 @@ The Go aggregation service was load-tested with **k6** at 10, 50, and 100 concur
 | Auth | Clerk (JWT-based, protected routes), plus a first-trip guest path requiring no account at all (device-scoped, one trial session) |
 | MLOps Backend | FastAPI stub (`apps/backend/mlops_service`) — early scaffold for a planned auth/payments/rate-limiting layer that was never built out; all of that responsibility lives in the agent service instead |
 | AI Agent Service | LangGraph, LangChain, FastAPI, Python 3.12 — deployable to Lambda **or** Kubernetes; also handles auth, quotas, payments, PDF/share |
-| LLM | Groq `llama-3.3-70b-versatile`, NVIDIA NIM |
+| LLM | Groq `openai/gpt-oss-120b`, NVIDIA NIM |
 | Voice Input | `faster-whisper` (local CPU transcription, no external API call) |
 | Flights | Duffel API, behind a circuit breaker |
 | Hotels | OpenStreetMap Nominatim (structured lodging search) |
@@ -336,6 +358,16 @@ RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 UPSTASH_REDIS_REST_URL=your_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_redis_token
 AGENT_BUS=direct
+
+# Comma-separated origins. Governs BOTH Clerk's authorized parties
+# and the FastAPI CORS allow-list -- one source of truth, so an
+# origin that can authenticate is exactly one that can call the API.
+CLERK_AUTHORIZED_PARTIES=http://localhost:5173
+
+# Optional: separate keys for the classifier and planner calls, so
+# one hot path can't exhaust the main key's rate limit.
+GROQ_CLASSIFIER_API_KEY=
+GROQ_PLANNER_API_KEY=
 ```
 
 > Auth, payments, and quotas all live in this service, not `mlops_service` (see the architecture note above) — Clerk, Razorpay, and Redis credentials genuinely belong here, not there.
@@ -464,15 +496,67 @@ go build .
 
 ### Deploy Agent Lambda
 
+`template.yml` deliberately contains **no secrets**. Every credential is a
+`NoEcho` CloudFormation parameter injected at deploy time from a
+gitignored `.env.prod`, which is why the template can live in version
+control at all — it was previously gitignored precisely because the
+secrets were hardcoded inside it, leaving the only copy of the
+infrastructure definition on one laptop.
+
+So `sam deploy` on its own will not work: it would prompt for all 17
+parameters. Use the deploy script instead.
+
+**Before your first deploy**, create `apps/backend/agent_service/.env.prod`
+with the production values (this file is gitignored and must never be
+committed):
+
+```env
+GROQ_API_KEY=
+GROQ_CLASSIFIER_API_KEY=
+GROQ_PLANNER_API_KEY=
+OPENTRIPMAP_API_KEY=
+DUFFEL_API_TOKEN=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+NVIDIA_API_KEY=
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
+CLERK_AUTHORIZED_PARTIES=
+HF_TOKEN=
+```
+
+Then:
+
 ```bash
 cd apps/backend/agent_service
-sam build
-sam deploy --guided
+py deploy.py --print-only   # shows the command with values masked; deploys nothing
+py deploy.py                # sam build + sam deploy with the parameters
 ```
+
+`deploy.py` runs anywhere Python does (no Git Bash needed on Windows);
+`deploy.sh` is the bash equivalent. Both:
+
+- refuse to run if any of the 17 values is missing or empty, naming which
+- default to `.env.prod`, **never** `.env` — the local `.env` holds dev
+  values including a *test* Razorpay key, and deploying those would
+  quietly break live payments
+- prompt for confirmation when they see an `rzp_live_` key
 
 Stack name: `travelguru-agent-service` · Region: `ap-south-1`
 
-> A stack named `travelmaster-agent` also exists in this project's AWS account, created earlier and left in place rather than deleted — it is **not** the live stack and should not be deployed to. `travelguru-agent-service` is the one `VITE_API_BASE` actually points at.
+> **Lost `.env.prod`?** The parameters are `NoEcho`, so CloudFormation
+> will not return them. The deployed values are still readable from the
+> function's environment:
+> ```bash
+> aws lambda get-function-configuration \
+>   --function-name travelguru-agent-service-TravelGuruAgentFunction-55liupDEyMGT \
+>   --query "Environment.Variables"
+> ```
 
 ### Deploy MLOps Lambda
 
