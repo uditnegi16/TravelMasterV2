@@ -54,6 +54,10 @@ Parameters:
   HfToken:
     Type: String
     NoEcho: true
+  AllowedOrigin:
+    Type: String
+    Description: Browser origin allowed by API Gateway CORS.
+    Default: "https://main.d2dqny356lcrsz.amplifyapp.com"
 
 Globals:
   Function:
@@ -72,7 +76,9 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"
+        # Was "'*'", which contradicted the restricted
+        # CLERK_AUTHORIZED_PARTIES. Same origins, one source of truth.
+        AllowOrigin: !Sub "'${AllowedOrigin}'"
 
   TravelGuruAgentFunction:
     Type: AWS::Serverless::Function
@@ -134,10 +140,12 @@ Resources:
                 - s3:PutObject
                 - s3:GetObject
               Resource: "arn:aws:s3:::travelmaster-pdfs/pdfs/*"
+            # The async worker invokes THIS function only. "*" let it
+            # invoke every Lambda in the account.
             - Effect: Allow
               Action:
                 - lambda:InvokeFunction
-              Resource: "*"
+              Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*"
   TravelGuruWebSocketFunction:
     Type: AWS::Serverless::Function
     Metadata:
