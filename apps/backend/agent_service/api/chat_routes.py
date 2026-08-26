@@ -275,6 +275,9 @@ def post_message(
         "weather": {},
         "final_response": "",
         "errors": [],
+        # Needed by info_request_node to remember what it has
+        # already suggested in this conversation.
+        "session_id": session_id,
         "progress_callback": progress_callback,
     }
 

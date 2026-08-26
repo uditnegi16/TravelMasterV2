@@ -85,6 +85,10 @@ async def process_message_turn(payload: dict[str, Any]) -> None:
         "places": [],
         "weather": {},
         "final_response": "",
+        # Declared in TripPlanState but never populated: nodes that
+        # need per-conversation memory (info_request, to avoid
+        # repeating suggestions) had nothing to key on.
+        "session_id": session_id,
         "errors": [],
         "progress_callback": lambda event: _emit_async(session_id, event),
     }

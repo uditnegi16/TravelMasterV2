@@ -21,6 +21,7 @@ question is actually about -- keeping cost proportional.
 
 from services.hotel_service import search_hotels
 from services.places_service import search_places
+from services.shown_items import filter_already_shown, remember_shown
 from graph.progress_utils import emit_progress, emit_token
 from llm.llm_client import get_primary_llm, get_fallback_llm
 from llm.prompts import INFO_REQUEST_SYSTEM_PROMPT
@@ -58,6 +59,9 @@ def info_request_node(state: dict) -> str:
     category = _pick_category(query)
     results: list[dict] = []
 
+    session_id = state.get("session_id")
+    exhausted = False
+
     if city:
         try:
             if category == "hotels":
@@ -68,11 +72,35 @@ def info_request_node(state: dict) -> str:
             logger.warning(f"info_request {category} search failed | {e}")
             results = []
 
+        # The search is deterministic, so asking "where else can I
+        # visit" twice returned the identical five. Drop anything
+        # this session has already been shown.
+        if results:
+            fresh = filter_already_shown(session_id, category, results)
+            if fresh:
+                results = fresh
+            else:
+                exhausted = True
+
+    shown = results[:5]
+    if shown and not exhausted:
+        remember_shown(session_id, category, shown)
+
+    exhausted_note = (
+        "NOTE: everything we have for this city has already been"
+        " suggested earlier in this conversation. Say plainly that"
+        " you have run out of new suggestions instead of repeating"
+        " the earlier ones."
+        if exhausted
+        else ""
+    )
+
     human_prompt = f"""
 Destination: {city or "unknown -- no prior trip on record"}
 Category requested: {category}
-Real search results ({len(results)} found):
-{results[:5]}
+{exhausted_note}
+Real search results ({len(shown)} found):
+{shown}
 
 User's Question:
 {query}
