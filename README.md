@@ -122,26 +122,38 @@ YOUR_GITHUB_VIDEO_ASSET_URL_HERE
 <!-- 2. Create a /screenshots folder in your repo                     -->
 <!-- 3. Upload the images below                                       -->
 <!-- 4. The paths below will auto-resolve once images are uploaded    -->
-<!-- ================================================================ -->
-<!-- Screenshots to capture:                                          -->
-<!-- 1. landing.png    — Landing page hero before login               -->
-<!-- 2. chat.png       — Chat / plan-trip experience with results     -->
-<!-- 3. trip.png       — Flights/hotels/places/weather results        -->
-<!-- 4. pdf.png        — Downloaded PDF opened in browser             -->
-<!-- 5. admin.png      — Admin dashboard with metrics                 -->
-<!-- 6. kafka-ui.png   — Kafka UI showing agent topics (nice touch)   -->
-<!-- ================================================================ -->
+### Desktop
 
 <p align="center">
-  <img src="Screenshots/LP.png" width="48%" alt="Landing Page" />
-  <img src="Screenshots/paymentgateway.png" width="48%" alt="Payment Gateway" /> 
+  <img src="Screenshots/LP.png" width="48%" alt="Landing page" />
+  <img src="Screenshots/Chatbot.png" width="48%" alt="Chat with the conversation drawer open" />
 </p>
 <p align="center">
-  <img src="Screenshots/Chatbot.png" width="48%" alt="ChatBot" />
-  <img src="Screenshots/TripResults.png" width="48%" alt="Trip Results" />
+  <img src="Screenshots/TripResults.png" width="48%" alt="Trip results: three priced packages" />
+  <img src="Screenshots/admin.png" width="48%" alt="Admin panel" />
+</p>
+
+### Pricing and checkout
+
+<p align="center">
+  <img src="Screenshots/pricing.png" width="48%" alt="Pricing page" />
+  <img src="Screenshots/paymentgateway.png" width="48%" alt="Razorpay checkout" />
+</p>
+
+### Mobile — a full trip, start to finish
+
+The chat is a full-height app surface on mobile: no site header, no
+footer, and every nav link and account control inside the left drawer.
+
+<p align="center">
+  <img src="Screenshots/mobile-1-welcome.jpeg" width="30%" alt="Welcome screen" />
+  <img src="Screenshots/mobile-2-prompt_and_planning.jpeg" width="30%" alt="Prompt entered and the agent planning" />
+  <img src="Screenshots/mobile-3-response.jpeg" width="30%" alt="Assistant's itinerary response" />
 </p>
 <p align="center">
-  <img src="Screenshots/admin.png" width="48%" alt="Admin Panel" />
+  <img src="Screenshots/mobile-4-trip.jpeg" width="30%" alt="Trip packages" />
+  <img src="Screenshots/mobile-5-pdf_share.jpeg" width="30%" alt="PDF export and share" />
+  <img src="Screenshots/mobile-6-chatbot_menu.jpeg" width="30%" alt="Conversation drawer" />
 </p>
 
 ---
