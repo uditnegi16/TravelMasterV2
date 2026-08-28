@@ -24,13 +24,23 @@ prevents, and signed-in quotas are unaffected either way.
 
 from __future__ import annotations
 
+import os
+
 from fastapi import HTTPException, Request
 
 from core.redis_client import redis_client
 from shared.logging_config import logger
 
 # Generous: a normal visitor needs one. This only catches repetition.
-GUEST_SESSIONS_PER_IP_PER_DAY = 5
+#
+# Configurable so a load test can raise it for a measurement window
+# without a code change and a redeploy of edited source -- the
+# end-to-end harness creates ~30 guest sessions from one IP, which the
+# default would block after five, making the run measure this guard
+# rather than the product.
+GUEST_SESSIONS_PER_IP_PER_DAY = int(
+    os.getenv("GUEST_SESSIONS_PER_IP_PER_DAY", "5")
+)
 
 _DAY_SECONDS = 24 * 60 * 60
 

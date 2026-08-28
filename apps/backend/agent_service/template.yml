@@ -54,6 +54,12 @@ Parameters:
   HfToken:
     Type: String
     NoEcho: true
+  GuestSessionsPerIpPerDay:
+    Type: String
+    Description: >-
+      Guest sessions allowed per client IP per day. Raise only for a
+      load-test window; the default is the real protection.
+    Default: "5"
   AllowedOrigin:
     Type: String
     Description: Browser origin allowed by API Gateway CORS.
@@ -126,6 +132,7 @@ Resources:
           CLERK_SECRET_KEY: !Ref ClerkSecretKey
           CLERK_PUBLISHABLE_KEY: !Ref ClerkPublishableKey
           CLERK_AUTHORIZED_PARTIES: !Ref ClerkAuthorizedParties
+          GUEST_SESSIONS_PER_IP_PER_DAY: !Ref GuestSessionsPerIpPerDay
           HF_TOKEN: !Ref HfToken
           ENVIRONMENT: "production"
           PDF_S3_BUCKET: "travelmaster-pdfs"

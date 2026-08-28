@@ -196,28 +196,70 @@ flowchart TD
 
 ## Performance & Load Testing
 
-**There are no current numbers here, deliberately.**
+### Why the old numbers are gone
 
-An earlier version of this section reported ~981 req/s and 66,317
+An earlier version of this section reported ~981 req/s across 66,317
 requests at 100% success. Those figures came from a k6 script that hit a
 single hardcoded session ID repeatedly — it measured how fast one
 always-cache-hot map key could be read, not how the service behaves
-under realistic concurrent traffic. They were also collected before a
-substantial amount of the system changed.
+under real traffic. They also predate most of the current system. They
+have been removed rather than left to look impressive.
 
-Rather than leave impressive-looking numbers that don't mean what they
-appear to mean, they've been removed. Two honest harnesses exist and are
-ready to run:
+### What is actually worth measuring here
 
-- **Go aggregator benchmark** — seeds hundreds of unique sessions and
-  runs burst, soak and recovery scenarios instead of one flat 30s pass.
-- **`end-to-end-product-test.js`** — plans real trips through the real
-  guest flow with varied queries and unique simulated users, exercising
-  the actual product rather than one cached endpoint.
+Throughput is the wrong headline for this service. A trip-planning turn
+is dominated by an LLM call and three external APIs, so the ceiling is
+**Groq's 12,000 tokens-per-minute limit**, not this architecture. A
+"requests per second" number would describe Groq's rate limit with this
+app's name on it.
 
-Both live in
-[`apps/backend/go-kafka-consumer/benchmarks/`](apps/backend/go-kafka-consumer/benchmarks/).
-Run them and publish what they produce; don't reinstate the old table.
+The honest measurements are **latency and reliability of the real
+product path**:
+
+- time to create a guest session (Lambda + API Gateway + Supabase)
+- time to plan a full trip (classify → parse → resolve → RAG → 4 tools
+  → compose)
+- error rate across the run
+
+`benchmarks/end-to-end-product-test.js` measures exactly those. It plans
+real trips through the real guest flow with varied queries and a unique
+device ID per iteration, at 3 requests/minute for 10 minutes — a rate
+chosen after a first run hit the Groq token limit, which is itself
+recorded in the script's comments.
+
+### Running it
+
+The guest-session IP cap (5/day) exists to stop the free-trial bypass
+and would block this run after five sessions, so raise it for the
+measurement window and restore it afterwards:
+
+```bash
+cd apps/backend/agent_service
+py deploy.py --guest-ip-cap 500
+
+cd ../go-kafka-consumer/benchmarks
+k6 run -e BASE_URL=https://<your-api-id>.execute-api.<region>.amazonaws.com/prod \
+       end-to-end-product-test.js
+
+cd ../../agent_service
+py deploy.py          # restores the default cap of 5
+```
+
+This costs real Groq calls, real Duffel/OpenTripMap requests and real
+quota. It is a deliberate spend, not something to leave running.
+
+### Results
+
+_Not yet run against the current system._ When it is, record the k6
+summary here verbatim — `session_create_duration` and
+`trip_plan_duration` p50/p95, `http_req_failed`, iteration count and
+date — together with the arrival rate and duration used, so the numbers
+can be read in context rather than taken on trust.
+
+The Go aggregator benchmark
+(`benchmarks/load_test.js`) seeds hundreds of unique sessions and runs
+burst, soak and recovery scenarios; it exercises the Kafka aggregation
+path, which runs locally only and is not deployed to AWS.
 
 Methodology and the original per-run breakdowns are kept for reference in
 [`docs/phase-logs/phase-10.md`](docs/phase-logs/phase-10.md).

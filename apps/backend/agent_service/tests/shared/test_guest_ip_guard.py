@@ -100,3 +100,24 @@ class TestGuestSessionLimit:
                 "guest_sessions:ip:203.0.113.7",
                 "guest_sessions:ip:198.51.100.2",
             ]
+
+
+def test_the_cap_is_configurable_for_load_testing():
+    """
+    The end-to-end harness creates ~30 guest sessions from one IP. At the
+    default of 5 the run would measure this guard rather than the
+    product, so the limit is an env var and a deploy parameter -- raised
+    for a measurement window, then restored.
+    """
+    import importlib
+    import os
+
+    os.environ["GUEST_SESSIONS_PER_IP_PER_DAY"] = "500"
+    try:
+        reloaded = importlib.reload(guest_ip_guard)
+        assert reloaded.GUEST_SESSIONS_PER_IP_PER_DAY == 500
+    finally:
+        del os.environ["GUEST_SESSIONS_PER_IP_PER_DAY"]
+        importlib.reload(guest_ip_guard)
+
+    assert guest_ip_guard.GUEST_SESSIONS_PER_IP_PER_DAY == 5

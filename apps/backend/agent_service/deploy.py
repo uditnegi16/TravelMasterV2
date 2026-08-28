@@ -86,6 +86,14 @@ def main():
         action="store_true",
         help="show the command with secrets masked; deploy nothing",
     )
+    p.add_argument(
+        "--guest-ip-cap",
+        help=(
+            "Raise GuestSessionsPerIpPerDay for a load-test window, e.g. "
+            "--guest-ip-cap 500. Redeploy without it afterwards to restore "
+            "the real protection."
+        ),
+    )
     args = p.parse_args()
 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -113,7 +121,10 @@ def main():
     sam = find_sam()
 
     if args.print_only:
-        masked = " ".join(f'{PARAM_MAP[k]}="***"' for k in PARAMS)
+        masked_parts = [f'{PARAM_MAP[k]}="***"' for k in PARAMS]
+        if args.guest_ip_cap:
+            masked_parts.append(f'GuestSessionsPerIpPerDay="{args.guest_ip_cap}"')
+        masked = " ".join(masked_parts)
         shown = sam or "<sam not found on PATH>"
         print(f"Using SAM at {shown}")
         print("\nWould run:")
@@ -133,9 +144,17 @@ def main():
 
     # SAM wants ONE space-joined string, not one argv entry per pair.
     # Values are quoted so commas (CLERK_AUTHORIZED_PARTIES) survive.
-    overrides = " ".join(
+    pairs = [
         '%s="%s"' % (PARAM_MAP[k], values[k].replace('"', '\\"')) for k in PARAMS
-    )
+    ]
+    if args.guest_ip_cap:
+        pairs.append('GuestSessionsPerIpPerDay="%s"' % args.guest_ip_cap)
+        print(
+            f"\n*** Guest IP cap raised to {args.guest_ip_cap} for this "
+            "deploy.\n*** Redeploy without --guest-ip-cap when the test "
+            "finishes."
+        )
+    overrides = " ".join(pairs)
 
     # Guard against pushing a live payment key without meaning to.
     if values["RAZORPAY_KEY_ID"].startswith("rzp_live_"):
