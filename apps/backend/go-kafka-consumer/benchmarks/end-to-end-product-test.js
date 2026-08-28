@@ -31,6 +31,10 @@ import { Trend } from "k6/metrics";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8001";
 
+// A planning turn runs 20-100s; poll well past the worst case.
+const ANSWER_TIMEOUT_MS = Number(__ENV.ANSWER_TIMEOUT_MS || 150000);
+const POLL_INTERVAL_MS = Number(__ENV.POLL_INTERVAL_MS || 3000);
+
 // Real, varied queries -- every one has an explicit date and sticks
 // to well-established major hubs only. The first real run
 // (2026-08-04) surfaced genuine Duffel failures for smaller regional
@@ -56,6 +60,7 @@ const QUERIES = [
 // actually waits for their trip plan, the number that matters for UX.
 const sessionCreateDuration = new Trend("session_create_duration", true);
 const tripPlanDuration = new Trend("trip_plan_duration", true);
+const enqueueDuration = new Trend("enqueue_duration", true);
 
 export const options = {
   scenarios: {
@@ -77,7 +82,9 @@ export const options = {
     // Real LLM + external API latency is seconds, not milliseconds --
     // these thresholds reflect that, not a mistake.
     session_create_duration: ["p(50)<1000", "p(95)<3000"],
-    trip_plan_duration: ["p(50)<15000", "p(95)<30000"],
+    // Real end-to-end answer time, not enqueue time.
+    trip_plan_duration: ["p(50)<60000", "p(95)<120000"],
+    enqueue_duration: ["p(95)<5000"],
     http_req_failed: ["rate<0.05"],
   },
 };
@@ -112,11 +119,20 @@ export default function () {
   const sessionId = JSON.parse(createRes.body).id;
 
   // Step 2: plan the actual trip -- the real endpoint that invokes the
-  // LangGraph agent pipeline (planner -> tool router -> composer).
-  // Generous timeout: a real multi-agent trip plan with parallel
-  // flight/hotel/place/weather lookups plus LLM narrative generation
-  // genuinely can take up to ~30s, especially on a cold Lambda start.
-  const planStart = Date.now();
+  // 2026-08-28: this used to POST and measure the response time,
+  // reporting ~2s and calling it "trip planning". It was measuring the
+  // wrong thing. Since the async-worker rework, POST /messages returns
+  // immediately with {status: "processing"} and the real answer is
+  // delivered over WebSocket -- so that 2s was enqueue latency, and the
+  // "response contains assistant message content" check failed every
+  // time because the body has no message yet.
+  //
+  // Enqueue and answer are now measured separately, and the answer is
+  // found by polling the messages endpoint until an assistant reply
+  // appears. Polling rather than a WebSocket keeps this a plain HTTP
+  // test; the cost is up to POLL_INTERVAL_MS of quantisation error,
+  // which is noise next to a 20-100s planning turn.
+  const enqueueStart = Date.now();
   const planRes = http.post(
     `${BASE_URL}/chat/sessions/${sessionId}/messages`,
     JSON.stringify({ device_id: deviceId, query }),
@@ -125,22 +141,55 @@ export default function () {
       timeout: "45s",
     },
   );
-  tripPlanDuration.add(Date.now() - planStart);
+  enqueueDuration.add(Date.now() - enqueueStart);
 
-  check(planRes, {
-    "trip planned (200)": (r) => r.status === 200,
-    "response contains assistant message content": (r) => {
-      try {
-        const body = JSON.parse(r.body);
-        return (
-          body.message &&
-          typeof body.message.content === "string" &&
-          body.message.content.length > 0
-        );
-      } catch {
-        return false;
+  const accepted = check(planRes, {
+    "message accepted (200)": (r) => r.status === 200,
+  });
+
+  if (!accepted) {
+    sleep(1);
+    return;
+  }
+
+  // Poll until the assistant's reply lands, or we give up.
+  const answerStart = Date.now();
+  let answered = false;
+
+  while (Date.now() - answerStart < ANSWER_TIMEOUT_MS) {
+    sleep(POLL_INTERVAL_MS / 1000);
+
+    const messagesRes = http.get(
+      `${BASE_URL}/chat/sessions/${sessionId}/messages` +
+        `?device_id=${encodeURIComponent(deviceId)}`,
+      { timeout: "20s" },
+    );
+
+    if (messagesRes.status !== 200) continue;
+
+    try {
+      const body = JSON.parse(messagesRes.body);
+      const messages = body.messages || [];
+      const reply = messages.find(
+        (m) => m.role === "assistant" && m.content && m.content.length > 0,
+      );
+      if (reply) {
+        answered = true;
+        break;
       }
-    },
+    } catch {
+      // Malformed body -- keep polling rather than failing the run.
+    }
+  }
+
+  if (answered) {
+    // Total wall-clock from sending to a usable answer, which is what a
+    // user actually waits.
+    tripPlanDuration.add(Date.now() - enqueueStart);
+  }
+
+  check(null, {
+    "assistant answered within timeout": () => answered,
   });
 
   sleep(1);
