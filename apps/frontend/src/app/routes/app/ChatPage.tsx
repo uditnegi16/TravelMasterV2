@@ -229,6 +229,29 @@ export default function ChatPage() {
     });
   }
 
+  // waitForClerk only proves Clerk finished LOADING. getToken() can
+  // still return null for a signed-in user while a session token is
+  // being refreshed, and every call site then silently fell through to
+  // the guest path -- which the backend rejects, because a signed-in
+  // session has an account_id and the guest check requires it to be
+  // null. That surfaced as "Session not found" on a conversation the
+  // user genuinely owns.
+  //
+  // For a signed-in user a null token is a transient state, not an
+  // answer, so retry briefly before giving up. Guests legitimately
+  // have no token and return null immediately.
+  async function getAuthToken(): Promise<string | null> {
+    if (!(await waitForClerk())) return null;
+    if (!isSignedInRef.current) return null;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const token = await getToken();
+      if (token) return token;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return null;
+  }
+
   async function openSession(sessionId: string) {
     if (!deviceId) return;
 
@@ -236,14 +259,13 @@ export default function ChatPage() {
     setActiveSessionId(sessionId);
     setLoadError(null);
 
-    if (!(await waitForClerk())) {
+    const token = await getAuthToken();
+    if (isSignedInRef.current && !token) {
       if (latestRequestedSessionId.current === sessionId) {
         setLoadError("Still getting things ready \u2014 please try again in a moment.");
       }
       return;
     }
-
-    const token = await getToken();
     try {
       const fetched = await listMessages(sessionId, deviceId, token);
       // A newer openSession() call may have started (and possibly
@@ -363,7 +385,7 @@ export default function ChatPage() {
     // the live ref, not the closure-captured isSignedIn -- that value
     // is fixed at the moment handleSubmit was first called, and would
     // still be stale here even after the wait above.
-    const token = isSignedInRef.current ? await getToken() : null;
+    const token = await getAuthToken();
 
     let sessionId = activeSessionId;
 
@@ -435,7 +457,7 @@ export default function ChatPage() {
       // rather than reuse the stale one (a real user hit exactly
       // this: the answer was already generated and saved, but the
       // follow-up fetch failed with a stale token and 404'd).
-      const freshToken = isSignedInRef.current ? await getToken() : null;
+      const freshToken = await getAuthToken();
 
       if (isQueuedResponse(response)) {
         // The real result arrives over the socket, not this HTTP
@@ -545,7 +567,7 @@ export default function ChatPage() {
     }
 
     const startedAt = lastAttemptStartedAt.current;
-    const freshToken = isSignedInRef.current ? await getToken() : null;
+    const freshToken = await getAuthToken();
 
     try {
       const fetched = await listMessages(activeSessionId, deviceId, freshToken);
