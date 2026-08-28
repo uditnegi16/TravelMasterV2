@@ -47,6 +47,11 @@ interface UseVoiceInputOptions {
  * SpeechRecognition; falls back to MediaRecorder + server-side Whisper
  * transcription when that API isn't available.
  */
+/** Collapses repeated whitespace and trims. */
+function squashSpaces(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInputOptions) {
   const [voice, setVoice] = useState<VoiceInputState>({ state: "idle" });
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
@@ -55,6 +60,18 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+
+  // Chrome ends recognition after a few seconds of silence even with
+  // continuous = true, so a pause to think used to submit the
+  // sentence and stop. This tracks whether the USER asked to stop,
+  // so an automatic end can be restarted instead of ending dictation.
+  const shouldKeepListeningRef = useRef(false);
+
+  // onresult only reports results from event.resultIndex onward, so
+  // each callback carried just the newest segment. Assigning it
+  // straight to state overwrote everything said before -- the reason
+  // earlier speech vanished mid-dictation.
+  const finalTranscriptRef = useRef("");
 
   const hasNativeSpeech =
     typeof window !== "undefined" &&
@@ -88,16 +105,34 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
 
     recognition.onresult = (event: SpeechRecognitionEventLike) => {
       let interim = "";
-      let final = "";
+      let newlyFinal = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += transcript;
+        if (event.results[i].isFinal) newlyFinal += transcript;
         else interim += transcript;
       }
-      setVoice((v) => ({ ...v, interimTranscript: final || interim }));
+
+      if (newlyFinal) {
+        // Browsers often prefix a transcript with a space, so joining
+        // naively yields "a trip  to Paris". Collapse runs of
+        // whitespace rather than trusting either side.
+        finalTranscriptRef.current = squashSpaces(
+          `${finalTranscriptRef.current} ${newlyFinal}`,
+        );
+      }
+
+      // Everything finalised so far, plus whatever is being said
+      // right now, so the box shows the full sentence.
+      setVoice((v) => ({
+        ...v,
+        interimTranscript: squashSpaces(
+          `${finalTranscriptRef.current} ${interim}`,
+        ),
+      }));
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+      shouldKeepListeningRef.current = false;
       stopTimer();
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         setVoice({ state: "permission-denied" });
@@ -108,10 +143,24 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
     };
 
     recognition.onend = () => {
+      // Chrome ends on silence, not only when asked. If the user has
+      // not pressed stop, resume rather than cutting them off
+      // mid-thought.
+      if (shouldKeepListeningRef.current) {
+        try {
+          recognition.start();
+          return;
+        } catch {
+          // Already restarting, or the engine refused. Fall
+          // through and finish cleanly rather than hanging.
+        }
+      }
+
       stopTimer();
+      const collected = finalTranscriptRef.current.trim();
       setVoice((current) => {
-        if (current.state === "listening" && current.interimTranscript) {
-          onResult(current.interimTranscript);
+        if (current.state === "listening" && (collected || current.interimTranscript)) {
+          onResult(collected || current.interimTranscript!);
           return { state: "idle" };
         }
         return current.state === "listening" ? { state: "idle" } : current;
@@ -119,6 +168,8 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
     };
 
     recognitionRef.current = recognition;
+    finalTranscriptRef.current = "";
+    shouldKeepListeningRef.current = true;
     recognition.start();
     setVoice({ state: "listening", elapsedSeconds: 0 });
     startTimer();
@@ -183,6 +234,8 @@ export function useVoiceInput({ onResult, transcribeWithWhisper }: UseVoiceInput
   }, [beginNativeListening, beginWhisperFallback, hasNativeSpeech]);
 
   const stop = useCallback(() => {
+    // Disarm before stopping, or onend would immediately restart.
+    shouldKeepListeningRef.current = false;
     recognitionRef.current?.stop();
     mediaRecorderRef.current?.stop();
   }, []);
