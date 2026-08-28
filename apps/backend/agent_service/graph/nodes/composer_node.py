@@ -2,6 +2,7 @@ import json
 
 from llm.llm_client import get_primary_llm, get_fallback_llm
 from shared.logging_config import logger
+from services.currency_format import normalise_currency
 from shared.trip_summary import previous_trip_highlights, _truncate
 from graph.progress_utils import emit_progress, emit_token
 
@@ -221,7 +222,13 @@ Alternative Profiles
                 degraded = True
 
         if chunks:
-            state["final_response"] = "".join(chunks).strip()
+            # The prompt tells the model every figure is already INR,
+            # but a prompt is a tendency, not a guarantee -- live
+            # output included "¥8,500" for a rupee amount. Normalise
+            # deterministically rather than trusting it.
+            state["final_response"] = normalise_currency(
+                "".join(chunks).strip()
+            )
         else:
             parsed_trip = state.get("parsed_trip") or {}
             destination = parsed_trip.get("destination") or "your destination"

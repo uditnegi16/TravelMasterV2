@@ -4,6 +4,27 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        // The app shipped as one ~609 KB chunk, so a visitor waited on
+        // charting, PDF and animation code before the landing page
+        // could render. Splitting the large, rarely-changing vendors
+        // out means they cache independently of app code: a UI tweak
+        // no longer invalidates React and Clerk for returning users.
+        // Vite 8 runs Rolldown, where manualChunks is a function
+        // rather than an object map.
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return;
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id))
+            return "react-vendor";
+          if (id.includes("@clerk")) return "clerk";
+          if (id.includes("framer-motion")) return "motion";
+          return "vendor";
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

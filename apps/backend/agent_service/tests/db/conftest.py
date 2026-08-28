@@ -33,7 +33,18 @@ REAL_MIGRATION_FILES = [
 
 @pytest.fixture()
 def db_conn():
-    conn = psycopg2.connect(DATABASE_URL)
+    # These tests need a real Postgres with pgvector -- CI provides
+    # one as a service container. Locally there often is not one,
+    # and an unreachable database is a missing prerequisite, not a
+    # failure of the code under test. Skip with a clear reason
+    # instead of four connection errors that look like real breakage.
+    try:
+        conn = psycopg2.connect(DATABASE_URL, connect_timeout=3)
+    except psycopg2.OperationalError as exc:
+        pytest.skip(
+            f"no Postgres at {DATABASE_URL.rsplit(chr(64), 1)[-1]} "
+            f"-- start one or set TEST_DATABASE_URL ({exc.__class__.__name__})"
+        )
     conn.autocommit = True
     yield conn
     conn.close()
