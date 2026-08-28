@@ -44,6 +44,9 @@ PARAM_MAP = {
 }
 PARAMS = list(PARAM_MAP)
 
+# Must match template.yml's default and guest_ip_guard.py.
+DEFAULT_GUEST_IP_CAP = "5"
+
 
 def die(msg):
     print(f"\nerror: {msg}\n", file=sys.stderr)
@@ -122,8 +125,10 @@ def main():
 
     if args.print_only:
         masked_parts = [f'{PARAM_MAP[k]}="***"' for k in PARAMS]
-        if args.guest_ip_cap:
-            masked_parts.append(f'GuestSessionsPerIpPerDay="{args.guest_ip_cap}"')
+        masked_parts.append(
+            f'GuestSessionsPerIpPerDay="'
+            f'{args.guest_ip_cap or DEFAULT_GUEST_IP_CAP}"'
+        )
         masked = " ".join(masked_parts)
         shown = sam or "<sam not found on PATH>"
         print(f"Using SAM at {shown}")
@@ -147,13 +152,22 @@ def main():
     pairs = [
         '%s="%s"' % (PARAM_MAP[k], values[k].replace('"', '\\"')) for k in PARAMS
     ]
+    # Always sent explicitly. CloudFormation keeps the PREVIOUS value for
+    # a parameter that is omitted on an update -- it does not fall back
+    # to the template default. Leaving this out after a load test
+    # therefore re-sent 500 and reported "No changes to deploy", quietly
+    # leaving the guest-trial bypass wide open.
+    cap = args.guest_ip_cap or DEFAULT_GUEST_IP_CAP
+    pairs.append('GuestSessionsPerIpPerDay="%s"' % cap)
+
     if args.guest_ip_cap:
-        pairs.append('GuestSessionsPerIpPerDay="%s"' % args.guest_ip_cap)
         print(
-            f"\n*** Guest IP cap raised to {args.guest_ip_cap} for this "
-            "deploy.\n*** Redeploy without --guest-ip-cap when the test "
-            "finishes."
+            f"\n*** Guest IP cap RAISED to {args.guest_ip_cap} for this "
+            "deploy.\n*** Run deploy.py without --guest-ip-cap afterwards "
+            f"to restore {DEFAULT_GUEST_IP_CAP}."
         )
+    else:
+        print(f"Guest IP cap: {DEFAULT_GUEST_IP_CAP} (default protection)")
     overrides = " ".join(pairs)
 
     # Guard against pushing a live payment key without meaning to.
