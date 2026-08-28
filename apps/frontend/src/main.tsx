@@ -5,11 +5,6 @@ import { ClerkProvider } from "@clerk/clerk-react";
 
 import App from "./App";
 import "./styles/globals.css";
-// --- ElevenLabs voice sidecar (feat/voice-agent) ---
-// The one addition this feature makes to any existing frontend file.
-// Removal: delete src/voice-agent/, delete this import + the one
-// <VoiceAgentMount /> line below.
-import { VoiceAgentMount } from "./voice-agent";
 import { initTheme } from "./lib/useTheme";
 
 // Before first paint, so a dark-theme user never sees a white flash.
@@ -30,7 +25,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <App />
       </BrowserRouter>
-      <VoiceAgentMount />
     </ClerkProvider>
   </React.StrictMode>
 );
