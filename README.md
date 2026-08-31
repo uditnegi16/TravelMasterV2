@@ -98,7 +98,7 @@ A running log of the platform's evolution beyond the original MVP — the parts 
 <!-- 5. Delete these instructions after replacing the URL             -->
 <!-- ================================================================ -->
 
-YOUR_GITHUB_VIDEO_ASSET_URL_HERE
+https://drive.google.com/file/d/12tMdiwBjK4qnRmgzJtzLl_hhNVwbCuAJ/view?usp=sharing
 
 ---
 
