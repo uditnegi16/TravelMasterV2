@@ -264,29 +264,30 @@ export default function PackageCard({
               Budget Breakdown
             </p>
 
-            {/* Was grid-cols-3 unconditionally, so "Flight" and
-                "Hotel" values ran into each other in a narrow panel
-                ("₹25,214.72₹12,000"). Stacks until there is room. */}
-            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border p-4 sm:grid-cols-3">
-              <div>
-                <p className="text-xs text-ink-faint">Flight</p>
-                <p className="mt-1 break-words text-sm font-semibold text-ink sm:text-base">
+            {/* Label/value rows, not columns. Three currency values
+                never fit side by side in this panel -- the viewport is
+                wide but the panel is not, and Tailwind breakpoints only
+                see the viewport -- so "₹26,848.39" wrapped mid-number. */}
+            <div className="space-y-2 rounded-2xl border border-border p-4">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs text-ink-faint">Flight</span>
+                <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-ink">
                   {formatCurrency(itinerary.total_flight_cost)}
-                </p>
+                </span>
               </div>
 
-              <div>
-                <p className="text-xs text-ink-faint">Hotel</p>
-                <p className="mt-1 break-words text-sm font-semibold text-ink sm:text-base">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs text-ink-faint">Hotel</span>
+                <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-ink">
                   {formatCurrency(itinerary.total_hotel_cost)}
-                </p>
+                </span>
               </div>
 
-              <div>
-                <p className="text-xs text-ink-faint">Remaining</p>
-                <p className="mt-1 break-words text-sm font-semibold text-accent-green sm:text-base">
+              <div className="flex items-baseline justify-between gap-4 border-t border-border pt-2">
+                <span className="text-xs text-ink-faint">Remaining</span>
+                <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-accent-green">
                   {formatCurrency(itinerary.remaining_budget)}
-                </p>
+                </span>
               </div>
             </div>
           </div>
@@ -298,11 +299,13 @@ export default function PackageCard({
                 Things To Do
               </p>
 
-              {/* Two columns only at lg. Tailwind breakpoints track
-                  the viewport, not this panel, so sm:grid-cols-2 was
-                  splitting an already-narrow container into ~100px
-                  cards on desktop. */}
-              <div className="grid gap-2 lg:grid-cols-2">
+              {/* Single column, deliberately. This panel sits inside a
+                  package card and stays narrow even on a wide screen,
+                  and Tailwind breakpoints only see the viewport -- so a
+                  column rule split it into ~110px rows where the icon
+                  and the Maps link took the full width and the place
+                  name collapsed to nothing. */}
+              <div className="flex flex-col gap-2">
                 {places.map((place, index) => (
                   <PlaceCard key={index} place={place} />
                 ))}
