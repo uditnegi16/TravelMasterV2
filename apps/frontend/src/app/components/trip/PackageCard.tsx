@@ -96,7 +96,7 @@ export default function PackageCard({
               Trip Cost
             </p>
 
-            <p className="mt-1 font-semibold text-ink">
+            <p className="mt-1 break-words text-sm font-semibold text-ink sm:text-base">
               {formatCurrency(itinerary.total_trip_cost)}
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function PackageCard({
               Remaining
             </p>
 
-            <p className="mt-1 font-semibold text-accent-green">
+            <p className="mt-1 break-words text-sm font-semibold text-accent-green sm:text-base">
               {formatCurrency(itinerary.remaining_budget)}
             </p>
           </div>
@@ -264,24 +264,27 @@ export default function PackageCard({
               Budget Breakdown
             </p>
 
-            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-border p-4">
+            {/* Was grid-cols-3 unconditionally, so "Flight" and
+                "Hotel" values ran into each other in a narrow panel
+                ("₹25,214.72₹12,000"). Stacks until there is room. */}
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border p-4 sm:grid-cols-3">
               <div>
                 <p className="text-xs text-ink-faint">Flight</p>
-                <p className="mt-1 font-semibold text-ink">
+                <p className="mt-1 break-words text-sm font-semibold text-ink sm:text-base">
                   {formatCurrency(itinerary.total_flight_cost)}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs text-ink-faint">Hotel</p>
-                <p className="mt-1 font-semibold text-ink">
+                <p className="mt-1 break-words text-sm font-semibold text-ink sm:text-base">
                   {formatCurrency(itinerary.total_hotel_cost)}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs text-ink-faint">Remaining</p>
-                <p className="mt-1 font-semibold text-accent-green">
+                <p className="mt-1 break-words text-sm font-semibold text-accent-green sm:text-base">
                   {formatCurrency(itinerary.remaining_budget)}
                 </p>
               </div>
@@ -295,7 +298,11 @@ export default function PackageCard({
                 Things To Do
               </p>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              {/* Two columns only at lg. Tailwind breakpoints track
+                  the viewport, not this panel, so sm:grid-cols-2 was
+                  splitting an already-narrow container into ~100px
+                  cards on desktop. */}
+              <div className="grid gap-2 lg:grid-cols-2">
                 {places.map((place, index) => (
                   <PlaceCard key={index} place={place} />
                 ))}
