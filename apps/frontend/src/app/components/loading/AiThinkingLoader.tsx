@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 interface Props {
@@ -59,7 +60,7 @@ export default function AiThinkingLoader({
                 }}
                 className="text-5xl text-brand"
               >
-                ✦
+                <Sparkles className="h-5 w-5" />
               </motion.div>
             </motion.div>
 

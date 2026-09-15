@@ -85,20 +85,19 @@ export default function Footer() {
           </p>
 
           <div className="flex items-center gap-5">
-            <a aria-label="Twitter" href="#" className="text-ink-faint  hover:text-brand">
+            <a aria-label="Website" href="#" className="text-ink-muted hover:text-brand">
               <Globe className="h-[18px] w-[18px]" />
             </a>
-            <a aria-label="Instagram" href="#" className="text-ink-faint  hover:text-brand">
+            <a aria-label="Email" href="#" className="text-ink-muted hover:text-brand">
               <Mail className="h-[18px] w-[18px]" />
             </a>
-            <a aria-label="LinkedIn" href="#" className="text-ink-faint  hover:text-brand">
+            <a aria-label="Phone" href="#" className="text-ink-muted hover:text-brand">
               <Phone className="h-[18px] w-[18px]" />
             </a>
           </div>
 
           <span className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-[0.7rem] font-medium text-ink-faint">
             <span className="h-1.5 w-1.5 rounded-xl bg-accent-green" />
-            Built with the TravelMaster AI Agent
           </span>
         </div>
       </div>

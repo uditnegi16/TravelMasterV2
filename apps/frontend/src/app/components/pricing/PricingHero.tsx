@@ -3,7 +3,11 @@ import { Sparkles } from "lucide-react";
 export function PricingHero() {
   return (
     <section className="relative overflow-hidden bg-dot-grid bg-surface py-20 md:py-24">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-gradient-to-b from-brand-softer via-surface to-surface" />
+      {/* Was via-surface to-surface at full opacity, which painted over
+          the bg-dot-grid on the section above it -- the decoration was
+          in the markup but invisible. Fading to transparent lets it
+          through while keeping the soft wash at the top. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-gradient-to-b from-brand-softer via-surface/70 to-transparent" />
 
       <div className="relative mx-auto max-w-[680px] px-4 text-center md:px-8">
         <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand shadow-soft">

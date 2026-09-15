@@ -1,5 +1,5 @@
 const team = [
-  { name: "Team member", role: "Founder & Engineer", initials: "TM" },
+  { name: "Udit Negi", role: "Founder & Engineer", initials: "UN" },
 ];
 
 /**

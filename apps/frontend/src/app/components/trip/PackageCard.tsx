@@ -26,7 +26,10 @@ function formatTime(iso?: string) {
 
 function formatCurrency(value?: number) {
   if (value === undefined || value === null) return "₹0";
-  return `₹${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  // Whole rupees. A trip estimate shown as "₹63,469.23" reads as a
+  // rounding bug, not precision -- the underlying figures are
+  // converted from a foreign currency and are estimates anyway.
+  return `₹${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 export default function PackageCard({

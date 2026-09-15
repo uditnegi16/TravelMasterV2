@@ -11,7 +11,11 @@
   /* Light theme. "R G B" triplets so Tailwind can apply opacity. */
   --ink: 18 20 28;
   --ink-muted: 91 95 110;
-  --ink-faint: 149 153 166;
+  /* Was 149 153 166 -- 2.84:1 on white, which fails WCAG AA's 4.5:1 for
+     reading text, and this token is used on real labels (FLIGHT, HOTEL,
+     TRIP COST) across 28 files. Darkened to 4.53:1. Still visibly
+     lighter than ink-muted, so the hierarchy is intact. */
+  --ink-faint: 114 118 132;
   --ink-inverse: 255 255 255;
 
   --surface: 255 255 255;
@@ -47,7 +51,8 @@
 .dark {
   --ink: 232 234 240;
   --ink-muted: 158 163 178;
-  --ink-faint: 116 121 136;
+  /* 4.0:1 on the dark surface -- also below AA. Lifted to 5.58:1. */
+  --ink-faint: 140 146 162;
   --ink-inverse: 18 20 28;
 
   --surface: 24 26 33;

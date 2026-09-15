@@ -49,7 +49,7 @@ export function PricingPlans() {
         order_id: order.order_id,
         name: "TravelMaster Premium",
         description: "Premium Subscription",
-        theme: { color: "#2563eb" },
+        theme: { color: "#2454E0" }, // brand blue, matches the rest of the app
         handler: async (response) => {
           try {
             await verifyPayment(token, {
@@ -164,7 +164,7 @@ export function PricingPlans() {
               "mt-4 flex items-start justify-between gap-3 rounded-lg px-4 py-3 text-sm",
               status.type === "success"
                 ? "bg-accent-greenSoft text-accent-green"
-                : "bg-red-50 text-red-700",
+                : "bg-accent-redSoft text-accent-red",
             )}
           >
             <p>{status.message}</p>
