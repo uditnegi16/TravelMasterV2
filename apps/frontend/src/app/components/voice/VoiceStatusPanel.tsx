@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Square, Sparkles, AlertTriangle } from "lucide-react";
+import { Square, AudioLines, AlertTriangle } from "lucide-react";
 import { VoiceWaveform } from "./VoiceWaveform";
 import type { VoiceInputState } from "./voice.types";
 
@@ -64,7 +64,7 @@ export function VoiceStatusPanel({ voice, onStop, onRetry }: VoiceStatusPanelPro
             {voice.state === "processing" && (
               <div className="flex items-center gap-3 text-sm text-ink-muted">
                 <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                  <Sparkles className="h-4 w-4 animate-pulseSoft text-brand" />
+                  <AudioLines className="h-4 w-4 animate-pulseSoft text-brand" />
                 </span>
                 {voice.usingWhisperFallback
                   ? "Transcribing with AI (Whisper fallback)…"

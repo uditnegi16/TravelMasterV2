@@ -1,4 +1,4 @@
-import { Compass } from "lucide-react";
+import { LogoMark } from "../ui/LogoMark";
 
 export function AboutHero() {
   return (
@@ -7,7 +7,7 @@ export function AboutHero() {
 
       <div className="relative mx-auto max-w-[820px] px-4 text-center md:px-8">
         <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand shadow-soft text-white">
-          <Compass className="h-5 w-5" strokeWidth={2.25} />
+          <LogoMark className="h-5 w-5" strokeWidth={2.25} />
         </span>
 
         <p className="mt-6 text-sm font-semibold uppercase tracking-[0.08em] text-brand">

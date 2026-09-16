@@ -1,15 +1,16 @@
+import { SoftBlobs } from "../landing/BackgroundDecor";
 import {
   Briefcase,
   Heart,
   Wallet,
   Users,
   Mountain,
-  Sparkles,
+  Gem,
 } from "lucide-react";
 
 const styles = [
   { icon: Wallet, title: "Budget", desc: "Maximum value within your budget." },
-  { icon: Sparkles, title: "Luxury", desc: "Premium hotels and experiences." },
+  { icon: Gem, title: "Luxury", desc: "Premium hotels and experiences." },
   { icon: Heart, title: "Honeymoon", desc: "Romantic, curated itineraries." },
   { icon: Users, title: "Family", desc: "Kid-friendly planning and stays." },
   { icon: Briefcase, title: "Business", desc: "Efficient work travel." },
@@ -18,8 +19,10 @@ const styles = [
 
 export function TravelStyles() {
   return (
-    <section className="bg-surface-subtle py-20 md:py-28">
-      <div className="mx-auto max-w-[1200px] px-4 md:px-8">
+    <section className="relative overflow-hidden bg-surface-subtle py-20 md:py-28">
+      <SoftBlobs />
+
+      <div className="relative mx-auto max-w-[1200px] px-4 md:px-8">
         <div className="max-w-[640px]">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">
             Travel Styles
@@ -36,7 +39,9 @@ export function TravelStyles() {
               key={title}
               className="card-surface flex gap-4 p-6 hover:shadow-raised transition-all"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+              {/* Circular, to read as a selectable style rather than another
+                  feature card. */}
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-soft">
                 <Icon className="h-6 w-6" />
               </div>
 

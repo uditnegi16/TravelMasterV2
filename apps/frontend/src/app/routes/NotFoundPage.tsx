@@ -1,5 +1,6 @@
+import { LogoMark } from "../components/ui/LogoMark";
 import { useNavigate } from "react-router-dom";
-import { Compass, ArrowRight, Home } from "lucide-react";
+import { ArrowRight, Home } from "lucide-react";
 import { Button } from "../components/ui/Button";
 
 export default function NotFoundPage() {
@@ -14,7 +15,7 @@ export default function NotFoundPage() {
         <div className="relative flex h-32 w-32 items-center justify-center">
           <span className="absolute inset-0 animate-drift rounded-3xl bg-brand-soft" />
           <span className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-brand text-white shadow-raised">
-            <Compass className="h-9 w-9" strokeWidth={1.75} />
+            <LogoMark className="h-9 w-9" strokeWidth={1.75} />
           </span>
         </div>
 

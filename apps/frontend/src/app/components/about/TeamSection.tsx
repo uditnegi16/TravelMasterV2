@@ -25,7 +25,9 @@ export function TeamSection() {
               key={member.name}
               className="card-surface flex w-[220px] flex-col items-center bg-surface p-6 text-center"
             >
-              <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft font-display text-lg font-bold text-brand">
+              {/* A person gets a circle, not the same rounded square used for
+                  feature icons across the site. */}
+              <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-brand bg-surface font-display text-2xl font-bold text-brand">
                 {member.initials}
               </span>
               <p className="mt-4 text-sm font-semibold text-ink">{member.name}</p>

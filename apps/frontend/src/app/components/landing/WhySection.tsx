@@ -1,3 +1,4 @@
+import { SoftBlobs } from "../landing/BackgroundDecor";
 import {
   Bot,
   Wallet,
@@ -42,8 +43,10 @@ const features = [
 
 export function WhySection() {
   return (
-    <section className="bg-surface-raised py-20 md:py-28">
-      <div className="mx-auto max-w-[1200px] px-4 md:px-8">
+    <section className="relative overflow-hidden bg-surface-raised py-20 md:py-28">
+      <SoftBlobs />
+
+      <div className="relative mx-auto max-w-[1200px] px-4 md:px-8">
         <div className="max-w-[760px]">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand">
             Why TravelMaster
@@ -62,13 +65,20 @@ export function WhySection() {
         </div>
 
         <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {features.map(({ icon: Icon, title, body }) => (
+          {features.map(({ icon: Icon, title, body }, index) => (
             <div
               key={title}
               className="card-surface p-7 transition-all hover:-translate-y-1 hover:shadow-raised"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                <Icon className="h-6 w-6" strokeWidth={2} />
+              {/* Numbered rule rather than the soft rounded-square badge
+                  used elsewhere -- these read as a sequence, so they are
+                  numbered. */}
+              <div className="flex items-center gap-3">
+                <span className="font-display text-3xl font-bold leading-none text-brand">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="h-px flex-1 bg-border" />
+                <Icon className="h-5 w-5 text-ink-faint" strokeWidth={2} />
               </div>
 
               <h3 className="mt-6 text-xl font-semibold text-ink">

@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Gem } from "lucide-react";
 
 export function PricingHero() {
   return (
@@ -11,7 +11,7 @@ export function PricingHero() {
 
       <div className="relative mx-auto max-w-[680px] px-4 text-center md:px-8">
         <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand shadow-soft">
-          <Sparkles className="h-5 w-5" strokeWidth={2.25} />
+          <Gem className="h-5 w-5" strokeWidth={2.25} />
         </span>
 
         <h1 className="mt-6 font-display text-4xl font-bold text-ink md:text-5xl">

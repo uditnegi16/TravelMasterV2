@@ -588,8 +588,11 @@ export default function ChatPage() {
     void handleSubmit(query);
   }
 
+  // A very slight vertical wash rather than a pure flat fill. Kept far
+  // quieter than the marketing pages -- this screen is dense text and
+  // data, and a busy background would fight it.
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-surface-subtle">
+    <div className="flex h-[100dvh] overflow-hidden bg-gradient-to-b from-surface-subtle via-surface-subtle to-surface">
       {isSignedIn && (
         <ChatSidebar
           sessions={sessions}

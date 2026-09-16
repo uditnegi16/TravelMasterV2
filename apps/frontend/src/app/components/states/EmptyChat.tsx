@@ -1,4 +1,4 @@
-import { Sparkles, MapPin, Plane, Utensils } from "lucide-react";
+import { Compass, MapPin, Plane, Utensils } from "lucide-react";
 
 const suggestions = [
   { icon: Plane, text: "5 days in Kyoto under $1,200" },
@@ -14,7 +14,7 @@ export function EmptyChat({ onSuggestionClick }: EmptyChatProps) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4 py-16 text-center">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-        <Sparkles className="h-6 w-6" strokeWidth={2} />
+        <Compass className="h-6 w-6" strokeWidth={2} />
       </span>
 
       <h2 className="mt-5 font-display text-2xl font-bold text-ink">

@@ -2,7 +2,7 @@ import {
   Plane,
   Hotel,
   MapPinned,
-  Sparkles,
+  Navigation,
 } from "lucide-react";
 
 const stats = [
@@ -22,7 +22,7 @@ const stats = [
     label: "Curated attractions",
   },
   {
-    icon: Sparkles,
+    icon: Navigation,
     value: "AI",
     label: "Personalized itinerary",
   },
@@ -37,7 +37,9 @@ export function StatsSection() {
             key={label}
             className="card-surface flex items-center gap-4 p-5"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+            {/* No badge: on a stat the number is the thing worth looking
+                at, so the icon is demoted to a small inline marker. */}
+            <div className="flex items-center gap-2 text-brand">
               <Icon className="h-6 w-6" strokeWidth={2} />
             </div>
 

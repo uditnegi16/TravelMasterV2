@@ -1,6 +1,7 @@
+import { LogoMark } from "../components/ui/LogoMark";
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Bookmark, Bell, Menu, X, Compass } from "lucide-react";
+import { Bookmark, Bell, Menu, X } from "lucide-react";
 
 import { Button } from "../components/ui/Button";
 import { IconButton } from "../components/ui/IconButton";
@@ -36,7 +37,7 @@ export default function Header() {
           onClick={() => setOpen(false)}
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand shadow-soft text-white">
-            <Compass className="h-4 w-4" strokeWidth={2.25} />
+            <LogoMark className="h-4 w-4" strokeWidth={2.25} />
           </span>
 
           <span className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">
@@ -83,8 +84,11 @@ export default function Header() {
             </Button>
           </SignInButton>
 
+          {/* Ghost, not primary. The hero's "Start planning" is the one
+              loud call to action; a second solid button in the header
+              competed with it while leading into the same funnel. */}
           <SignUpButton mode="modal">
-            <Button variant="primary" size="sm">
+            <Button variant="ghost" size="sm">
               Sign up
             </Button>
           </SignUpButton>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useUser, SignInButton } from "@clerk/clerk-react";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Gem } from "lucide-react";
 import { Button } from "../ui/Button";
 import { cn } from "../../../lib/cn";
 import { createOrder, verifyPayment } from "../../services/api";
@@ -133,7 +133,7 @@ export function PricingPlans() {
         <ul className="mt-6 flex-1 space-y-3">
           {premiumFeatures.map((f) => (
             <li key={f} className="flex items-start gap-2.5 text-sm text-ink">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" strokeWidth={2.25} />
+              <Gem className="mt-0.5 h-4 w-4 shrink-0 text-brand" strokeWidth={2.25} />
               {f}
             </li>
           ))}

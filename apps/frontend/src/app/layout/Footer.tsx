@@ -1,10 +1,6 @@
+import { LogoMark } from "../components/ui/LogoMark";
 import { Link } from "react-router-dom";
-import {
-  Compass,
-  Globe,
-  Mail,
-  Phone,
-} from "lucide-react";
+import { Globe, Mail, Phone } from "lucide-react";
 const columns = [
   {
     title: "Product",
@@ -48,7 +44,7 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-2">
             <Link to="/" className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand shadow-soft text-white">
-                <Compass className="h-4 w-4" strokeWidth={2.25} />
+                <LogoMark className="h-4 w-4" strokeWidth={2.25} />
               </span>
               <span className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">
                 TravelMaster
