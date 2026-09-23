@@ -3,8 +3,8 @@ import { useAuth } from "@clerk/clerk-react";
 import { Link } from "react-router-dom";
 
 import AdminLayout from "./AdminLayout";
-import { getAdminDashboard } from "../../services/adminApi";
-import type { AdminDashboard } from "../../models/admin";
+import { getAdminDashboard, getAdminTimeseries } from "../../services/adminApi";
+import type { AdminDashboard, AdminTimeseries } from "../../models/admin";
 import {
   AdminCard,
   BarRow,
@@ -12,12 +12,18 @@ import {
   LoadingState,
   StatCard,
   StatusPill,
+  TrendTile,
 } from "./components/AdminUI";
+import { healthStatus } from "./components/adminMetrics";
 
 export default function AdminDashboardPage() {
   const { getToken } = useAuth();
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Loaded separately: if the time series fails, the page still shows
+  // every number -- the tiles just lose their sparklines.
+  const [series, setSeries] = useState<AdminTimeseries | null>(null);
+  const [seriesState, setSeriesState] = useState<"loading" | "ready" | "failed">("loading");
 
   useEffect(() => {
     let cancelled = false;
@@ -26,8 +32,15 @@ export default function AdminDashboardPage() {
       try {
         const token = await getToken();
         if (!token) throw new Error("Not signed in.");
-        const result = await getAdminDashboard(token);
-        if (!cancelled) setData(result);
+        const [result, ts] = await Promise.all([
+          getAdminDashboard(token),
+          getAdminTimeseries(token, 14).catch(() => null),
+        ]);
+        if (!cancelled) {
+          setData(result);
+          setSeries(ts);
+          setSeriesState(ts ? "ready" : "failed");
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load dashboard.");
@@ -56,20 +69,59 @@ export default function AdminDashboardPage() {
 
       {data && (
         <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <TrendTile
               label="Sessions"
               value={data.analytics.total_sessions}
-              hint={`+${data.analytics.new_sessions_in_window} in last ${data.analytics.window_days}d`}
+              loading={seriesState === "loading"}
+              series={
+                series && {
+                  dates: series.dates,
+                  values: series.series.sessions,
+                  unit: "new session",
+                  label: "New sessions per day",
+                }
+              }
             />
-            <StatCard label="Messages" value={data.analytics.total_messages} />
-            <StatCard label="Trips generated" value={data.analytics.trips_generated} />
+            <TrendTile
+              label="Messages"
+              value={data.analytics.total_messages}
+              loading={seriesState === "loading"}
+              series={
+                series && {
+                  dates: series.dates,
+                  values: series.series.messages,
+                  unit: "user message",
+                  label: "User messages per day",
+                }
+              }
+            />
+            <TrendTile
+              label="Trips generated"
+              value={data.analytics.trips_generated}
+              loading={seriesState === "loading"}
+              series={
+                series && {
+                  dates: series.dates,
+                  values: series.series.trips,
+                  unit: "trip",
+                  label: "Trips generated per day",
+                }
+              }
+            />
             <StatCard
               label="Open contact requests"
               value={data.open_contact_submissions}
               tone={data.open_contact_submissions > 0 ? "bad" : "good"}
             />
           </div>
+
+          <p className="mt-2 text-xs text-ink-faint">
+            {seriesState === "failed"
+              ? "Daily trends couldn't load — totals above are still current."
+              : "Charts: last 14 days, one bar per UTC day. Hover or focus a chart to read each day."}
+            {series?.truncated && " Some days hit the row limit and may be undercounted."}
+          </p>
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <AdminCard>
@@ -85,11 +137,11 @@ export default function AdminDashboardPage() {
                     <span className="font-medium capitalize text-ink">{name}</span>
                     <div className="flex items-center gap-3">
                       {check.ok && (
-                        <span className="text-xs text-ink-faint">
+                        <span className="text-xs tabular-nums text-ink-faint">
                           {check.latency_ms}ms
                         </span>
                       )}
-                      <StatusPill status={check.ok ? "ok" : "down"} />
+                      <StatusPill status={healthStatus(check)} />
                     </div>
                   </div>
                 ))}

@@ -1,12 +1,26 @@
+/** Duffel sends segment endpoints as airport objects, not strings. */
+export interface Airport {
+  iata_code?: string;
+  city_name?: string;
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export interface FlightSegment {
-  origin?: string;
-  destination?: string;
+  // Raw Duffel segments carry Airport objects here; kept as a union so
+  // older/normalized data that stored plain IATA strings still types.
+  origin?: string | Airport;
+  destination?: string | Airport;
   origin_city?: string;
   destination_city?: string;
   departing_at?: string;
   arriving_at?: string;
   carrier?: string;
   flight_number?: string;
+  marketing_carrier?: { name?: string; iata_code?: string };
+  marketing_carrier_flight_number?: string;
+  duration?: string;
 }
 
 export interface Flight {
@@ -23,6 +37,10 @@ export interface Flight {
   layover_city?: string | null;
   layover_duration_minutes?: number | null;
   overnight_layover?: boolean;
+  origin?: string;
+  destination?: string;
+  origin_city?: string;
+  destination_city?: string;
   segments?: FlightSegment[];
 }
 
@@ -38,6 +56,8 @@ export interface Hotel {
   rating?: number;
   amenities?: string[];
   budget_fit?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Place {
@@ -45,6 +65,8 @@ export interface Place {
   category?: string;
   type?: string;
   maps_url?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Weather {
@@ -95,6 +117,19 @@ export interface Trip {
   places: Place[];
 
   weather?: Weather;
+
+  /** The planner's reading of the request (dates, cities, travelers). */
+  parsed_trip?: ParsedTrip;
+}
+
+export interface ParsedTrip {
+  origin?: string;
+  destination?: string;
+  destination_city?: string;
+  start_date?: string;
+  end_date?: string;
+  duration_days?: number;
+  travelers?: number;
 }
 
 export interface PlanTripResponse {

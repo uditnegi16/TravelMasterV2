@@ -38,6 +38,7 @@ from fastapi import Depends
 from core.auth import get_current_user, get_current_user_optional, get_account_id, get_clerk_user_id
 from core.async_invoke import invoke_message_worker
 from shared import quota_guard
+from shared.subscription_guard import subscription_guard
 from shared.guest_ip_guard import enforce_guest_session_limit
 from shared import metrics
 import time
@@ -60,6 +61,31 @@ def get_quota(
     """
     account_id = get_account_id(user)
     return quota_guard.get_quota_status(account_id, get_clerk_user_id(user))
+
+
+@router.get("/dashboard")
+def get_dashboard(
+    user=Depends(get_current_user),
+):
+    """
+    Everything the account dashboard shows, in one read-only call:
+    quota (same as /chat/quota), the real plan tier/expiry from
+    user_db.subscriptions, and a summary of each saved trip. Nothing
+    here is derived beyond what's stored -- no estimates.
+    """
+    account_id = get_account_id(user)
+    clerk_user_id = get_clerk_user_id(user)
+    subscription = subscription_guard.get_active_subscription(clerk_user_id)
+
+    return {
+        "quota": quota_guard.get_quota_status(account_id, clerk_user_id),
+        "plan": {
+            "tier": "premium" if subscription else "free",
+            "name": (subscription or {}).get("plan_name") or ("Premium" if subscription else "Free"),
+            "expires_at": (subscription or {}).get("expires_at"),
+        },
+        "trips": chat_service.list_trip_summaries(account_id),
+    }
 
 
 @router.get("/sessions")

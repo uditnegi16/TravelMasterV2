@@ -29,10 +29,11 @@ export default function PackageSection({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {packages.map((pkg) => (
+        {packages.map((pkg, index) => (
           <PackageCard
             key={pkg.profile}
             pkg={pkg}
+            index={index}
             recommended={pkg.profile === recommendedProfile}
             places={places}
             weather={weather}

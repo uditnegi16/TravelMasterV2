@@ -52,7 +52,7 @@ print("7: after routes")
 from services.pdf_builder import ensure_output_dir, get_pdf_path
 print("8: pdf")
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import Query, WebSocket, WebSocketDisconnect
 print("9: websocket")
 
 from api.websocket_manager import manager
@@ -118,11 +118,7 @@ async def on_startup() -> None:
     ensure_output_dir()
 
 
-@app.websocket("/ws/progress/{client_id}")
-async def websocket_progress(
-    websocket: WebSocket,
-    client_id: str,
-):
+async def _serve_progress_socket(websocket: WebSocket, client_id: str) -> None:
     await manager.connect(client_id, websocket)
 
     try:
@@ -131,6 +127,28 @@ async def websocket_progress(
 
     except WebSocketDisconnect:
         manager.disconnect(client_id, websocket)
+
+
+@app.websocket("/ws/progress/{client_id}")
+async def websocket_progress(
+    websocket: WebSocket,
+    client_id: str,
+):
+    await _serve_progress_socket(websocket, client_id)
+
+
+# Same socket, client_id as a query parameter instead of a path segment.
+# The frontend (lib/websocket.ts) always connects as `${WS_URL}?client_id=`
+# because that's the shape API Gateway's $connect route needs in
+# production -- so locally, with VITE_WS_URL=ws://localhost:8001/ws/progress,
+# the handshake used to hit no route at all and every progress/result
+# event was dropped. This makes local dev accept the exact same URL shape.
+@app.websocket("/ws/progress")
+async def websocket_progress_query(
+    websocket: WebSocket,
+    client_id: str = Query(...),
+):
+    await _serve_progress_socket(websocket, client_id)
 
 
 @app.get("/download-pdf/{session_id}")

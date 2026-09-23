@@ -1,6 +1,7 @@
 import { API_URL } from "./api";
 import type {
   AdminDashboard,
+  AdminTimeseries,
   AdminUser,
   AnalyticsOverview,
   ContactSubmission,
@@ -25,6 +26,16 @@ function authHeaders(token: string) {
 
 export async function getAdminDashboard(token: string): Promise<AdminDashboard> {
   const res = await fetch(`${API_URL}/admin/dashboard`, {
+    headers: authHeaders(token),
+  });
+  return handle(res);
+}
+
+export async function getAdminTimeseries(
+  token: string,
+  days = 14,
+): Promise<AdminTimeseries> {
+  const res = await fetch(`${API_URL}/admin/timeseries?days=${days}`, {
     headers: authHeaders(token),
   });
   return handle(res);

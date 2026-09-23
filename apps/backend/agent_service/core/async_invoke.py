@@ -23,7 +23,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 WORKER_TASK_MARKER = "_worker_task"
 PROCESS_MESSAGE_TASK = "process_message"
@@ -49,13 +52,64 @@ def _invoke_lambda_async(function_name: str, payload: dict) -> None:
     )
 
 
+def _log_worker_failure(fut) -> None:
+    if fut.cancelled():
+        return
+    exc = fut.exception()
+    if exc is not None:
+        logger.error("Local message worker crashed", exc_info=exc)
+
+
+# Strong references to locally-scheduled worker tasks -- asyncio only
+# keeps a weak reference to a task, so an un-referenced one can be
+# garbage-collected mid-run.
+_local_tasks: set = set()
+
+
 def _invoke_local(payload: dict) -> None:
+    """
+    post_message() is a plain `def` route, so FastAPI runs it in a
+    threadpool thread -- which has NO event loop of its own. The old
+    version called asyncio.get_event_loop() there, which raises on
+    Python 3.10+ in a non-main thread, so it always fell into the
+    asyncio.run() fallback: the whole 20-80s pipeline ran INLINE inside
+    the HTTP request, on a throwaway loop, and every progress event was
+    queued on that throwaway loop instead of the one that owns the
+    browser's websocket -- so nothing reached the UI until the very end
+    (and then usually not at all).
+
+    Now: hand the worker to uvicorn's real loop (captured at startup in
+    manager.loop), so the HTTP request returns immediately with
+    "processing" exactly like production does, and the worker's
+    websocket sends go out on the loop that actually holds the socket.
+    """
+    from api.websocket_manager import manager
     from services.message_worker import process_message_turn
 
+    coro = process_message_turn(payload)
+
+    # Already on a running loop (e.g. an async caller or a test).
     try:
-        loop = asyncio.get_event_loop()
-        loop.create_task(process_message_turn(payload))
+        running = asyncio.get_running_loop()
     except RuntimeError:
-        # No running loop in this context (e.g. a plain sync test) --
-        # run it to completion directly rather than silently dropping it.
-        asyncio.run(process_message_turn(payload))
+        running = None
+
+    if running is not None:
+        task = running.create_task(coro)
+        _local_tasks.add(task)
+        task.add_done_callback(_local_tasks.discard)
+        task.add_done_callback(_log_worker_failure)
+        return
+
+    # Normal local-dev case: called from a threadpool thread.
+    main_loop = manager.loop
+    if main_loop is not None and main_loop.is_running():
+        future = asyncio.run_coroutine_threadsafe(coro, main_loop)
+        # Nothing awaits this future, so an exception would otherwise be
+        # stored on it and never seen -- log it instead.
+        future.add_done_callback(_log_worker_failure)
+        return
+
+    # No server loop at all (a plain sync script/test) -- run it to
+    # completion directly rather than silently dropping it.
+    asyncio.run(coro)

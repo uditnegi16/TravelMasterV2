@@ -1,6 +1,7 @@
 import { MapPin, ExternalLink } from "lucide-react";
 
 import type { Place } from "../../models/trip";
+import { CATEGORY } from "./tripTheme";
 
 type Props = {
   place: Place;
@@ -26,7 +27,8 @@ export default function PlaceCard({ place }: Props) {
 
   return (
     <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface-raised p-3 shadow-soft transition hover:border-border-strong">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+      {/* Teal = "place" everywhere (hero chips, timeline, map pins). */}
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${CATEGORY.place.badgeBg} ${CATEGORY.place.badgeText}`}>
         <MapPin className="h-[18px] w-[18px]" />
       </span>
 
@@ -48,7 +50,7 @@ export default function PlaceCard({ place }: Props) {
         target="_blank"
         rel="noreferrer"
         aria-label={`Open ${place.name} in Google Maps`}
-        className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-brand px-2.5 py-1.5 text-xs font-medium text-brand transition hover:bg-brand hover:text-white"
+        className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-accent-teal px-2.5 py-1.5 text-xs font-medium text-accent-teal transition hover:bg-accent-teal hover:text-white"
       >
         <span className="hidden sm:inline">Maps</span>
         <ExternalLink className="h-3.5 w-3.5" />

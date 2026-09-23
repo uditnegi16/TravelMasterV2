@@ -32,6 +32,7 @@ from core.supabase_client import supabase
 from shared.trip_summary import previous_trip_highlights
 import json
 import re
+import time
 import logging
 import hashlib
 import secrets
@@ -46,43 +47,70 @@ def _messages_table():
 
 
 def assert_session_owner(session_id: str, account_id: str) -> Dict[str, Any]:
-    """Raises 404 if the session doesn't exist or isn't owned by this account."""
+    """Raises 404 if the session doesn't exist or isn't owned by this account.
 
-    res = (
-        _sessions_table()
-        .select("*")
-        .eq("id", session_id)
-        .eq("account_id", account_id)
-        .neq("status", "deleted")
-        .limit(1)
-        .execute()
-    )
-    rows = getattr(res, "data", None) or []
-    if not rows:
-        # 2026-08-20: a real production "Session not found" happened
-        # on the very first message to a brand-new session, and was
-        # genuinely undiagnosable from CloudWatch -- FastAPI converts
-        # a raised HTTPException straight into a response with zero
-        # logging by default, so this exact failure never produced
-        # any log line at all. Logging explicitly now, including
-        # whether the session exists at ALL under a different
-        # account_id (distinguishes "never created"/"race condition"
-        # from "genuinely wrong account").
-        any_match = (
+    Retries a few times with a short backoff before giving up: a
+    2026-08-20 production incident showed a real "Session not found" on
+    the very first message to a brand-new session -- the session INSERT
+    from create_session() had returned successfully to the client, but
+    this SELECT (a separate request, possibly landing on a different
+    connection) didn't see it yet. Three short retries (well under a
+    second total) covers that window without meaningfully slowing down
+    the common case, since the first attempt still succeeds immediately
+    whenever the session is already visible -- which is every request
+    except the first one on a session that's still brand new.
+    """
+
+    rows: List[Dict[str, Any]] = []
+    delays = (0, 0.15, 0.35)  # first attempt immediate, then two short backoffs
+
+    for attempt, delay in enumerate(delays):
+        if delay:
+            time.sleep(delay)
+
+        res = (
             _sessions_table()
-            .select("id,account_id")
+            .select("*")
             .eq("id", session_id)
+            .eq("account_id", account_id)
+            .neq("status", "deleted")
             .limit(1)
             .execute()
         )
-        existing = getattr(any_match, "data", None) or []
-        logger.warning(
-            f"assert_session_owner: no match for session_id={session_id} "
-            f"account_id={account_id} -- "
-            f"{'session exists under account_id=' + str(existing[0].get('account_id')) if existing else 'session does not exist at all'}"
-        )
-        raise HTTPException(status_code=404, detail="Session not found")
-    return cast(Dict[str, Any], rows[0])
+        rows = getattr(res, "data", None) or []
+
+        if rows:
+            if attempt > 0:
+                logger.info(
+                    f"assert_session_owner: session_id={session_id} became "
+                    f"visible on retry {attempt} (read-after-write race, not "
+                    f"a real 404)"
+                )
+            return cast(Dict[str, Any], rows[0])
+
+    # 2026-08-20: a real production "Session not found" happened
+    # on the very first message to a brand-new session, and was
+    # genuinely undiagnosable from CloudWatch -- FastAPI converts
+    # a raised HTTPException straight into a response with zero
+    # logging by default, so this exact failure never produced
+    # any log line at all. Logging explicitly now, including
+    # whether the session exists at ALL under a different
+    # account_id (distinguishes "never created"/"race condition"
+    # from "genuinely wrong account").
+    any_match = (
+        _sessions_table()
+        .select("id,account_id")
+        .eq("id", session_id)
+        .limit(1)
+        .execute()
+    )
+    existing = getattr(any_match, "data", None) or []
+    logger.warning(
+        f"assert_session_owner: no match for session_id={session_id} "
+        f"account_id={account_id} after {len(delays)} attempts -- "
+        f"{'session exists under account_id=' + str(existing[0].get('account_id')) if existing else 'session does not exist at all'}"
+    )
+    raise HTTPException(status_code=404, detail="Session not found")
 
 
 def list_sessions(account_id: str) -> List[Dict[str, Any]]:
@@ -296,6 +324,120 @@ def list_messages(session_id: str, account_id: str) -> List[Dict[str, Any]]:
         .execute()
     )
     return cast(List[Dict[str, Any]], getattr(res, "data", None) or [])
+
+
+# Only the handful of JSON fields a dashboard row needs -- never the
+# whole trip_data blob. A stored trip can be ~0.5 MB on its own
+# (flight_categories alone measured 446,838 bytes for one real trip, see
+# message_worker.py), so pulling every trip in full just to show a title,
+# dates and a price would be wasteful. PostgREST's `->` / `->>` operators
+# do the extraction in the database.
+_TRIP_SUMMARY_SELECT = ",".join(
+    [
+        "session_id",
+        "created_at",
+        "parsed:trip_data->parsed_trip",
+        "profile:trip_data->recommended->>profile",
+        "rec_cost:trip_data->recommended->itinerary->>total_trip_cost",
+        "hotel:trip_data->recommended->hotel->>name",
+    ]
+    + [
+        f"p{i}:trip_data->multi_itineraries->{i}->>profile,"
+        f"c{i}:trip_data->multi_itineraries->{i}->itinerary->>total_trip_cost"
+        for i in range(3)
+    ]
+)
+
+
+_SUMMARY_BATCH = 50  # sessions per request (~1.9 KB of UUIDs in the URL)
+
+
+def _to_float(value: Any) -> Optional[float]:
+    try:
+        return float(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _summary_cost(row: Dict[str, Any]) -> Optional[float]:
+    """Cost of the recommended package: its own itinerary if stored,
+    otherwise the multi_itineraries entry with the same profile name,
+    otherwise the first package."""
+    cost = _to_float(row.get("rec_cost"))
+    if cost is not None:
+        return cost
+    profile = row.get("profile")
+    for i in range(3):
+        if profile and row.get(f"p{i}") == profile:
+            match = _to_float(row.get(f"c{i}"))
+            if match is not None:
+                return match
+    return _to_float(row.get("c0"))
+
+
+def list_trip_summaries(account_id: str) -> List[Dict[str, Any]]:
+    """
+    One row per session that actually produced a trip plan -- the
+    newest real plan in that session (so a MODIFY_TRIP supersedes the
+    original). Clarification turns ("which dates?") also store a
+    trip_data object, but an empty one with no packages; those have no
+    cost and are skipped rather than hiding the real plan behind them.
+
+    Read-only, built entirely from what's already stored -- the account
+    dashboard's saved-trips list, countdown and stats all come from here.
+    """
+    sessions = list_sessions(account_id)
+    if not sessions:
+        return []
+
+    by_id = {s["id"]: s for s in sessions}
+    ids = list(by_id)
+
+    # session_id=in.(...) goes in the URL; batch it so an account with
+    # hundreds of chats can't push the request past URL-length limits.
+    rows: List[Dict[str, Any]] = []
+    for i in range(0, len(ids), _SUMMARY_BATCH):
+        res = (
+            _messages_table()
+            .select(_TRIP_SUMMARY_SELECT)
+            .in_("session_id", ids[i : i + _SUMMARY_BATCH])
+            .eq("role", "assistant")
+            .not_.is_("trip_data", "null")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        rows.extend(cast(List[Dict[str, Any]], getattr(res, "data", None) or []))
+    # Newest first across batches too.
+    rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+
+    summaries: Dict[str, Dict[str, Any]] = {}
+    for row in rows:  # newest first
+        sid = row.get("session_id")
+        if sid in summaries or sid not in by_id:
+            continue
+        cost = _summary_cost(row)
+        if cost is None:
+            continue  # clarification / empty trip -- keep looking
+        parsed = row.get("parsed") or {}
+        session = by_id[sid]
+        summaries[sid] = {
+            "session_id": sid,
+            "title": session.get("title"),
+            "pinned": bool(session.get("pinned")),
+            "last_message_at": session.get("last_message_at"),
+            "planned_at": row.get("created_at"),
+            "origin": parsed.get("origin") or None,
+            "destination": parsed.get("destination_city") or parsed.get("destination") or None,
+            "start_date": parsed.get("start_date") or None,
+            "end_date": parsed.get("end_date") or None,
+            "travelers": parsed.get("travelers") or None,
+            "profile": row.get("profile"),
+            "total_cost": cost,
+            "hotel": row.get("hotel"),
+        }
+
+    # Same order as the chat sidebar: pinned first, then most recent.
+    return [summaries[s["id"]] for s in sessions if s["id"] in summaries]
 
 
 def list_guest_messages(session_id: str, device_id: str) -> List[Dict[str, Any]]:
@@ -520,9 +662,34 @@ _MODIFY_KEYWORDS = (
 )
 
 _NEW_TRIP_KEYWORDS = (
-    "plan a trip", "plan my", "new trip", "suggest a", "want to travel",
-    "want to visit", "book a trip",
+    "plan a trip", "plan my", "plan our", "plan trip", "new trip",
+    "suggest a", "suggest an", "want to travel", "want to visit",
+    "want to go to", "book a trip", "create a trip", "create an itinerary",
+    "build a trip", "build an itinerary", "make a trip", "help me plan",
 )
+
+# The exact-phrase list above only catches phrasing someone already
+# thought to add to it -- "plan trip from Mumbai to Goa" (no "a") missed
+# every entry above until this was added, and would keep missing every
+# future variant no one anticipated ("organise a trip", "arrange a
+# holiday", "book us a vacation"...). This checks for the general SHAPE
+# of a new-trip request instead: one of a broad set of planning verbs
+# together with one of a broad set of trip nouns, anywhere in the
+# message, word-boundary matched so it doesn't fire on substrings buried
+# inside unrelated words.
+_TRIP_INTENT_VERBS = (
+    "plan", "book", "suggest", "create", "build", "make", "arrange",
+    "organise", "organize", "want",
+)
+_TRIP_NOUNS = (
+    "trip", "itinerary", "vacation", "holiday", "getaway", "journey",
+)
+
+
+def _looks_like_new_trip(q: str) -> bool:
+    has_verb = any(re.search(rf"\b{re.escape(v)}\b", q) for v in _TRIP_INTENT_VERBS)
+    has_noun = any(re.search(rf"\b{re.escape(n)}\b", q) for n in _TRIP_NOUNS)
+    return has_verb and has_noun
 
 # Mirrors info_request_node.py's category keywords -- kept as two
 # separate lists rather than importing from there, since this is a
@@ -555,6 +722,14 @@ def _heuristic_classify(query: str) -> str:
 
     if any(kw in q for kw in _INFO_REQUEST_KEYWORDS):
         return "INFO_REQUEST"
+
+    # Checked last, after the more specific keyword lists above, so a
+    # genuine modify/info-request message that happens to also contain a
+    # planning verb and the word "trip" -- "make this trip cheaper",
+    # "add more places to the trip" -- still wins on the more specific
+    # signal instead of being swept into NEW_TRIP by this broader net.
+    if _looks_like_new_trip(q):
+        return "NEW_TRIP"
 
     if q.endswith("?") or q.startswith(("can i", "can we", "how", "what", "why", "is it", "will")):
         return "FOLLOW_UP"

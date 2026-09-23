@@ -1,10 +1,16 @@
+import type { ReactNode } from "react";
 import PackageSection from "./PackageSection";
+import ItineraryTimeline from "./ItineraryTimeline";
 import type { PlanTripResponse } from "../../models/trip";
 type Props = {
   result: PlanTripResponse | null;
+  /** Per-trip actions (PDF / Share), rendered in the card header so
+   *  they're visible the moment the plan appears -- not at the very
+   *  bottom of the chat, behind the prompt box. */
+  actions?: ReactNode;
 };
 
-export default function TripResult({ result }: Props) {
+export default function TripResult({ result, actions }: Props) {
   if (!result) {
     return (
       <div className="mt-10 rounded-3xl border border-dashed border-border bg-surface-raised p-14 text-center shadow-soft animate-fadeIn">
@@ -62,14 +68,18 @@ export default function TripResult({ result }: Props) {
 
   return (
     <div className="animate-fadeIn overflow-hidden rounded-3xl border border-border bg-surface-raised p-6 sm:p-7 lg:p-8 shadow-raised">
-      <div className="mb-6 lg:mb-8">
-        <h2 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
-          Your Trip Plan
-        </h2>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between lg:mb-8">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
+            Your Trip Plan
+          </h2>
 
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
-          Flights, hotels, attractions and weather have been organized below.
-        </p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
+            Flights, hotels, attractions and weather have been organized below.
+          </p>
+        </div>
+
+        {actions && <div className="w-full shrink-0 sm:w-auto">{actions}</div>}
       </div>
       <div className="space-y-6">
         <PackageSection
@@ -79,6 +89,8 @@ export default function TripResult({ result }: Props) {
           weather={trip.weather}
         />
       </div>
+
+      <ItineraryTimeline trip={trip} />
     </div>
   );
 }

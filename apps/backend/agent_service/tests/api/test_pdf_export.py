@@ -27,10 +27,16 @@ from moto import mock_aws
 
 
 @pytest.fixture()
-def s3_bucket():
+def s3_bucket(monkeypatch):
     with mock_aws():
         os.environ["PDF_S3_BUCKET"] = "test-travelmaster-pdfs"
         os.environ["AWS_REGION"] = "ap-south-1"
+        # pdf_builder reads PDF_S3_BUCKET once, at import time. If any
+        # earlier test imported it (e.g. via api.chat_routes), it has
+        # already captured the real bucket from .env and setting the env
+        # var above changes nothing -- so pin the module value directly.
+        import services.pdf_builder as pdf_builder
+        monkeypatch.setattr(pdf_builder, "PDF_S3_BUCKET", "test-travelmaster-pdfs")
         client = boto3.client("s3", region_name="ap-south-1")
         client.create_bucket(
             Bucket="test-travelmaster-pdfs",

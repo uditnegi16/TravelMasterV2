@@ -6,7 +6,9 @@ import { getDeviceId } from "../../../lib/deviceId";
 import {
   connectProgressSocket,
   waitForSocketOpen,
+  reduceProgressStep,
   type SocketEvent,
+  type ProgressStep,
 } from "../../../lib/websocket";
 import {
   claimSessions,
@@ -74,7 +76,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
-  const [currentStage, setCurrentStage] = useState("");
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
   const [guestTrialUsed, setGuestTrialUsed] = useState(false);
   const [quota, setQuota] = useState<QuotaStatus | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
@@ -100,9 +102,16 @@ export default function ChatPage() {
   const carriedPrompt =
     (location.state as { prompt?: string } | null)?.prompt ?? null;
 
+  // From the account dashboard: open one specific saved trip, or start
+  // on a blank chat. A blank chat needs no empty session created up
+  // front -- handleSubmit() creates one on the first message.
+  const navState = location.state as { openSessionId?: string; newChat?: boolean } | null;
+  const requestedSessionId = navState?.openSessionId ?? null;
+  const startBlank = navState?.newChat === true;
+
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, loading, streamingText, currentStage]);
+  }, [messages, loading, streamingText, progressSteps]);
 
   useEffect(() => {
     setDeviceId(getDeviceId());
@@ -141,8 +150,16 @@ export default function ChatPage() {
     void (async () => {
       try {
         const list = await refreshSessions(deviceId);
-        if (list.length > 0 && !carriedPrompt) {
-          void openSession(list[0].id);
+        if (list.length > 0 && !carriedPrompt && !startBlank) {
+          const requested =
+            requestedSessionId && list.some((s) => s.id === requestedSessionId)
+              ? requestedSessionId
+              : list[0].id;
+          void openSession(requested);
+        }
+        if (requestedSessionId || startBlank) {
+          // One-shot: a refresh shouldn't keep forcing this choice.
+          navigate(location.pathname, { replace: true, state: null });
         }
       } catch {
         setLoadError("Couldn't load your conversations. Please refresh the page.");
@@ -424,7 +441,7 @@ export default function ChatPage() {
 
     setLoading(true);
     setStreamingText("");
-    setCurrentStage("TravelMaster is thinking...");
+    setProgressSteps([]);
 
     // Resolves when the async worker's real result (or a failure)
     // arrives over the socket -- only meaningful for a queued
@@ -437,7 +454,7 @@ export default function ChatPage() {
 
     const socket = connectProgressSocket(sessionId, (event: SocketEvent) => {
       if (event.type === "progress") {
-        setCurrentStage(event.message ?? "TravelMaster is working...");
+        setProgressSteps((prev) => reduceProgressStep(prev, event));
       } else if (event.type === "token") {
         setStreamingText((prev) => prev + event.token);
       } else if (event.type === "result" || event.type === "error") {
@@ -449,15 +466,6 @@ export default function ChatPage() {
     try {
       await waitForSocketOpen(socket);
       const response = await sendMessage(sessionId, deviceId, token, query);
-
-      // Real trip-planning requests genuinely take 20-80+ seconds
-      // (confirmed live, worse for international destinations). The
-      // `token` captured at the top of this function, before that
-      // wait, can genuinely be expired by now -- refetch a fresh one
-      // rather than reuse the stale one (a real user hit exactly
-      // this: the answer was already generated and saved, but the
-      // follow-up fetch failed with a stale token and 404'd).
-      const freshToken = await getAuthToken();
 
       if (isQueuedResponse(response)) {
         // The real result arrives over the socket, not this HTTP
@@ -472,6 +480,16 @@ export default function ChatPage() {
           new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 45_000)),
         ]);
 
+        // Fetch the token AFTER the wait, never before it. Clerk
+        // session tokens only live ~60s, and a real trip takes 20-80+s.
+        // This used to be fetched right after sendMessage() -- which
+        // now returns immediately ("processing") -- so by the time the
+        // result arrived the token had expired. The backend treats an
+        // expired token as a guest (get_current_user_optional), the
+        // guest ownership check rejects an account-owned session, and
+        // the user saw "Session not found" on a trip that had actually
+        // succeeded (Retry worked only because it fetched a new token).
+        const freshToken = await getAuthToken();
         const fetched = await listMessages(sessionId, deviceId, freshToken);
         const lastMessage = fetched[fetched.length - 1];
         const stillWaiting = !lastMessage || lastMessage.role !== "assistant";
@@ -505,6 +523,7 @@ export default function ChatPage() {
       } else {
         // Old synchronous shape (FOLLOW_UP/INFO_REQUEST/GENERAL_CHAT)
         // -- unchanged, the full answer is already in this response.
+        const freshToken = await getAuthToken();
         const fetched = await listMessages(sessionId, deviceId, freshToken);
         if (latestRequestedSessionId.current === submissionSessionId) {
           setMessages(fetched);
@@ -607,12 +626,22 @@ export default function ChatPage() {
         />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Replaces the removed site header: menu button + title. */}
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Replaces the removed site header: menu button + title.
+            Overlays the chat and slides out with a transform. It used to
+            collapse its HEIGHT (h-14 -> h-0), which resized the scroll
+            area below it: near the bottom of the chat that clamped
+            scrollTop back up ~56px, which read as "scrolled up", which
+            showed the header again, which shrank the area again -- a
+            feedback loop that made the bar shake exactly where the trip
+            actions were. A transform never changes layout, so the loop
+            can't start. */}
         <div
           className={cn(
-            "flex shrink-0 items-center gap-2 overflow-hidden border-b border-border bg-surface px-3 transition-all duration-200",
-            headerVisible ? "h-14 opacity-100" : "h-0 border-b-0 opacity-0",
+            "absolute inset-x-0 top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-surface/95 px-3 backdrop-blur transition-[transform,opacity] duration-200",
+            headerVisible
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none -translate-y-full opacity-0",
           )}
         >
           {isSignedIn && !sidebarOpen && (
@@ -638,7 +667,7 @@ export default function ChatPage() {
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex w-full flex-1 justify-center overflow-y-auto px-6 py-8"
+          className="flex w-full flex-1 justify-center overflow-y-auto px-6 pb-8 pt-[5.5rem]"
         >
           <div className="w-full max-w-5xl">
           {loadError && (
@@ -668,7 +697,7 @@ export default function ChatPage() {
 
           {loading && (
             <div className="mt-5">
-              <AiThinkingLoader visible={loading} message={currentStage} />
+              <AiThinkingLoader visible={loading} steps={progressSteps} />
             </div>
           )}
           <div ref={scrollAnchorRef} />

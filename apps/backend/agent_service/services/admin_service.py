@@ -163,6 +163,90 @@ def get_analytics_overview(days: int = 7) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------
+# Time series (admin sparklines)
+# ---------------------------------------------------------------------
+# PostgREST caps a single response at 1,000 rows by default, and a bare
+# .limit(1000) silently undercounts on a busy week -- so read in pages
+# via .range(). The hard cap bounds cost on a runaway table; hitting it
+# is reported back as `truncated` rather than hidden.
+TIMESERIES_PAGE_SIZE = 1000
+TIMESERIES_MAX_ROWS = 50_000
+
+
+def _created_at_values(make_query, since_iso: str) -> tuple[List[str], bool]:
+    """All created_at values since `since_iso`, paging through results.
+    Selects ONLY created_at -- never message bodies or trip_data."""
+    values: List[str] = []
+    start = 0
+    while True:
+        batch = (
+            make_query()
+            .gte("created_at", since_iso)
+            .order("created_at")
+            .range(start, start + TIMESERIES_PAGE_SIZE - 1)
+            .execute()
+            .data
+            or []
+        )
+        values.extend(str(r["created_at"]) for r in batch if r.get("created_at"))
+        if len(batch) < TIMESERIES_PAGE_SIZE:
+            return values, False
+        start += TIMESERIES_PAGE_SIZE
+        if start >= TIMESERIES_MAX_ROWS:
+            return values, True
+
+
+def get_timeseries(days: int = 14) -> Dict[str, Any]:
+    """
+    Daily counts for the admin dashboard sparklines, one zero-filled
+    bucket per UTC day, oldest first, ending today:
+
+      sessions -- chat sessions created
+      messages -- user messages sent (the demand signal; assistant
+                  replies would just double it)
+      trips    -- assistant messages that stored a trip plan (same
+                  definition as the "Trips generated" total above)
+
+    Read-only. Built from created_at timestamps already in the tables
+    -- no new tables, no migration.
+    """
+    days = max(7, min(int(days), 90))
+    today = datetime.now(timezone.utc).date()
+    first_day = today - timedelta(days=days - 1)
+    since = datetime(first_day.year, first_day.month, first_day.day, tzinfo=timezone.utc).isoformat()
+    dates = [(first_day + timedelta(days=i)).isoformat() for i in range(days)]
+
+    sessions_table = lambda: supabase.schema("chat").table("sessions")  # noqa: E731
+    messages_table = lambda: supabase.schema("chat").table("messages")  # noqa: E731
+    sources = {
+        "sessions": lambda: sessions_table().select("created_at"),
+        "messages": lambda: messages_table().select("created_at").eq("role", "user"),
+        "trips": lambda: messages_table().select("created_at").not_.is_("trip_data", "null"),
+    }
+
+    series: Dict[str, List[int]] = {}
+    truncated = False
+    index = {d: i for i, d in enumerate(dates)}
+    for name, make_query in sources.items():
+        counts = [0] * days
+        values, hit_cap = _created_at_values(make_query, since)
+        truncated = truncated or hit_cap
+        for ts in values:
+            i = index.get(ts[:10])  # ISO timestamps from Supabase are UTC
+            if i is not None:
+                counts[i] += 1
+        series[name] = counts
+
+    return {
+        "days": days,
+        "timezone": "UTC",
+        "dates": dates,
+        "series": series,
+        "truncated": truncated,
+    }
+
+
+# ---------------------------------------------------------------------
 # Monitoring (system health)
 # ---------------------------------------------------------------------
 def get_monitoring_snapshot() -> Dict[str, Any]:

@@ -154,3 +154,81 @@ async def test_websocket_send_failure_does_not_raise():
                 "is_billable_turn": True,
             }
         )
+
+
+@pytest.mark.asyncio
+async def test_progress_events_are_sent_live_while_the_graph_is_still_running():
+    """The real bug behind "only 'TravelMaster is thinking...' ever shows":
+    graph.invoke() ran directly on the event loop, blocking it for the
+    whole 20-80s run, so progress sends only went out after the graph had
+    already finished. A progress event must reach manager.send() while
+    the graph is still mid-run."""
+    import threading
+
+    from services import message_worker
+
+    sent_during_run = threading.Event()
+    sent_events = []
+
+    async def fake_send(client_id, payload):
+        sent_events.append(payload)
+        if payload.get("type") == "progress":
+            sent_during_run.set()
+
+    def fake_invoke(state):
+        state["progress_callback"]({"type": "progress", "stage": "planner", "status": "started"})
+        # Still "inside" the graph: the event must be delivered now, not later.
+        assert sent_during_run.wait(timeout=2), "progress event was not delivered while graph was running"
+        return {}
+
+    with patch.object(message_worker, "graph") as mock_graph, \
+         patch.object(message_worker, "build_response", return_value={"summary": "ok", "trip": None}), \
+         patch.object(message_worker.chat_service, "get_last_trip", return_value=None), \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
+         patch.object(message_worker.chat_service, "add_message", return_value={"id": "m1"}), \
+         patch.object(message_worker.chat_service, "touch_session"), \
+         patch.object(message_worker.manager, "send", side_effect=fake_send):
+        mock_graph.invoke.side_effect = fake_invoke
+
+        await message_worker.process_message_turn(
+            {
+                "session_id": "sess-1",
+                "query": "Plan a trip to Goa",
+                "conversation_type": "NEW_TRIP",
+                "account_id": "acct-1",
+                "is_billable_turn": True,
+            }
+        )
+
+    assert [e["type"] for e in sent_events] == ["progress", "result"]
+
+
+@pytest.mark.asyncio
+async def test_failure_loading_history_still_refunds_quota_and_tells_the_user():
+    """get_last_trip / get_recent_history used to run BEFORE the try, so a
+    Supabase blip there consumed the user's quota slot and never sent an
+    error back -- the turn just vanished."""
+    from services import message_worker
+
+    error_message = {"id": "msg-err", "role": "assistant", "content": "Sorry..."}
+
+    with patch.object(message_worker, "graph") as mock_graph, \
+         patch.object(message_worker.chat_service, "get_last_trip", side_effect=RuntimeError("supabase down")), \
+         patch.object(message_worker.chat_service, "get_recent_history", return_value=[]), \
+         patch.object(message_worker.chat_service, "add_message", return_value=error_message), \
+         patch.object(message_worker.manager, "send", new_callable=AsyncMock) as mock_send, \
+         patch.object(message_worker.quota_guard, "refund_quota") as mock_refund:
+
+        await message_worker.process_message_turn(
+            {
+                "session_id": "sess-1",
+                "query": "Plan a trip",
+                "conversation_type": "NEW_TRIP",
+                "account_id": "acct-1",
+                "is_billable_turn": True,
+            }
+        )
+
+    mock_graph.invoke.assert_not_called()
+    mock_refund.assert_called_once_with("acct-1")
+    mock_send.assert_called_once_with("sess-1", {"type": "error", "message": error_message})

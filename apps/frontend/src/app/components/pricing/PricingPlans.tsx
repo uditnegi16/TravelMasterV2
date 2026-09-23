@@ -49,7 +49,7 @@ export function PricingPlans() {
         order_id: order.order_id,
         name: "TravelMaster Premium",
         description: "Premium Subscription",
-        theme: { color: "#2454E0" }, // brand blue, matches the rest of the app
+        theme: { color: "#C9820A" }, // accent-amber, matches the new Premium card accent
         handler: async (response) => {
           try {
             await verifyPayment(token, {
@@ -110,13 +110,17 @@ export function PricingPlans() {
       {/* Premium plan */}
       <div
         className={cn(
-          "card-surface relative flex flex-col overflow-hidden border-2 border-brand p-8 shadow-raised"
+          "card-surface relative flex flex-col overflow-hidden border-2 border-accent-amber p-8 shadow-raised"
         )}
       >
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-soft blur-2xl" />
+        <span className="absolute left-8 top-0 -translate-y-1/2 rounded-full bg-accent-amber px-3 py-1 text-xs font-semibold text-white shadow-soft">
+          Most popular
+        </span>
+
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent-amberSoft blur-2xl" />
 
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold uppercase tracking-[0.06em] text-brand">
+          <p className="text-sm font-semibold uppercase tracking-[0.06em] text-accent-amber">
             Premium
           </p>
         </div>
@@ -133,7 +137,7 @@ export function PricingPlans() {
         <ul className="mt-6 flex-1 space-y-3">
           {premiumFeatures.map((f) => (
             <li key={f} className="flex items-start gap-2.5 text-sm text-ink">
-              <Gem className="mt-0.5 h-4 w-4 shrink-0 text-brand" strokeWidth={2.25} />
+              <Gem className="mt-0.5 h-4 w-4 shrink-0 text-accent-amber" strokeWidth={2.25} />
               {f}
             </li>
           ))}
@@ -141,7 +145,7 @@ export function PricingPlans() {
 
         {isSignedIn ? (
           <Button
-            variant="primary"
+            variant="warm"
             size="lg"
             fullWidth
             className="mt-8"
@@ -152,7 +156,7 @@ export function PricingPlans() {
           </Button>
         ) : (
           <SignInButton mode="modal">
-            <Button variant="primary" size="lg" fullWidth className="mt-8">
+            <Button variant="warm" size="lg" fullWidth className="mt-8">
               Sign in to upgrade
             </Button>
           </SignInButton>

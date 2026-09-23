@@ -251,6 +251,7 @@ const THEME_OPTIONS = [
 ];
 
 const NAV_ITEMS = [
+  { label: "Dashboard", to: "/dashboard" },
   { label: "Home", to: "/" },
   { label: "Pricing", to: "/pricing" },
   { label: "Help", to: "/help" },

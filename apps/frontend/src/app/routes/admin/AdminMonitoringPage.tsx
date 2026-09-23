@@ -6,6 +6,7 @@ import AdminLayout from "./AdminLayout";
 import { getAdminMonitoring } from "../../services/adminApi";
 import type { MonitoringSnapshot } from "../../models/admin";
 import { AdminCard, ErrorState, LoadingState, StatCard, StatusPill } from "./components/AdminUI";
+import { healthStatus } from "./components/adminMetrics";
 import { Button } from "../../components/ui/Button";
 
 export default function AdminMonitoringPage() {
@@ -90,7 +91,7 @@ export default function AdminMonitoringPage() {
                       <p className="text-xs text-accent-red">{check.error}</p>
                     )}
                   </div>
-                  <StatusPill status={check.ok ? "ok" : "down"} />
+                  <StatusPill status={healthStatus(check)} />
                 </div>
               ))}
             </div>

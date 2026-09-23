@@ -68,6 +68,21 @@ export interface MlopsDashboard {
   note: string;
 }
 
+/** GET /admin/timeseries -- zero-filled daily counts, oldest first,
+ *  one bucket per UTC day ending today. */
+export interface AdminTimeseries {
+  days: number;
+  timezone: "UTC";
+  dates: string[];
+  series: {
+    sessions: number[];
+    messages: number[];
+    trips: number[];
+  };
+  /** True if a series hit the server's row cap and undercounts. */
+  truncated: boolean;
+}
+
 export interface AdminDashboard {
   analytics: AnalyticsOverview;
   monitoring: MonitoringSnapshot;

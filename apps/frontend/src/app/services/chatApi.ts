@@ -210,6 +210,37 @@ export type QuotaStatus = {
   resets_at: string;
 };
 
+export type TripSummary = {
+  session_id: string;
+  title: string | null;
+  pinned: boolean;
+  last_message_at: string | null;
+  planned_at: string | null;
+  origin: string | null;
+  destination: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  travelers: number | null;
+  profile: string | null;
+  total_cost: number | null;
+  hotel: string | null;
+};
+
+export type DashboardData = {
+  quota: QuotaStatus;
+  plan: { tier: "free" | "premium"; name: string; expires_at: string | null };
+  trips: TripSummary[];
+};
+
+/** Account dashboard -- quota, real plan tier/expiry, and a summary of
+ *  every saved trip, in one read-only call (GET /chat/dashboard). */
+export async function getDashboard(token: string): Promise<DashboardData> {
+  const res = await fetch(`${API_URL}/chat/dashboard`, {
+    headers: authHeaders(token),
+  });
+  return handle<DashboardData>(res);
+}
+
 export async function getQuotaStatus(token: string): Promise<QuotaStatus> {
   const res = await fetch(`${API_URL}/chat/quota`, {
     headers: authHeaders(token),

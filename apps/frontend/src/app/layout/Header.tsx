@@ -14,7 +14,7 @@ import {
   UserButton,
   useUser,
 } from "@clerk/clerk-react";
-import { ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShieldCheck } from "lucide-react";
 const navItems = [
   { label: "Chat", to: "/chat" },
   { label: "Pricing", to: "/pricing" },
@@ -95,6 +95,13 @@ export default function Header() {
         </SignedOut>
 
         <SignedIn>
+          <Link
+            to="/dashboard"
+            className="mr-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-ink-muted hover:bg-brand-soft hover:text-brand"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"
@@ -152,6 +159,14 @@ export default function Header() {
           </SignedOut>
 
           <SignedIn>
+            <Link
+              to="/dashboard"
+              onClick={() => setOpen(false)}
+              className="mb-2 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-ink-muted hover:bg-surface-subtle hover:text-ink"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Link>
             {isAdmin && (
               <Link
                 to="/admin"

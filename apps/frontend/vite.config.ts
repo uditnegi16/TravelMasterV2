@@ -20,6 +20,9 @@ export default defineConfig({
             return "react-vendor";
           if (id.includes("@clerk")) return "clerk";
           if (id.includes("framer-motion")) return "motion";
+          // Own chunk, so the catch-all "vendor" below doesn't pull it
+          // into every page: only the lazy TripMap imports it.
+          if (/[\\/]node_modules[\\/]leaflet[\\/]/.test(id)) return "leaflet";
           return "vendor";
         },
       },

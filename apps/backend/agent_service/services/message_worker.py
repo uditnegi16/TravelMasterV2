@@ -30,6 +30,7 @@ never slow.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -60,41 +61,51 @@ async def process_message_turn(payload: dict[str, Any]) -> None:
     account_id = payload.get("account_id")  # None for a guest turn
     is_billable_turn = payload["is_billable_turn"]
 
-    # Fetched here, not passed through the invoke payload (2026-08-20):
-    # a real production 500 traced back to this. AWS Lambda's async
-    # invocation payload limit is 1 MB (raised from 256 KB in Oct
-    # 2025) -- but a rich trip's full data (flights + hotels + places
-    # + weather) can genuinely exceed that on its own; confirmed
-    # directly in earlier logs the SAME night: flight_categories alone
-    # measured 446,838 bytes for one real trip. Never caught in local
-    # testing because local dev uses a completely different code path
-    # (_invoke_local, a plain in-process call with no serialization or
-    # size limit at all) -- this only exists for the real Lambda path.
-    previous_trip = chat_service.get_last_trip(session_id)
-    conversation_history = chat_service.get_recent_history(session_id)
-
-    state = {
-        "user_query": payload["query"],
-        "conversation_type": payload["conversation_type"],
-        "previous_trip": previous_trip,
-        "conversation_history": conversation_history,
-        "parsed_trip": {},
-        "tools_to_call": [],
-        "flights": [],
-        "hotels": [],
-        "places": [],
-        "weather": {},
-        "final_response": "",
-        # Declared in TripPlanState but never populated: nodes that
-        # need per-conversation memory (info_request, to avoid
-        # repeating suggestions) had nothing to key on.
-        "session_id": session_id,
-        "errors": [],
-        "progress_callback": lambda event: _emit_async(session_id, event),
-    }
-
     try:
-        result = graph.invoke(state)
+        # Inside the try (it used to sit above it): if loading the
+        # previous trip / history fails -- e.g. a Supabase blip -- the
+        # except below still refunds the quota slot and sends the user
+        # an error, instead of the turn silently vanishing.
+        # Fetched here, not passed through the invoke payload (2026-08-20):
+        # a real production 500 traced back to this. AWS Lambda's async
+        # invocation payload limit is 1 MB (raised from 256 KB in Oct
+        # 2025) -- but a rich trip's full data (flights + hotels + places
+        # + weather) can genuinely exceed that on its own; confirmed
+        # directly in earlier logs the SAME night: flight_categories alone
+        # measured 446,838 bytes for one real trip. Never caught in local
+        # testing because local dev uses a completely different code path
+        # (_invoke_local, a plain in-process call with no serialization or
+        # size limit at all) -- this only exists for the real Lambda path.
+        previous_trip = chat_service.get_last_trip(session_id)
+        conversation_history = chat_service.get_recent_history(session_id)
+
+        state = {
+            "user_query": payload["query"],
+            "conversation_type": payload["conversation_type"],
+            "previous_trip": previous_trip,
+            "conversation_history": conversation_history,
+            "parsed_trip": {},
+            "tools_to_call": [],
+            "flights": [],
+            "hotels": [],
+            "places": [],
+            "weather": {},
+            "final_response": "",
+            # Declared in TripPlanState but never populated: nodes that
+            # need per-conversation memory (info_request, to avoid
+            # repeating suggestions) had nothing to key on.
+            "session_id": session_id,
+            "errors": [],
+            "progress_callback": _make_live_emitter(session_id, asyncio.get_running_loop()),
+        }
+
+        # graph.invoke() is synchronous and takes 20-80s. Run it in a
+        # worker thread so THIS event loop stays free to actually send
+        # each progress event the moment a node emits it. Calling it
+        # directly (as before) blocked the loop for the whole run, so
+        # every progress send queued up and only flushed right before
+        # the result -- i.e. the UI never saw a live pipeline.
+        result = await asyncio.to_thread(graph.invoke, state)
         response = build_response(result)
 
         trip = response.get("trip") if isinstance(response, dict) else None
@@ -144,17 +155,20 @@ async def process_message_turn(payload: dict[str, Any]) -> None:
             pass
 
 
-def _emit_async(session_id: str, event: dict) -> None:
+def _make_live_emitter(session_id: str, loop: asyncio.AbstractEventLoop):
     """
-    progress_callback is a plain sync function (graph nodes call it
-    directly, not with await), but this worker's own send() needs to
-    be async -- schedules the send on whatever event loop is currently
-    running rather than blocking the graph's own execution on it.
+    progress_callback is a plain sync function called by graph nodes
+    from inside graph.invoke(), which now runs in a worker thread (see
+    process_message_turn). Hand each event back to the worker's own
+    event loop thread-safely so it's sent immediately, while the graph
+    keeps running -- same loop in both local dev (uvicorn's loop) and
+    production (the loop lambda_handler.py runs the worker on).
     """
-    import asyncio
 
-    try:
-        loop = asyncio.get_event_loop()
-        loop.create_task(manager.send(session_id, event))
-    except Exception:
-        pass
+    def emit(event: dict) -> None:
+        try:
+            asyncio.run_coroutine_threadsafe(manager.send(session_id, event), loop)
+        except Exception:
+            pass
+
+    return emit

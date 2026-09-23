@@ -4,6 +4,8 @@ import Layout from "./app/layout/Layout";
 
 import LandingPage from "./app/routes/public/LandingPage";
 import ChatPage from "./app/routes/app/ChatPage";
+import DashboardPage from "./app/routes/app/DashboardPage";
+import ProtectedRoute from "./app/layout/ProtectedRoute";
 import ShareTripPage from "./app/routes/ShareTripPage";
 
 import AboutPage from "./app/routes/public/AboutPage";
@@ -45,6 +47,11 @@ export default function App() {
           path="/plan"
           element={<PlanRedirect />}
         />
+
+        {/* Signed-in only; ProtectedRoute sends signed-out visitors home. */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+        </Route>
 
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminDashboardPage />} />

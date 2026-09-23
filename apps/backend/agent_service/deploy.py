@@ -41,6 +41,7 @@ PARAM_MAP = {
     "CLERK_PUBLISHABLE_KEY": "ClerkPublishableKey",
     "CLERK_AUTHORIZED_PARTIES": "ClerkAuthorizedParties",
     "HF_TOKEN": "HfToken",
+    "ALLOWED_ORIGIN": "AllowedOrigin"
 }
 PARAMS = list(PARAM_MAP)
 

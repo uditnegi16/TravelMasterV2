@@ -132,6 +132,18 @@ def get_monitoring():
 
 
 # -------------------------
+# Daily time series (dashboard sparklines)
+# -------------------------
+@router.get("/timeseries")
+def get_timeseries(days: int = Query(14, ge=7, le=90)):
+    try:
+        return admin_service.get_timeseries(days=days)
+    except Exception as exc:
+        logger.exception("Failed to build admin time series")
+        raise HTTPException(status_code=500, detail="Failed to load time series.") from exc
+
+
+# -------------------------
 # MLOps analytics dashboard
 # -------------------------
 @router.get("/mlops")

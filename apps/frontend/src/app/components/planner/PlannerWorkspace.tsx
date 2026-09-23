@@ -2,12 +2,13 @@ import { AiPromptBox } from "../input/AiPromptBox";
 import AiThinkingLoader from "../loading/AiThinkingLoader";
 import StreamingPanel from "./StreamingPanel";
 import PdfStatusCard from "./PdfStatusCard";
+import type { ProgressStep } from "../../../lib/websocket";
 
 type PdfStatus = "idle" | "generating" | "ready" | "error";
 
 type PlannerWorkspaceProps = {
   loading: boolean;
-  currentMessage: string;
+  steps: ProgressStep[];
   streamingText: string;
   pdfStatus: PdfStatus;
   pdfUrl: string | null;
@@ -16,7 +17,7 @@ type PlannerWorkspaceProps = {
 
 export default function PlannerWorkspace({
   loading,
-  currentMessage,
+  steps,
   streamingText,
   pdfStatus,
   pdfUrl,
@@ -37,7 +38,7 @@ return (
       <>
         <AiThinkingLoader
           visible={loading}
-          message={currentMessage}
+          steps={steps}
         />
 
         <StreamingPanel text={streamingText} />

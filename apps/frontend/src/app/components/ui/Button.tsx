@@ -1,6 +1,6 @@
 import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from "react";
 import { cn } from "../../../lib/cn";
-type Variant = "primary" | "secondary" | "ghost" | "outline";
+type Variant = "primary" | "secondary" | "ghost" | "outline" | "warm";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -23,6 +23,13 @@ const variantStyles: Record<Variant, string> = {
 
   ghost:
     "bg-transparent text-ink-muted hover:bg-surface-subtle hover:text-ink",
+
+  // For CTAs placed on dark/photographic surfaces (landing hero, dark
+  // footers) where the near-black `secondary` variant would blend in
+  // instead of standing out. Uses the existing accent-amber token, not a
+  // new color, so it stays inside the current design system.
+  warm:
+    "bg-accent-amber text-white hover:brightness-110 shadow-card hover:shadow-raised active:scale-[0.98]",
 };
 
 const sizeStyles: Record<Size, string> = {
