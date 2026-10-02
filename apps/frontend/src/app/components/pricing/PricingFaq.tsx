@@ -11,7 +11,7 @@ const faqs = [
     id: "free-limits",
     question: "How many trips can I plan on the Free plan?",
     answer:
-      "7 AI trip plans per month, resetting on the 1st. Need more? Premium raises that to 100/month.",
+      "2 AI trip plans per month, resetting on the 1st. Need more? Premium raises that to 100/month.",
   },
   {
     id: "cancel",

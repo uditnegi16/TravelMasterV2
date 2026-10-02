@@ -75,17 +75,17 @@ def no_burst_limit(monkeypatch):
     monkeypatch.setattr("shared.quota_guard.BURST_LIMIT", 10_000)
 
 
-def test_free_user_allowed_up_to_seven(fake_redis, free_user, no_burst_limit):
+def test_free_user_allowed_up_to_the_free_limit(fake_redis, free_user, no_burst_limit):
     from shared import quota_guard
 
-    for _ in range(7):
+    for _ in range(quota_guard.FREE_MONTHLY_LIMIT):
         quota_guard.check_and_increment_quota("acct-a", "clerk-a")  # should not raise
 
 
-def test_free_user_blocked_on_eighth_request(fake_redis, free_user, no_burst_limit):
+def test_free_user_blocked_one_past_the_free_limit(fake_redis, free_user, no_burst_limit):
     from shared import quota_guard
 
-    for _ in range(7):
+    for _ in range(quota_guard.FREE_MONTHLY_LIMIT):
         quota_guard.check_and_increment_quota("acct-a", "clerk-a")
 
     with pytest.raises(HTTPException) as exc_info:
@@ -124,7 +124,7 @@ def test_changing_session_id_does_not_reset_account_limit(fake_redis, free_user,
     """
     from shared import quota_guard
 
-    for _ in range(7):
+    for _ in range(quota_guard.FREE_MONTHLY_LIMIT):
         quota_guard.check_and_increment_quota("acct-a", "clerk-a")
 
     # "Changing session_id" has no effect since quota isn't keyed by
@@ -144,8 +144,8 @@ def test_concurrent_requests_at_last_slot_only_one_succeeds(fake_redis, free_use
     """
     from shared import quota_guard
 
-    # Use up 6 of the 7 free slots first -- exactly one remains.
-    for _ in range(6):
+    # Use up all but one free slot first -- exactly one remains.
+    for _ in range(quota_guard.FREE_MONTHLY_LIMIT - 1):
         quota_guard.check_and_increment_quota("acct-a", "clerk-a")
 
     results = []
@@ -178,10 +178,10 @@ def test_refund_gives_back_a_slot(fake_redis, free_user, no_burst_limit):
     """
     from shared import quota_guard
 
-    for _ in range(7):
+    for _ in range(quota_guard.FREE_MONTHLY_LIMIT):
         quota_guard.check_and_increment_quota("acct-a", "clerk-a")
 
-    # The 7th request failed outright -- refund it.
+    # The last request failed outright -- refund it.
     quota_guard.refund_quota("acct-a")
 
     # Should succeed again now that the slot was given back.
@@ -214,4 +214,14 @@ def test_get_quota_status_does_not_increment(fake_redis, free_user, no_burst_lim
 
     assert status_before == status_after
     assert status_before["used"] == 1
-    assert status_before["remaining"] == 6
+    assert status_before["remaining"] == quota_guard.FREE_MONTHLY_LIMIT - 1
+
+
+def test_free_limit_is_two():
+    """The product decision itself: free accounts get 2 trip plans a
+    month (lowered from 7). If this changes, update the pricing page
+    copy too -- PricingPlans.tsx, PricingFaq.tsx, ComparisonTable.tsx."""
+    from shared import quota_guard
+
+    assert quota_guard.FREE_MONTHLY_LIMIT == 2
+    assert quota_guard.PREMIUM_MONTHLY_LIMIT == 100

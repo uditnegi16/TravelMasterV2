@@ -248,7 +248,7 @@ def post_message(
     )
 
     # Issue 5: only NEW_TRIP/MODIFY_TRIP consume quota -- these are the
-    # actual "trip plans" the 7/100 monthly numbers describe.
+    # actual "trip plans" the 2/100 monthly numbers describe.
     # FOLLOW_UP/GENERAL_CHAT are lightweight conversation about an
     # existing trip, free either way, consistent with Issue 1's guest
     # design (a full conversation about one trip, not just one message).
@@ -430,6 +430,68 @@ def download_trip_pdf(
     # gets the URL as data and does its own window.open(), a top-level
     # navigation that never needs CORS at all.
     return {"url": presigned_url}
+# What a public share link exposes from a stored trip -- exactly the
+# fields the frontend's Trip model / share page uses, nothing else.
+_SHARED_TRIP_FIELDS = (
+    "summary",
+    "recommended",
+    "itinerary",
+    "multi_itineraries",
+    "flights",
+    "hotels",
+    "places",
+    "weather",
+    "parsed_trip",
+)
+
+# Last-resort frontend address if nothing else is configured.
+_DEFAULT_APP_URL = "https://travel.uditnegi.com"
+
+
+def _allowed_frontend_origins() -> list[str]:
+    """Same list main.py uses for CORS and core/auth.py for Clerk's azp
+    check -- the frontends this API actually trusts."""
+    return [
+        o.strip().rstrip("/")
+        for o in os.getenv("CLERK_AUTHORIZED_PARTIES", "").split(",")
+        if o.strip()
+    ]
+
+
+def _share_base_url(request: Request) -> str:
+    """
+    Which site a share link should open on.
+
+    Share links used to fall back to the old Amplify address whenever
+    APP_URL wasn't set (it never was in production). Once API Gateway
+    CORS was locked to https://travel.uditnegi.com, a page opened on that
+    old address could no longer load the trip -- so every share link
+    broke while PDFs kept working.
+
+    Order:
+      1. APP_URL, if explicitly configured.
+      2. The Origin of the request -- the site the user is sharing from --
+         but ONLY if it's one of the trusted frontends (so a forged
+         Origin can't make the link point somewhere else).
+      3. The first trusted https frontend.
+      4. The production domain.
+    """
+    explicit = os.getenv("APP_URL", "").strip().rstrip("/")
+    if explicit:
+        return explicit
+
+    allowed = _allowed_frontend_origins()
+    origin = (request.headers.get("origin") or "").strip().rstrip("/")
+    if origin and origin in allowed:
+        return origin
+
+    for candidate in allowed:
+        if candidate.startswith("https://"):
+            return candidate
+
+    return _DEFAULT_APP_URL
+
+
 @router.post("/messages/{message_id}/share")
 def create_share_link(
     request: Request,
@@ -450,14 +512,8 @@ def create_share_link(
     # plaintext to return even if one already existed).
     token = chat_service.create_share_token(message_id)
 
-    # APP_URL, if configured, wins -- request.base_url reflects
-    # whatever domain the API itself is reached at (the backend's
-    # domain), not the frontend's, so it was never actually correct
-    # here even before the hardcoded-localhost bug.
-    base = os.getenv("APP_URL") or "https://main.d2dqny356lcrsz.amplifyapp.com"
-
     return {
-        "url": f"{base}/share/{token}",
+        "url": f"{_share_base_url(request)}/share/{token}",
     }
 @router.get("/share/{token}")
 def get_shared_trip(
@@ -478,7 +534,12 @@ def get_shared_trip(
             detail="This share link is invalid or has expired.",
         )
 
+    # Data minimisation: this endpoint is public, so return only the
+    # trip fields the share page actually renders -- not internal
+    # planner state (flight_categories alone can be ~0.5 MB of raw
+    # airline offers, plus hotel_budget / conversation_type).
+    trip = message.get("trip_data") or {}
     return {
-        "trip": message.get("trip_data"),
+        "trip": {k: trip[k] for k in _SHARED_TRIP_FIELDS if k in trip},
         "summary": message.get("content"),
     }

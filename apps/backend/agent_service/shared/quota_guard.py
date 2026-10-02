@@ -5,7 +5,7 @@ Two independent, separately-enforced limits (per the backlog's own
 requirement to keep these distinct):
   - Burst protection: short-window request-rate limiting, applies
     regardless of plan tier or whether requests succeed.
-  - Monthly quota: the actual product entitlement (7/month free,
+  - Monthly quota: the actual product entitlement (2/month free,
     100/month premium -- V1's real numbers, confirmed 2026-07-31).
     Only real, billable trip-planning turns count -- a request that
     fails outright before producing any output is refunded.
@@ -39,7 +39,12 @@ from fastapi import HTTPException
 from core.redis_client import redis_client
 from shared.subscription_guard import subscription_guard
 
-FREE_MONTHLY_LIMIT = 7
+# Lowered from 7 to 2 (Oct 2026) to cap free-tier API cost while the
+# demo video drives traffic. Everything else -- tests, the 429 message,
+# /chat/quota and the account dashboard -- reads this constant, so this
+# is the only number to change. Keep the pricing page copy in sync
+# (frontend: PricingPlans.tsx, PricingFaq.tsx, ComparisonTable.tsx).
+FREE_MONTHLY_LIMIT = 2
 PREMIUM_MONTHLY_LIMIT = 100
 
 BURST_LIMIT = 3

@@ -7,7 +7,7 @@ import { cn } from "../../../lib/cn";
 import { createOrder, verifyPayment } from "../../services/api";
 
 const freeFeatures = [
-  "7 AI trip plans per month",
+  "2 AI trip plans per month",
   "Real flight & hotel search",
   "Voice input",
   "PDF export & trip sharing",
